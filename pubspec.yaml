@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Release version. Bump on `dev` via PR; merging to `main` creates tag v<version-without-build>.
 # Build number (+N) is overridden in CI by the workflow run number.
-version: 0.0.1-alpha+1
+version: 0.0.2-alpha+1
 
 environment:
   sdk: ^3.13.7
@@ -22,3 +22,17 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Bundled fonts: the app must never fetch fonts at runtime (offline, no network).
+  # Barlow Semi Condensed: SIL OFL 1.1 (assets/fonts/OFL.txt).
+  # WCalcSymbols: subset of Noto Sans Math, SIL OFL 1.1.
+  fonts:
+    - family: Barlow
+      fonts:
+        - asset: assets/fonts/BarlowSemiCondensed-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/BarlowSemiCondensed-Bold.ttf
+          weight: 700
+    - family: WCalcSymbols
+      fonts:
+        - asset: assets/fonts/WCalcSymbols.ttf
