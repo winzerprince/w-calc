@@ -4,6 +4,7 @@ import 'angle_unit.dart';
 import 'calc_key.dart';
 import 'display_state.dart';
 import 'eval/evaluator.dart';
+import 'eval/solve.dart';
 import 'format/number_format.dart';
 import 'format/value_format.dart';
 import 'input/token.dart';
@@ -85,6 +86,28 @@ const _variableKeys = {
   CalcKey.comma: Tok.varY,
 };
 
+/// CALC / SOLVE session: the stored expression and its variable prompts.
+class _EquationSession {
+  _EquationSession({
+    required this.solve,
+    required this.tokens,
+    required this.variables,
+  });
+
+  final bool solve;
+  final List<Tok> tokens;
+
+  /// Variables to prompt for, in order of first appearance.
+  final List<Tok> variables;
+  int index = 0;
+
+  /// Value being typed at the current prompt.
+  List<Tok> typed = [];
+
+  /// True while prompting; false while the result is shown.
+  bool prompting = true;
+}
+
 /// Key-driven calculator state machine (COMP mode so far).
 class Calculator {
   Calculator({math.Random? random}) : _random = random ?? math.Random();
@@ -131,6 +154,11 @@ class Calculator {
 
   final List<_Entry> _history = [];
   int? _browse; // history index shown in the result phase
+
+  _EquationSession? _equation;
+
+  /// CONST / CONV number entry: (is CONV, digits typed so far).
+  (bool, String)? _codePrompt;
 
   /// Multi-statement execution: statement ranges and the one shown.
   List<(int, int)> _statements = const [];
@@ -180,6 +208,34 @@ class Calculator {
       if (showScroll && browse < _history.length - 1) Indicator.scrollDown,
       if (_midMulti) Indicator.disp,
     };
+    final eq = _equation;
+    if (eq != null && eq.prompting) {
+      final name = eq.variables[eq.index].text;
+      if (eq.typed.isEmpty) {
+        final current = formatValue(_vars[name] ?? Value.zero, _settings);
+        return DisplayState(
+          upper: '$name?',
+          lower: current.mantissa,
+          exponent: current.exponent,
+          indicators: indicators,
+        );
+      }
+      final typed = eq.typed.map((t) => t.text).join();
+      return DisplayState(
+        upper: name,
+        lower: typed.contains('.') || typed.contains('E') ? typed : '$typed.',
+        indicators: indicators,
+      );
+    }
+    final code = _codePrompt;
+    if (code != null) {
+      final (conv, digits) = code;
+      return DisplayState(
+        upper: '${conv ? 'CONV' : 'CONST'}${digits.padRight(2, '-')}',
+        lower: '',
+        indicators: indicators,
+      );
+    }
     final menu = _menu;
     if (menu != null) {
       return DisplayState(
@@ -231,6 +287,11 @@ class Calculator {
       _powerOn();
       return;
     }
+    if (_codePrompt != null) {
+      _pressCode(key);
+      return;
+    }
+    if (_equation != null && _pressEquation(key)) return;
     if (_menu != null) {
       _pressInMenu(key);
       return;
@@ -274,6 +335,16 @@ class Calculator {
         _menu = _clrMenu;
       case (_Modifier.shift, CalcKey.ans):
         _menu = _drgMenu;
+      case (_Modifier.none, CalcKey.calc):
+        _startEquation(solve: false);
+      case (_Modifier.shift, CalcKey.calc):
+        _startEquation(solve: true);
+      case (_Modifier.alpha, CalcKey.calc):
+        _enter(Tok.eqSign);
+      case (_Modifier.none, CalcKey.constant):
+        _codePrompt = (false, '');
+      case (_Modifier.shift, CalcKey.constant):
+        _codePrompt = (true, '');
       case (_Modifier.shift, CalcKey.rcl):
         _pending = _Pending.sto;
       case (_Modifier.none, CalcKey.rcl):
@@ -345,7 +416,11 @@ class Calculator {
       CalcKey.divide => shift ? Tok.nCr : Tok.divide,
       CalcKey.exp => shift ? Tok.pi : Tok.exp,
       CalcKey.dot => shift ? Tok.ran : Tok.point,
+      CalcKey.add when shift => Tok.pol,
+      CalcKey.integrate => shift ? Tok.derivative : Tok.integral,
+      CalcKey.subtract when shift => Tok.rec,
       _ when shift => null,
+      CalcKey.comma => Tok.comma,
       CalcKey.fraction => Tok.fracSep,
       CalcKey.degMinSec => Tok.dms,
       CalcKey.add => Tok.add,
@@ -412,6 +487,264 @@ class Calculator {
     }
     _input(tok);
   }
+
+  /// Two-digit CONST / CONV number; 01-40 inserts the token, AC cancels.
+  void _pressCode(CalcKey key) {
+    final (conv, digits) = _codePrompt!;
+    _modifier = _Modifier.none;
+    if (key == CalcKey.ac) {
+      _codePrompt = null;
+      return;
+    }
+    final d = key.digit;
+    if (d == null) return;
+    if (digits.isEmpty) {
+      if (d <= 4) _codePrompt = (conv, '$d');
+      return;
+    }
+    final n = int.parse('$digits$d');
+    if (n < 1 || n > 40) return;
+    _codePrompt = null;
+    _enter((conv ? Tok.conversions : Tok.constants)[n - 1]);
+  }
+
+  // ------------------------------------------------------------------ CALC / SOLVE
+
+  /// Starts CALC or SOLVE on the expression being edited / last calculated.
+  void _startEquation({required bool solve}) {
+    if (_tokens.isEmpty || _phase == _Phase.error) return;
+    final tokens = List.of(_tokens);
+    final assigned =
+        !solve &&
+            tokens.length > 1 &&
+            tokens[0].kind == TokKind.variable &&
+            tokens[1] == Tok.eqSign
+        ? tokens[0]
+        : null;
+    final variables = <Tok>[];
+    for (var i = 0; i < tokens.length; i++) {
+      final t = tokens[i];
+      if (t.kind == TokKind.variable &&
+          !variables.contains(t) &&
+          !(i == 0 && t == assigned)) {
+        variables.add(t);
+      }
+    }
+    _insert = false;
+    _phase = _Phase.editing;
+    final session = _EquationSession(
+      solve: solve,
+      tokens: tokens,
+      variables: variables,
+    );
+    _equation = session;
+    if (variables.isEmpty) {
+      if (solve) {
+        _endEquation();
+        _showError(const CalcError(CalcErrorKind.syntax));
+      } else {
+        _calcResult(session);
+      }
+    }
+  }
+
+  /// Handles a key during CALC/SOLVE. Returns false to let normal handling
+  /// take the key (the session has then ended).
+  bool _pressEquation(CalcKey key) {
+    final eq = _equation!;
+    final modifier = _modifier;
+    if (key == CalcKey.shift || key == CalcKey.alpha) return false;
+    _modifier = _Modifier.none;
+    if (key == CalcKey.ac) {
+      _endEquation();
+      _clearInput();
+      _setResult(Value.zero);
+      _resultValue = null;
+      return true;
+    }
+    final solveKey = modifier == _Modifier.shift && key == CalcKey.calc;
+    if (!eq.prompting) {
+      // Result shown: CALC / = (CALC) or SOLVE restart the prompts.
+      if ((!eq.solve &&
+              modifier == _Modifier.none &&
+              (key == CalcKey.calc || key == CalcKey.equals)) ||
+          (eq.solve && (solveKey || key == CalcKey.equals))) {
+        eq.prompting = true;
+        eq.typed = [];
+        if (!eq.solve) eq.index = 0;
+        return true;
+      }
+      _endEquation();
+      return false;
+    }
+    if (modifier == _Modifier.none) {
+      final d = key.digit;
+      final tok = d != null
+          ? Tok.digits[d]
+          : switch (key) {
+              CalcKey.dot => Tok.point,
+              CalcKey.exp => Tok.exp,
+              CalcKey.negative => Tok.negative,
+              _ => null,
+            };
+      if (tok != null) {
+        if (eq.typed.length < 20) eq.typed.add(tok);
+        return true;
+      }
+    }
+    switch ((modifier, key)) {
+      case (_Modifier.none, CalcKey.del):
+        if (eq.typed.isNotEmpty) eq.typed.removeLast();
+      case (_Modifier.none, CalcKey.equals):
+        if (!_commitTyped(eq)) return true;
+        if (eq.index < eq.variables.length - 1) {
+          eq.index++;
+        } else if (!eq.solve) {
+          _calcResult(eq);
+        }
+      case (_Modifier.none, CalcKey.up) when eq.solve:
+        eq.typed = [];
+        if (eq.index > 0) eq.index--;
+      case (_Modifier.none, CalcKey.down) when eq.solve:
+        eq.typed = [];
+        if (eq.index < eq.variables.length - 1) eq.index++;
+      case _ when solveKey && eq.solve:
+        if (_commitTyped(eq)) _solve(eq);
+      default:
+        break; // Other keys are ignored while prompting.
+    }
+    return true;
+  }
+
+  /// Stores the typed value into the prompted variable. False on bad input.
+  bool _commitTyped(_EquationSession eq) {
+    if (eq.typed.isEmpty) return true;
+    try {
+      final v = evaluateValue(eq.typed, EvalContext(ans: _ans));
+      _vars[eq.variables[eq.index].text] = v;
+      eq.typed = [];
+      return true;
+    } on CalcError catch (e) {
+      _endEquation();
+      _showError(CalcError(e.kind));
+      return false;
+    }
+  }
+
+  EvalContext _context() => EvalContext(
+    ans: _ans,
+    angle: _angle,
+    format: _format,
+    variables: _vars,
+    improperFractions: _settings.improperFractions,
+    store: (name, value) => _vars[name] = value,
+    random: _random,
+  );
+
+  void _calcResult(_EquationSession eq) {
+    var tokens = eq.tokens;
+    Tok? target;
+    if (tokens.length > 1 &&
+        tokens[0].kind == TokKind.variable &&
+        tokens[1] == Tok.eqSign) {
+      target = tokens[0];
+      tokens = tokens.sublist(2);
+    }
+    try {
+      // Multi-statements: evaluate in order, show the last result.
+      var start = 0;
+      Value? value;
+      for (var i = 0; i <= tokens.length; i++) {
+        if (i == tokens.length || tokens[i] == Tok.colon) {
+          final part = tokens.sublist(start, i);
+          value = _guardedEval(part, start + (target == null ? 0 : 2));
+          _ans = value;
+          start = i + 1;
+        }
+      }
+      if (target != null) _vars[target.text] = value!;
+      _setResult(value!);
+      _tokens = List.of(eq.tokens);
+      _cursor = _tokens.length;
+      _phase = _Phase.result;
+      eq.prompting = false;
+    } on CalcError catch (e) {
+      _endEquation();
+      _tokens = List.of(eq.tokens);
+      _showError(e);
+    }
+  }
+
+  Value _guardedEval(List<Tok> tokens, int offset) {
+    try {
+      return evaluateValue(tokens, _context());
+    } on CalcError catch (e) {
+      throw CalcError(e.kind, offset + (e.position ?? 0));
+    }
+  }
+
+  void _solve(_EquationSession eq) {
+    final variable = eq.variables[eq.index];
+    final tokens = eq.tokens;
+    final forbidden = tokens.any(
+      (t) =>
+          t == Tok.integral ||
+          t == Tok.derivative ||
+          t == Tok.pol ||
+          t == Tok.rec ||
+          t == Tok.colon,
+    );
+    final eqAt = tokens.indexOf(Tok.eqSign);
+    if (forbidden || tokens.lastIndexOf(Tok.eqSign) != eqAt) {
+      _endEquation();
+      _tokens = List.of(tokens);
+      _showError(const CalcError(CalcErrorKind.syntax));
+      return;
+    }
+    final left = eqAt < 0 ? tokens : tokens.sublist(0, eqAt);
+    final right = eqAt < 0 ? const <Tok>[] : tokens.sublist(eqAt + 1);
+    Dec f(Dec x) {
+      final saved = _vars[variable.text];
+      _vars[variable.text] = Value.dec(x);
+      try {
+        final l = evaluateValue(left, _context()).dec;
+        final r = right.isEmpty
+            ? Dec.zero
+            : evaluateValue(right, _context()).dec;
+        return l - r;
+      } finally {
+        if (saved == null) {
+          _vars.remove(variable.text);
+        } else {
+          _vars[variable.text] = saved;
+        }
+      }
+    }
+
+    try {
+      final start = (_vars[variable.text] ?? Value.zero).dec;
+      final x = newtonSolve(f, start);
+      final v = Value.dec(x);
+      _vars[variable.text] = v;
+      _ans = v;
+      _setResult(v);
+      _tokens = [variable];
+      _cursor = 1;
+      _upperOverride = '${variable.text}=';
+      _phase = _Phase.result;
+      eq.prompting = false;
+    } on CalcError catch (e) {
+      _endEquation();
+      _tokens = List.of(tokens);
+      _showError(
+        CalcError(
+          e.kind == CalcErrorKind.cantSolve ? e.kind : CalcErrorKind.cantSolve,
+        ),
+      );
+    }
+  }
+
+  void _endEquation() => _equation = null;
 
   // ------------------------------------------------------------------ menus
 
@@ -617,6 +950,7 @@ class Calculator {
           format: _format,
           variables: _vars,
           improperFractions: _settings.improperFractions,
+          store: (name, value) => _vars[name] = value,
           random: _random,
         ),
       );
@@ -788,7 +1122,9 @@ class Calculator {
 
   /// ON: clears the screen and calculation history; memories stay.
   void _powerOn() {
+    _equation = null;
     _menu = null;
+    _codePrompt = null;
     _modifier = _Modifier.none;
     _hyp = false;
     _pending = _Pending.none;

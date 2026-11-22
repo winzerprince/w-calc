@@ -328,3 +328,33 @@ Dec combinationDec(Dec n, Dec r) {
   }
   return Dec(c, 0);
 }
+
+// ---------------------------------------------------------------- coordinates
+
+final _coordLimit = Dec.parse('9.999999999e99');
+
+/// Pol(x, y) → (r, θ) with θ in (−180°, 180°] (in [u]).
+(Dec, Dec) polarDec(Dec x, Dec y, AngleUnit u) {
+  if (x.abs() > _coordLimit || y.abs() > _coordLimit) _mathError();
+  final wx = _w(x), wy = _w(y);
+  final r = WideMath.sqrt(wx * wx + wy * wy).toDec();
+  if (r > _coordLimit) _mathError();
+  Wide theta;
+  if (wx.isZero) {
+    theta = wy.isZero ? Wide.zero : Wide.pi * Wide.half * _wi(wy.sign);
+  } else {
+    theta = WideMath.atan(wy / wx);
+    if (wx.isNegative) {
+      theta = wy.isNegative ? theta - Wide.pi : theta + Wide.pi;
+    }
+  }
+  return (r, _fromRadians(theta, u));
+}
+
+/// Rec(r, θ) → (x, y).
+(Dec, Dec) rectangularDec(Dec r, Dec theta, AngleUnit u) {
+  if (r.isNegative || r > _coordLimit) _mathError();
+  final (s, c) = _sinCos(theta, u);
+  final wr = _w(r);
+  return ((wr * c).toDec(), (wr * s).toDec());
+}

@@ -43,3 +43,14 @@ how to verify on the device, result.
 | 36 | °′″ after a decimal result | does nothing (SHIFT °′″ converts to sexagesimal); after a sexagesimal result converts to decimal | `2.258 = °′″` | to verify |
 | 37 | EngON display | symbol drawn small in the exponent area; `5` stays `5.`; values outside f…T use normal exponent display | `9 ÷ 10 =` | to verify |
 | 38 | Disp screen | shows `Disp` only (contrast `◀CONT▶` not emulated) | MODE ×6 | — |
+| 39 | Constant values | CODATA 2010 (2nd-ed. manual); older editions may use older CODATA values | `CONST 06 =` (h) → `6.62606957`⁻³⁴ ? | to verify on your edition |
+| 40 | CONST/CONV prompt | `CONST--` / `CONV--`, digits fill in; first digit 0-4 only; numbers outside 01-40 ignored | `CONST 2 8` | to verify |
+| 41 | Conversion factors | NIST SP 811 (hp = 745.6999 W, calorie at 15 °C = 4.1855 J, pc = 3.085678e16 m, mmHg = 133.3224 Pa) | `1 CONV 29 =` | to verify |
+| 42 | ∫ partitions omitted | Simpson with N = 2, 4, … doubling until two results agree to 1e-12 (max 2⁹) | `∫dx sin X , 0 , π )` (Rad) | to verify speed/result |
+| 43 | d/dx Δx omitted | central difference with Richardson step, h = 10⁻³·max(1,|a|) | `d/dx X³ , 2 )` | — |
+| 44 | ∫( / d/dx( text | shown as `∫(` and `d/dx(` | press ∫dx | to verify |
+| 45 | CALC prompts | `A?` + current value; while typing the upper line shows `A` and the result line the typed value; `=` keeps the current value if nothing typed; after the last prompt the result shows with the expression | `3A+B CALC` | to verify |
+| 46 | CALC with multi-statements | evaluates all statements and shows the last result (device may step with =) | `X+1:X×2 CALC` | to verify |
+| 47 | SOLVE prompts | every variable in order of appearance; `=` stores and moves on (stays on the last); ▲▼ move; SHIFT CALC solves for the variable on screen using its value as the start | manual example | to verify |
+| 48 | SOLVE result | `X=` and the solution; stored in the variable and Ans | | to verify |
+| 49 | Can't Solve | after 150 Newton steps without convergence | `X² + 1 SOLVE` | to verify message text |

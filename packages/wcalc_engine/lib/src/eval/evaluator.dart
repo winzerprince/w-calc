@@ -4,9 +4,11 @@ import '../angle_unit.dart';
 import '../format/number_format.dart';
 import '../input/token.dart';
 import '../number/dec.dart';
+import '../number/constants.dart';
 import '../number/frac.dart';
 import '../number/functions.dart';
 import '../number/value.dart';
+import '../number/wide.dart';
 
 /// Priority levels from the device's "calculation priority sequence".
 /// Lower number = binds tighter. Equal levels evaluate left to right.
@@ -45,6 +47,7 @@ class EvalContext {
     this.format = const DisplayFormat.norm1(),
     this.variables = const {},
     this.improperFractions = false,
+    this.store,
     math.Random? random,
   }) : ans = ans ?? Value.zero,
        random = random ?? math.Random();
@@ -60,6 +63,9 @@ class EvalContext {
 
   /// d/c display setting: mixed-fraction input is a Syntax ERROR.
   final bool improperFractions;
+
+  /// Receives values functions write to variables (Pol/Rec → E, F).
+  final void Function(String name, Value value)? store;
   final math.Random random;
 }
 
@@ -139,13 +145,27 @@ T _guarded<T>(int offset, T Function() body) {
 enum _OpType { paren, binary, prefix }
 
 class _Op {
-  const _Op(this.type, this.priority, this.pos, [this.apply2, this.apply1]);
+  _Op(
+    this.type,
+    this.priority,
+    this.pos, [
+    this.apply2,
+    this.apply1,
+    this.function,
+    this.valueBase = 0,
+  ]);
 
   final _OpType type;
   final int priority;
   final int pos;
   final Value Function(Value, Value)? apply2;
   final Value Function(Value)? apply1;
+
+  /// For parentheses opened by a function token (Pol(, Rec( …).
+  final Tok? function;
+
+  /// Values below this index belong to the enclosing expression.
+  final int valueBase;
 }
 
 Value _mul(Value a, Value b) => a * b;
@@ -235,7 +255,30 @@ class _Evaluator {
           // functions, so they apply to the value just completed.
           if (expectOperand) _syntax(i);
           _guard(i, () => values.add(_postfixFn(tok)(values.removeLast())));
-        case TokKind.separator || TokKind.literalMark || TokKind.percent:
+        case TokKind.function when tok == Tok.integral || tok == Tok.derivative:
+          if (!expectOperand) {
+            _pushBinary(_Op(_OpType.binary, Priority.impliedFunction, i, _mul));
+          }
+          i = _calculus(i);
+          expectOperand = false;
+          continue;
+        case TokKind.function:
+          if (!expectOperand) {
+            _pushBinary(_Op(_OpType.binary, Priority.impliedFunction, i, _mul));
+          }
+          _pushOp(_Op(_OpType.paren, 0, i, null, null, tok, values.length));
+          expectOperand = true;
+        case TokKind.comma:
+          if (expectOperand) _syntax(i);
+          while (ops.isNotEmpty && ops.last.type != _OpType.paren) {
+            _apply(ops.removeLast());
+          }
+          if (ops.isEmpty || ops.last.function == null) _syntax(i);
+          expectOperand = true;
+        case TokKind.separator ||
+            TokKind.literalMark ||
+            TokKind.percent ||
+            TokKind.equation:
           _syntax(i); // Handled by literal parsing / the calculator.
         case TokKind.closeParen:
           if (expectOperand) _syntax(i);
@@ -243,7 +286,7 @@ class _Evaluator {
             _apply(ops.removeLast());
           }
           if (ops.isEmpty) _syntax(i);
-          ops.removeLast();
+          _closeParen(ops.removeLast(), i);
           expectOperand = false;
       }
       i++;
@@ -251,11 +294,114 @@ class _Evaluator {
     if (expectOperand) _syntax(tokens.length);
     while (ops.isNotEmpty) {
       final op = ops.removeLast();
-      if (op.type != _OpType.paren) {
-        _apply(op); // Missing ")" at the end is allowed.
+      // Missing ")" at the end is allowed.
+      if (op.type == _OpType.paren) {
+        _closeParen(op, tokens.length);
+      } else {
+        _apply(op);
       }
     }
     return values.single;
+  }
+
+  /// ∫( f, a, b[, n] ) and d/dx( f, a[, Δx] ): the first argument is an
+  /// expression in X evaluated repeatedly. Returns the index after `)`.
+  int _calculus(int start) {
+    final args = <(int, int)>[]; // token ranges
+    var depth = 0, argStart = start + 1, end = tokens.length;
+    for (var j = start + 1; j < tokens.length; j++) {
+      final t = tokens[j];
+      if (t == Tok.openParen || t.kind == TokKind.function) depth++;
+      if (t == Tok.closeParen) {
+        if (depth == 0) {
+          end = j;
+          break;
+        }
+        depth--;
+      }
+      if (t == Tok.comma && depth == 0) {
+        args.add((argStart, j));
+        argStart = j + 1;
+      }
+    }
+    args.add((argStart, end));
+    final integral = tokens[start] == Tok.integral;
+    final (minArgs, maxArgs) = integral ? (3, 4) : (2, 3);
+    if (args.length < minArgs || args.length > maxArgs) _syntax(end);
+    for (final (a, b) in args) {
+      if (a == b) _syntax(a);
+    }
+
+    Dec number(int k) {
+      final (a, b) = args[k];
+      return _guarded(a, () => _Evaluator(tokens.sublist(a, b), ctx).run().dec);
+    }
+
+    final (fa, fb) = args[0];
+    final body = tokens.sublist(fa, fb);
+    Wide f(Wide x) => Wide.fromDec(
+      _guarded(
+        fa,
+        () => _Evaluator(
+          body,
+          EvalContext(
+            ans: ctx.ans,
+            angle: ctx.angle,
+            format: ctx.format,
+            variables: {...ctx.variables, 'X': Value.dec(x.toDec())},
+            improperFractions: ctx.improperFractions,
+            random: ctx.random,
+          ),
+        ).run().dec,
+      ),
+    );
+
+    late Dec result;
+    if (integral) {
+      final a = number(1), b = number(2);
+      int? n;
+      if (args.length == 4) {
+        final nd = number(3);
+        if (!nd.isInteger || nd < Dec.one || nd > Dec.fromInt(9)) {
+          throw CalcError(CalcErrorKind.math, args[3].$1);
+        }
+        n = nd.toInt();
+      }
+      result = _guarded(
+        start,
+        () => _simpson(f, Wide.fromDec(a), Wide.fromDec(b), n),
+      );
+    } else {
+      final a = number(1);
+      final h = args.length == 3 ? number(2) : null;
+      result = _guarded(start, () => _derivative(f, Wide.fromDec(a), h));
+    }
+    _pushValue(Value.dec(result), start);
+    return end < tokens.length ? end + 1 : end;
+  }
+
+  /// Closes a parenthesis; for a function, applies it to its arguments.
+  void _closeParen(_Op paren, int pos) {
+    final f = paren.function;
+    if (f == null) return;
+    final args = values.sublist(paren.valueBase);
+    values.removeRange(paren.valueBase, values.length);
+    _guard(paren.pos, () => values.add(_callFunction(f, args, pos)));
+  }
+
+  Value _callFunction(Tok f, List<Value> args, int pos) {
+    switch (f) {
+      case Tok.pol || Tok.rec:
+        if (args.length != 2) _syntax(pos);
+        final (a, b) = f == Tok.pol
+            ? polarDec(args[0].dec, args[1].dec, ctx.angle)
+            : rectangularDec(args[0].dec, args[1].dec, ctx.angle);
+        ctx.store?.call('E', Value.dec(a));
+        ctx.store?.call('F', Value.dec(b));
+        return Value.dec(a);
+      default:
+        throw ArgumentError('not a function: $f');
+    }
   }
 
   Value _operandValue(Tok tok) => switch (tok) {
@@ -263,6 +409,9 @@ class _Evaluator {
     Tok.pi => Value.dec(piConstant),
     Tok.e => Value.dec(eConstant),
     Tok.ran => Value.dec(Dec(BigInt.from(ctx.random.nextInt(1000)), -3)),
+    _ when tok.name.startsWith('const') => Value.dec(
+      constantValues[Tok.constants.indexOf(tok)],
+    ),
     _ when tok.kind == TokKind.variable =>
       ctx.variables[tok.text] ?? Value.zero,
     _ => throw ArgumentError('not an operand: $tok'),
@@ -437,6 +586,9 @@ class _Evaluator {
     final u = ctx.angle;
     final eng = _engExponents[tok];
     if (eng != null) return _d1((a) => a * Dec(BigInt.one, eng));
+    if (tok.name.startsWith('conv')) {
+      return _d1((a) => _convert(Tok.conversions.indexOf(tok) + 1, a));
+    }
     return switch (tok) {
       Tok.square => (a) => a.powInt(2) ?? Value.dec(squareDec(a.dec)),
       Tok.cube => (a) => a.powInt(3) ?? Value.dec(cubeDec(a.dec)),
@@ -480,4 +632,60 @@ class _Evaluator {
     ),
     _ => throw ArgumentError('not a binary token: $tok'),
   };
+}
+
+/// CONV n applied to [x] (manual p.43-44).
+Dec _convert(int n, Dec x) {
+  if (n == 37) return (x - Dec.fromInt(32)) / Dec.parse('1.8'); // °F ▶ °C
+  if (n == 38) return x * Dec.parse('1.8') + Dec.fromInt(32); // °C ▶ °F
+  final (num, den) = conversionFactors[(n - 1) ~/ 2];
+  final a = Dec.parse(num), b = Dec.parse(den);
+  return n.isOdd ? x * a / b : x * b / a;
+}
+
+/// Simpson's rule with N = 2^[n] intervals; [n] null = increase N until the
+/// result settles (up to 2^9).
+Dec _simpson(Wide Function(Wide) f, Wide a, Wide b, int? n) {
+  if (a == b) return Dec.zero;
+  final width = b - a;
+  // Trapezoid sums T_k with 2^k intervals; Simpson S_k = (4T_k − T_{k−1}) / 3.
+  var intervals = 1;
+  var trapezoid = (f(a) + f(b)) * Wide.half * width;
+  Wide? previousSimpson;
+  final three = Wide.fromInt(3), four = Wide.fromInt(4);
+  for (var k = 1; k <= 9; k++) {
+    final h = width / Wide.fromInt(intervals * 2);
+    var midSum = Wide.zero;
+    for (var i = 0; i < intervals; i++) {
+      midSum = midSum + f(a + h * Wide.fromInt(2 * i + 1));
+    }
+    final next = trapezoid * Wide.half + h * midSum;
+    final simpson = (four * next - trapezoid) / three;
+    trapezoid = next;
+    intervals *= 2;
+    if (n != null) {
+      if (k == n) return simpson.toDec();
+      continue;
+    }
+    final prev = previousSimpson;
+    if (prev != null && k >= 3) {
+      final diff = (simpson - prev).abs();
+      if (diff <= simpson.abs() * Wide.parse('1e-12') || diff.isZero) {
+        return simpson.toDec();
+      }
+    }
+    previousSimpson = simpson;
+  }
+  return previousSimpson!.toDec();
+}
+
+/// Central difference with one Richardson step: (4·D(h/2) − D(h)) / 3.
+Dec _derivative(Wide Function(Wide) f, Wide a, Dec? step) {
+  var h = step == null
+      ? Wide.parse('1e-3') * (a.abs() > Wide.one ? a.abs() : Wide.one)
+      : Wide.fromDec(step.abs());
+  if (h.isZero) h = Wide.parse('1e-3');
+  Wide central(Wide h) => (f(a + h) - f(a - h)) / (Wide.two * h);
+  final coarse = central(h), fine = central(h * Wide.half);
+  return ((Wide.fromInt(4) * fine - coarse) / Wide.fromInt(3)).toDec();
 }
