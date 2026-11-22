@@ -1,61 +1,89 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
-import 'keypad_layout.dart';
+import 'lcd/lcd_painter.dart';
 
-/// Two-line LCD. Skeleton rendering; dot-matrix / 7-segment painters come in the UI milestone.
-class Lcd extends StatelessWidget {
+/// Two-line LCD: indicator row, 12-column dot-matrix line, seven-segment result line.
+class Lcd extends StatefulWidget {
   const Lcd({super.key, required this.display});
 
   final DisplayState display;
 
-  static const _indicatorText = {
-    Indicator.shift: 'S',
-    Indicator.alpha: 'A',
-    Indicator.hyp: 'hyp',
-    Indicator.memory: 'M',
-    Indicator.sto: 'STO',
-    Indicator.rcl: 'RCL',
-    Indicator.deg: 'D',
-    Indicator.rad: 'R',
-    Indicator.gra: 'G',
-  };
+  /// Cursor blink half-period.
+  static const blinkInterval = Duration(milliseconds: 500);
+
+  @override
+  State<Lcd> createState() => _LcdState();
+}
+
+class _LcdState extends State<Lcd> {
+  Timer? _blink;
+  bool _cursorOn = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _restartBlink();
+  }
+
+  @override
+  void didUpdateWidget(Lcd old) {
+    super.didUpdateWidget(old);
+    // Any key press shows the cursor immediately, like the device.
+    _restartBlink();
+  }
+
+  void _restartBlink() {
+    _blink?.cancel();
+    _cursorOn = true;
+    if (widget.display.cursor == null) return;
+    _blink = Timer.periodic(Lcd.blinkInterval, (_) {
+      if (mounted) setState(() => _cursorOn = !_cursorOn);
+    });
+  }
+
+  @override
+  void dispose() {
+    _blink?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    const ink = TextStyle(color: WCalcColors.lcdInk, fontFamily: 'monospace');
-    final indicators = display.indicators
-        .map((i) => _indicatorText[i] ?? i.name.toUpperCase())
-        .join('  ');
-    return Container(
+    final d = widget.display;
+    final spoken = [
+      d.upper,
+      d.lower,
+      if (d.exponent != null) 'times ten to the ${d.exponent}',
+    ].where((s) => s.isNotEmpty).join(', ');
+    return Semantics(
       key: const Key('lcd'),
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-      decoration: BoxDecoration(
-        color: WCalcColors.lcd,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      label: spoken,
+      liveRegion: true,
+      child: Stack(
         children: [
-          SizedBox(
-            height: 14,
-            child: Text(
-              indicators,
-              key: const Key('lcd-indicators'),
-              style: ink.copyWith(fontSize: 11),
+          // Plain-text mirror of the display for tests and accessibility tooling.
+          Offstage(
+            child: Column(
+              children: [
+                Text(d.upper, key: const Key('lcd-upper')),
+                Text(d.lower, key: const Key('lcd-lower')),
+                if (d.exponent != null)
+                  Text(d.exponent!, key: const Key('lcd-exponent')),
+                Text(
+                  d.indicators.map((i) => i.name).join(' '),
+                  key: const Key('lcd-indicators'),
+                ),
+              ],
             ),
           ),
-          Text(
-            display.upper,
-            key: const Key('lcd-upper'),
-            style: ink.copyWith(fontSize: 22),
-            maxLines: 1,
-          ),
-          Text(
-            display.lower,
-            key: const Key('lcd-lower'),
-            textAlign: TextAlign.right,
-            style: ink.copyWith(fontSize: 34, fontWeight: FontWeight.w600),
+          AspectRatio(
+            aspectRatio: LcdPainter.aspectRatio,
+            child: CustomPaint(
+              painter: LcdPainter(display: d, cursorVisible: _cursorOn),
+            ),
           ),
         ],
       ),

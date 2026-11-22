@@ -13,6 +13,8 @@ class WCalcApp extends StatelessWidget {
       title: 'W-Calc',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        fontFamily: 'Barlow',
+        fontFamilyFallback: const ['WCalcSymbols'],
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2B2F3A)),
       ),
       home: const CalculatorScreen(),

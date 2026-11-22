@@ -62,7 +62,7 @@ const row1Left = [
 const row1Right = [
   KeySpec(
     CalcKey.reciprocal,
-    'x⁻¹',
+    'x^{-1}',
     above: [KeyLabel('x!', _s), KeyLabel('LOGIC', _b)],
   ),
   KeySpec(CalcKey.constant, 'CONST', above: [KeyLabel('CONV', _s)]),
@@ -71,26 +71,26 @@ const row1Right = [
 const functionRows = [
   [
     KeySpec(CalcKey.fraction, 'a b/c', above: [KeyLabel('d/c', _s)]),
-    KeySpec(CalcKey.sqrt, '√', above: [KeyLabel('∛', _s)]),
+    KeySpec(CalcKey.sqrt, '√', above: [KeyLabel('^{3}√', _s)]),
     KeySpec(
       CalcKey.square,
-      'x²',
-      above: [KeyLabel('x³', _s), KeyLabel('DEC', _b)],
+      'x^{2}',
+      above: [KeyLabel('x^{3}', _s), KeyLabel('DEC', _b)],
     ),
     KeySpec(
       CalcKey.power,
       '^',
-      above: [KeyLabel('ˣ√', _s), KeyLabel('HEX', _b)],
+      above: [KeyLabel('^{x}√', _s), KeyLabel('HEX', _b)],
     ),
     KeySpec(
       CalcKey.log,
       'log',
-      above: [KeyLabel('10ˣ', _s), KeyLabel('BIN', _b)],
+      above: [KeyLabel('10^{x}', _s), KeyLabel('BIN', _b)],
     ),
     KeySpec(
       CalcKey.ln,
       'ln',
-      above: [KeyLabel('eˣ', _s), KeyLabel('OCT', _b), KeyLabel('e', _a)],
+      above: [KeyLabel('e^{x}', _s), KeyLabel('OCT', _b), KeyLabel('e', _a)],
     ),
   ],
   [
@@ -108,17 +108,17 @@ const functionRows = [
     KeySpec(
       CalcKey.sin,
       'sin',
-      above: [KeyLabel('sin⁻¹', _s), KeyLabel('D', _a)],
+      above: [KeyLabel('sin^{-1}', _s), KeyLabel('D', _a)],
     ),
     KeySpec(
       CalcKey.cos,
       'cos',
-      above: [KeyLabel('cos⁻¹', _s), KeyLabel('E', _a)],
+      above: [KeyLabel('cos^{-1}', _s), KeyLabel('E', _a)],
     ),
     KeySpec(
       CalcKey.tan,
       'tan',
-      above: [KeyLabel('tan⁻¹', _s), KeyLabel('F', _a)],
+      above: [KeyLabel('tan^{-1}', _s), KeyLabel('F', _a)],
     ),
   ],
   [
@@ -256,11 +256,13 @@ const numberRows = [
 
 /// W-Calc "Classic" palette: our own colours, same meaning per label family.
 class WCalcColors {
-  static const body = Color(0xFF2B2F3A);
-  static const lcd = Color(0xFFB9C4A8);
-  static const lcdInk = Color(0xFF1E2318);
-  static const functionKey = Color(0xFF16181E);
-  static const digitKey = Color(0xFF9EA3AB);
+  static const background = Color(0xFF15171C);
+  static const bodyTop = Color(0xFF353A4A);
+  static const body = Color(0xFF262A36);
+  static const bezel = Color(0xFF1B1E26);
+  static const functionKey = Color(0xFF1A1C22);
+  static const digitKey = Color(0xFF9DA2AA);
+  static const operatorKey = Color(0xFF8E939C);
   static const clearKey = Color(0xFFB4505A);
   static const modifierKey = Color(0xFFD9D6CF);
 
