@@ -38,30 +38,46 @@ final Map<String, Set<Segment>> sevenSegmentMap = {
 /// Segments for [char]; unknown characters light nothing.
 Set<Segment> segmentsFor(String char) => sevenSegmentMap[char] ?? const {};
 
-/// One digit cell of the result line.
+/// One digit cell of the result line. Every cell has a dot and a comma tail
+/// after it; [point] lights the dot, [comma] lights dot + tail.
 class SegmentCell {
-  const SegmentCell(this.char, {this.point = false});
+  const SegmentCell(this.char, {this.point = false, this.comma = false});
 
   final String char;
-
-  /// Decimal point lit after this digit.
   final bool point;
+  final bool comma;
+
+  SegmentCell withPoint() => SegmentCell(char, point: true, comma: comma);
+  SegmentCell withComma() => SegmentCell(char, point: point, comma: true);
 }
 
-/// Splits a mantissa like `-6.666666667` into cells; points attach to the
-/// preceding digit. The minus sign occupies its own cell.
+/// Splits a mantissa like `-1,234.5` into cells: `.` lights the dot after the
+/// preceding digit, `,` lights dot + tail. The minus sign occupies its own cell.
 List<SegmentCell> toCells(String mantissa) {
   final cells = <SegmentCell>[];
   for (final ch in mantissa.split('')) {
     if (ch == '.' || ch == ',') {
-      if (cells.isEmpty) {
-        cells.add(const SegmentCell('0', point: true));
-      } else {
-        cells[cells.length - 1] = SegmentCell(cells.last.char, point: true);
-      }
+      if (cells.isEmpty) cells.add(const SegmentCell('0'));
+      final last = cells.removeLast();
+      cells.add(ch == '.' ? last.withPoint() : last.withComma());
     } else {
       cells.add(SegmentCell(ch));
     }
   }
   return cells;
+}
+
+/// Inserts 3-digit separators into the integer part (`1234567.5` → `1,234,567.5`).
+/// Only plain decimal numbers are grouped; anything else is returned unchanged.
+String groupDigits(String mantissa) {
+  final m = RegExp(r'^(-?)(\d+)(\..*)?$').firstMatch(mantissa);
+  if (m == null) return mantissa;
+  final digits = m.group(2)!;
+  final buf = StringBuffer(m.group(1) ?? "");
+  for (var i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 == 0) buf.write(',');
+    buf.write(digits[i]);
+  }
+  buf.write(m.group(3) ?? '');
+  return buf.toString();
 }
