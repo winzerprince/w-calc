@@ -132,6 +132,9 @@ class Calculator {
   final List<_Entry> _history = [];
   int? _browse; // history index shown in the result phase
 
+  /// CONST / CONV number entry: (is CONV, digits typed so far).
+  (bool, String)? _codePrompt;
+
   /// Multi-statement execution: statement ranges and the one shown.
   List<(int, int)> _statements = const [];
   int _statement = 0;
@@ -180,6 +183,15 @@ class Calculator {
       if (showScroll && browse < _history.length - 1) Indicator.scrollDown,
       if (_midMulti) Indicator.disp,
     };
+    final code = _codePrompt;
+    if (code != null) {
+      final (conv, digits) = code;
+      return DisplayState(
+        upper: '${conv ? 'CONV' : 'CONST'}${digits.padRight(2, '-')}',
+        lower: '',
+        indicators: indicators,
+      );
+    }
     final menu = _menu;
     if (menu != null) {
       return DisplayState(
@@ -231,6 +243,10 @@ class Calculator {
       _powerOn();
       return;
     }
+    if (_codePrompt != null) {
+      _pressCode(key);
+      return;
+    }
     if (_menu != null) {
       _pressInMenu(key);
       return;
@@ -274,6 +290,10 @@ class Calculator {
         _menu = _clrMenu;
       case (_Modifier.shift, CalcKey.ans):
         _menu = _drgMenu;
+      case (_Modifier.none, CalcKey.constant):
+        _codePrompt = (false, '');
+      case (_Modifier.shift, CalcKey.constant):
+        _codePrompt = (true, '');
       case (_Modifier.shift, CalcKey.rcl):
         _pending = _Pending.sto;
       case (_Modifier.none, CalcKey.rcl):
@@ -345,7 +365,10 @@ class Calculator {
       CalcKey.divide => shift ? Tok.nCr : Tok.divide,
       CalcKey.exp => shift ? Tok.pi : Tok.exp,
       CalcKey.dot => shift ? Tok.ran : Tok.point,
+      CalcKey.add when shift => Tok.pol,
+      CalcKey.subtract when shift => Tok.rec,
       _ when shift => null,
+      CalcKey.comma => Tok.comma,
       CalcKey.fraction => Tok.fracSep,
       CalcKey.degMinSec => Tok.dms,
       CalcKey.add => Tok.add,
@@ -411,6 +434,26 @@ class Calculator {
       }
     }
     _input(tok);
+  }
+
+  /// Two-digit CONST / CONV number; 01-40 inserts the token, AC cancels.
+  void _pressCode(CalcKey key) {
+    final (conv, digits) = _codePrompt!;
+    _modifier = _Modifier.none;
+    if (key == CalcKey.ac) {
+      _codePrompt = null;
+      return;
+    }
+    final d = key.digit;
+    if (d == null) return;
+    if (digits.isEmpty) {
+      if (d <= 4) _codePrompt = (conv, '$d');
+      return;
+    }
+    final n = int.parse('$digits$d');
+    if (n < 1 || n > 40) return;
+    _codePrompt = null;
+    _enter((conv ? Tok.conversions : Tok.constants)[n - 1]);
   }
 
   // ------------------------------------------------------------------ menus
@@ -617,6 +660,7 @@ class Calculator {
           format: _format,
           variables: _vars,
           improperFractions: _settings.improperFractions,
+          store: (name, value) => _vars[name] = value,
           random: _random,
         ),
       );
@@ -789,6 +833,7 @@ class Calculator {
   /// ON: clears the screen and calculation history; memories stay.
   void _powerOn() {
     _menu = null;
+    _codePrompt = null;
     _modifier = _Modifier.none;
     _hyp = false;
     _pending = _Pending.none;

@@ -30,6 +30,12 @@ enum TokKind {
 
   /// `%` (SHIFT =) at the end of a percent calculation.
   percent,
+
+  /// Argument separator inside function calls.
+  comma,
+
+  /// Function with parenthesised arguments: Pol(, Rec(, ∫(, d/dx(.
+  function,
 }
 
 /// One input step on the upper line. Each key press inserts one token, so
@@ -113,7 +119,91 @@ enum Tok {
   engMicro('μ', TokKind.postfix),
   engNano('n', TokKind.postfix),
   engPico('p', TokKind.postfix),
-  engFemto('f', TokKind.postfix);
+  engFemto('f', TokKind.postfix),
+  comma(',', TokKind.comma),
+  pol('Pol(', TokKind.function),
+  rec('Rec(', TokKind.function),
+  // Scientific constants (CONST 01-40) and metric conversions (CONV 01-40).
+  const01('mₚ', TokKind.constant),
+  const02('mₙ', TokKind.constant),
+  const03('mₑ', TokKind.constant),
+  const04('mμ', TokKind.constant),
+  const05('a₀', TokKind.constant),
+  const06('h', TokKind.constant),
+  const07('μN', TokKind.constant),
+  const08('μB', TokKind.constant),
+  const09('ℏ', TokKind.constant),
+  const10('α', TokKind.constant),
+  const11('rₑ', TokKind.constant),
+  const12('λc', TokKind.constant),
+  const13('γₚ', TokKind.constant),
+  const14('λcₚ', TokKind.constant),
+  const15('λcₙ', TokKind.constant),
+  const16('R∞', TokKind.constant),
+  const17('u', TokKind.constant),
+  const18('μₚ', TokKind.constant),
+  const19('μₑ', TokKind.constant),
+  const20('μₙ', TokKind.constant),
+  const21('μμ', TokKind.constant),
+  const22('F', TokKind.constant),
+  const23('e', TokKind.constant),
+  const24('NA', TokKind.constant),
+  const25('k', TokKind.constant),
+  const26('Vm', TokKind.constant),
+  const27('R', TokKind.constant),
+  const28('C₀', TokKind.constant),
+  const29('C₁', TokKind.constant),
+  const30('C₂', TokKind.constant),
+  const31('σ', TokKind.constant),
+  const32('ε₀', TokKind.constant),
+  const33('μ₀', TokKind.constant),
+  const34('Φ₀', TokKind.constant),
+  const35('g', TokKind.constant),
+  const36('G₀', TokKind.constant),
+  const37('Z₀', TokKind.constant),
+  const38('t', TokKind.constant),
+  const39('G', TokKind.constant),
+  const40('atm', TokKind.constant),
+  conv01('in▶cm', TokKind.postfix),
+  conv02('cm▶in', TokKind.postfix),
+  conv03('ft▶m', TokKind.postfix),
+  conv04('m▶ft', TokKind.postfix),
+  conv05('yd▶m', TokKind.postfix),
+  conv06('m▶yd', TokKind.postfix),
+  conv07('mile▶km', TokKind.postfix),
+  conv08('km▶mile', TokKind.postfix),
+  conv09('n mile▶m', TokKind.postfix),
+  conv10('m▶n mile', TokKind.postfix),
+  conv11('acre▶m²', TokKind.postfix),
+  conv12('m²▶acre', TokKind.postfix),
+  conv13('gal(US)▶ℓ', TokKind.postfix),
+  conv14('ℓ▶gal(US)', TokKind.postfix),
+  conv15('gal(UK)▶ℓ', TokKind.postfix),
+  conv16('ℓ▶gal(UK)', TokKind.postfix),
+  conv17('pc▶km', TokKind.postfix),
+  conv18('km▶pc', TokKind.postfix),
+  conv19('km/h▶m/s', TokKind.postfix),
+  conv20('m/s▶km/h', TokKind.postfix),
+  conv21('oz▶g', TokKind.postfix),
+  conv22('g▶oz', TokKind.postfix),
+  conv23('lb▶kg', TokKind.postfix),
+  conv24('kg▶lb', TokKind.postfix),
+  conv25('atm▶Pa', TokKind.postfix),
+  conv26('Pa▶atm', TokKind.postfix),
+  conv27('mmHg▶Pa', TokKind.postfix),
+  conv28('Pa▶mmHg', TokKind.postfix),
+  conv29('hp▶kW', TokKind.postfix),
+  conv30('kW▶hp', TokKind.postfix),
+  conv31('kgf/cm²▶Pa', TokKind.postfix),
+  conv32('Pa▶kgf/cm²', TokKind.postfix),
+  conv33('kgf•m▶J', TokKind.postfix),
+  conv34('J▶kgf•m', TokKind.postfix),
+  conv35('lbf/in²▶kPa', TokKind.postfix),
+  conv36('kPa▶lbf/in²', TokKind.postfix),
+  conv37('°F▶°C', TokKind.postfix),
+  conv38('°C▶°F', TokKind.postfix),
+  conv39('J▶cal', TokKind.postfix),
+  conv40('cal▶J', TokKind.postfix);
 
   const Tok(this.text, this.kind);
 
@@ -122,6 +212,18 @@ enum Tok {
   final TokKind kind;
 
   static const digits = [d0, d1, d2, d3, d4, d5, d6, d7, d8, d9];
+
+  /// CONST 01-40 tokens in number order.
+  static List<Tok> get constants => [
+    for (final t in values)
+      if (t.name.startsWith('const')) t,
+  ];
+
+  /// CONV 01-40 tokens in number order.
+  static List<Tok> get conversions => [
+    for (final t in values)
+      if (t.name.startsWith('conv')) t,
+  ];
 
   /// Digit value, or null.
   int? get digit => kind == TokKind.digit ? index - d0.index : null;

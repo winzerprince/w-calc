@@ -43,3 +43,6 @@ how to verify on the device, result.
 | 36 | °′″ after a decimal result | does nothing (SHIFT °′″ converts to sexagesimal); after a sexagesimal result converts to decimal | `2.258 = °′″` | to verify |
 | 37 | EngON display | symbol drawn small in the exponent area; `5` stays `5.`; values outside f…T use normal exponent display | `9 ÷ 10 =` | to verify |
 | 38 | Disp screen | shows `Disp` only (contrast `◀CONT▶` not emulated) | MODE ×6 | — |
+| 39 | Constant values | CODATA 2010 (2nd-ed. manual); older editions may use older CODATA values | `CONST 06 =` (h) → `6.62606957`⁻³⁴ ? | to verify on your edition |
+| 40 | CONST/CONV prompt | `CONST--` / `CONV--`, digits fill in; first digit 0-4 only; numbers outside 01-40 ignored | `CONST 2 8` | to verify |
+| 41 | Conversion factors | NIST SP 811 (hp = 745.6999 W, calorie at 15 °C = 4.1855 J, pc = 3.085678e16 m, mmHg = 133.3224 Pa) | `1 CONV 29 =` | to verify |
