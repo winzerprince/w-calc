@@ -27,7 +27,7 @@ void main() {
       expect(d.exponent, isNull);
       expect(d.cursor, 0);
       expect(d.cursorStyle, CursorStyle.underscore);
-      expect(d.indicators, isEmpty);
+      expect(d.indicators, {Indicator.deg}); // Deg is the default angle unit
     });
   });
 
@@ -226,16 +226,16 @@ void main() {
   group('modifiers', () {
     test('SHIFT shows S and is consumed by the next key', () {
       expect(press('SHIFT').indicators, contains(Indicator.shift));
-      expect(press('1').indicators, isEmpty);
+      expect(press('1').indicators, {Indicator.deg});
     });
 
     test('SHIFT twice cancels', () {
-      expect(press('SHIFT SHIFT').indicators, isEmpty);
+      expect(press('SHIFT SHIFT').indicators, {Indicator.deg});
     });
 
     test('ALPHA replaces SHIFT; ALPHA twice cancels', () {
-      expect(press('SHIFT ALPHA').indicators, {Indicator.alpha});
-      expect(press('ALPHA').indicators, isEmpty);
+      expect(press('SHIFT ALPHA').indicators, {Indicator.alpha, Indicator.deg});
+      expect(press('ALPHA').indicators, {Indicator.deg});
     });
 
     test('unassigned shifted key does nothing', () {

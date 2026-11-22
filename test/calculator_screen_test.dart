@@ -70,6 +70,6 @@ void main() {
 
     await tester.pumpWidget(const WCalcApp());
     await tapKey(tester, 'shift');
-    expect(lcdText(tester, 'indicators'), contains('S'));
+    expect(lcdText(tester, 'indicators'), contains('shift'));
   });
 }

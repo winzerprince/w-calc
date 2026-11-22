@@ -18,3 +18,6 @@ how to verify on the device, result.
 | 11 | `=` after a result | re-evaluates the same expression with the new Ans (`2 = × 3 = =` → `18.`) | `2 = × 3 = =` | to verify |
 | 12 | Number right after `)` | Syntax ERROR (`(2)3`) | `( 2 ) 3 =` | to verify |
 | 13 | DEL at end of line | deletes last token; in INS mode deletes token left of cursor | | to verify |
+| 14 | Minus sign position | sits in the digit cell immediately left of the number (not fixed at far left) | any negative result | to verify |
+| 15 | Exponent display | small 2-digit exponent at top right of result line, own small minus | `1 ÷ 200 =` | to verify |
+| 16 | Cursor | blinks every 0.5 s; overwrite = underline under character, INS = box around character | | to verify |

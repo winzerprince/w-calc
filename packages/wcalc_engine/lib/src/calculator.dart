@@ -1,3 +1,4 @@
+import 'angle_unit.dart';
 import 'calc_key.dart';
 import 'display_state.dart';
 import 'eval/evaluator.dart';
@@ -37,11 +38,13 @@ class Calculator {
   FormattedNumber _result = const FormattedNumber('0.');
   CalcError? _error;
   final DisplayFormat _format = const DisplayFormat.norm1();
+  final AngleUnit _angle = AngleUnit.deg;
 
   DisplayState get display {
     final indicators = {
       if (_modifier == _Modifier.shift) Indicator.shift,
       if (_modifier == _Modifier.alpha) Indicator.alpha,
+      _angle.indicator,
     };
     if (_phase == _Phase.error) {
       return DisplayState(
