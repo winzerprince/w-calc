@@ -42,6 +42,18 @@ Web is **not** built in CI. Test web locally: `tool/web.sh` (hot reload, LAN) or
 - Sequence: `0.0.1-alpha` → `0.0.2-alpha` … → `0.1.0-beta` (feature complete) → `1.0.0` (Play production).
   Semver note: pre-release is written `-alpha`, not `+alpha` (`+` is build metadata and is used by Flutter for the build number).
 
+## After every release: sync main back into dev
+
+`dev → main` uses a merge commit, so `main` gains a commit `dev` lacks. `main` requires PR branches to be
+up to date, so right after each release:
+
+```bash
+gh pr create --base dev --head main --title "chore: sync main into dev" --body "Post-release sync."
+gh pr merge <n> --merge      # merge commit (not squash), keeps ancestry
+```
+
+(Done by Claude as part of every release.)
+
 ## Required checks (branch protection)
 
 - `dev`: PR required, `checks` must pass, branch up to date, no force-push/deletion.
