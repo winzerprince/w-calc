@@ -85,6 +85,8 @@ const _names = <String, List<CalcKey>>{
   'RCL': [CalcKey.rcl],
   'M+': [CalcKey.mPlus],
   'CALC': [CalcKey.calc],
+  'SOLVE': [CalcKey.shift, CalcKey.calc],
+  'eq': [CalcKey.alpha, CalcKey.calc],
   '∫dx': [CalcKey.integrate],
   'CONST': [CalcKey.constant],
   'ab/c': [CalcKey.fraction],
