@@ -36,6 +36,9 @@ enum TokKind {
 
   /// Function with parenthesised arguments: Pol(, Rec(, ∫(, d/dx(.
   function,
+
+  /// `=` inside CALC / SOLVE expressions (ALPHA CALC).
+  equation,
 }
 
 /// One input step on the upper line. Each key press inserts one token, so
@@ -124,6 +127,7 @@ enum Tok {
   pol('Pol(', TokKind.function),
   rec('Rec(', TokKind.function),
   integral('∫(', TokKind.function),
+  eqSign('=', TokKind.equation),
   derivative('d/dx(', TokKind.function),
   // Scientific constants (CONST 01-40) and metric conversions (CONV 01-40).
   const01('mₚ', TokKind.constant),

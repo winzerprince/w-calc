@@ -49,3 +49,8 @@ how to verify on the device, result.
 | 42 | ∫ partitions omitted | Simpson with N = 2, 4, … doubling until two results agree to 1e-12 (max 2⁹) | `∫dx sin X , 0 , π )` (Rad) | to verify speed/result |
 | 43 | d/dx Δx omitted | central difference with Richardson step, h = 10⁻³·max(1,|a|) | `d/dx X³ , 2 )` | — |
 | 44 | ∫( / d/dx( text | shown as `∫(` and `d/dx(` | press ∫dx | to verify |
+| 45 | CALC prompts | `A?` + current value; while typing the upper line shows `A` and the result line the typed value; `=` keeps the current value if nothing typed; after the last prompt the result shows with the expression | `3A+B CALC` | to verify |
+| 46 | CALC with multi-statements | evaluates all statements and shows the last result (device may step with =) | `X+1:X×2 CALC` | to verify |
+| 47 | SOLVE prompts | every variable in order of appearance; `=` stores and moves on (stays on the last); ▲▼ move; SHIFT CALC solves for the variable on screen using its value as the start | manual example | to verify |
+| 48 | SOLVE result | `X=` and the solution; stored in the variable and Ans | | to verify |
+| 49 | Can't Solve | after 150 Newton steps without convergence | `X² + 1 SOLVE` | to verify message text |

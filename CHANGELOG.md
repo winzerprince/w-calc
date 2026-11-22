@@ -2,6 +2,20 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [0.0.6-alpha] - 2026-11-22
+
+Equations and calculus (M6).
+
+### Added
+- Pol( / Rec( with results in E and F.
+- 40 scientific constants (CONST) and 40 metric conversions (CONV).
+- Integration ∫( f, a, b[, n] ) by Simpson's rule and differentiation d/dx( f, a[, Δx] ).
+- CALC: prompts for each variable, Y = … assignment, repeat with new values.
+- SOLVE: Newton's method from a chosen start value, ▲▼ between variables, Can't Solve.
+
+### Changed
+- Working precision 24 digits (still exact against all reference values), about 2× faster.
+
 ## [0.0.5-alpha] - 2026-11-22
 
 Fractions, sexagesimal, percent and engineering notation (M5).

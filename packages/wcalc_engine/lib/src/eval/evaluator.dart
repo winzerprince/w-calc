@@ -275,7 +275,10 @@ class _Evaluator {
           }
           if (ops.isEmpty || ops.last.function == null) _syntax(i);
           expectOperand = true;
-        case TokKind.separator || TokKind.literalMark || TokKind.percent:
+        case TokKind.separator ||
+            TokKind.literalMark ||
+            TokKind.percent ||
+            TokKind.equation:
           _syntax(i); // Handled by literal parsing / the calculator.
         case TokKind.closeParen:
           if (expectOperand) _syntax(i);
