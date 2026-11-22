@@ -1,0 +1,94 @@
+# Full gate for dev (or hotfix/*) -> main.
+# Same checks as dev plus coverage threshold, source-branch rule and version report.
+# Still no builds: builds happen only after the merge, on main.
+name: main-gate
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: main-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: "3.47.9"
+  ENGINE_MIN_COVERAGE: "90"
+
+jobs:
+  source-branch:
+    name: source-branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only dev or hotfix/* may merge into main
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [[ "$HEAD_REF" == "dev" || "$HEAD_REF" == hotfix/* ]]; then
+            echo "OK: $HEAD_REF -> main"
+          else
+            echo "::error::PRs into main must come from 'dev' or 'hotfix/*' (got '$HEAD_REF')."
+            exit 1
+          fi
+
+  full-checks:
+    name: full-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          flutter pub get
+          (cd packages/wcalc_engine && dart pub get)
+
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed lib test packages
+
+      - name: Analyze
+        run: |
+          flutter analyze
+          (cd packages/wcalc_engine && dart analyze --fatal-infos)
+
+      - name: Engine tests with coverage
+        working-directory: packages/wcalc_engine
+        run: |
+          dart pub global activate coverage
+          dart pub global run coverage:test_with_coverage
+          python3 - <<'EOF'
+          import os
+          hit = total = 0
+          for line in open("coverage/lcov.info"):
+              if line.startswith("DA:"):
+                  total += 1
+                  hit += int(line.strip().split(",")[1]) > 0
+          pct = 100.0 * hit / total if total else 100.0
+          need = float(os.environ["ENGINE_MIN_COVERAGE"])
+          print(f"Engine line coverage: {pct:.1f}% (min {need:.0f}%)")
+          if pct < need:
+              raise SystemExit(f"::error::Engine coverage {pct:.1f}% below {need:.0f}%")
+          EOF
+
+      - name: App tests
+        run: flutter test
+
+      - name: Report release that this merge will create
+        run: |
+          VERSION=$(grep -E '^version:' pubspec.yaml | sed -E 's/version:[[:space:]]*//; s/\+.*//')
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::notice::v$VERSION already released. Merge will build artifacts only (no new release). Bump pubspec version on dev to release."
+          else
+            echo "::notice::Merge will release v$VERSION."
+          fi
