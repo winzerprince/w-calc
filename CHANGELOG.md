@@ -37,7 +37,7 @@ Memories and history (M4).
 Scientific functions (M3) and device-accurate keypad legends.
 
 ### Added
-- Functions computed with 34 working digits and rounded to 15: sin cos tan and inverses
+- Functions computed with 24 working digits and rounded to 15: sin cos tan and inverses
   (Deg/Rad/Gra with exact quadrants), hyperbolic and inverses, log, ln, 10ˣ, eˣ, √, ∛, x², x³,
   x⁻¹, x!, x^y, ˣ√y, nPr, nCr, π, e, Ran#, Rnd, DRG▶ conversion; device input ranges (Math ERROR).
 - Device priority for powers, Type A/B functions, implied multiplication (2π, 2√3), nPr/nCr.

@@ -8,6 +8,7 @@ import '../number/constants.dart';
 import '../number/frac.dart';
 import '../number/functions.dart';
 import '../number/value.dart';
+import '../number/wide.dart';
 
 /// Priority levels from the device's "calculation priority sequence".
 /// Lower number = binds tighter. Equal levels evaluate left to right.
@@ -254,6 +255,13 @@ class _Evaluator {
           // functions, so they apply to the value just completed.
           if (expectOperand) _syntax(i);
           _guard(i, () => values.add(_postfixFn(tok)(values.removeLast())));
+        case TokKind.function when tok == Tok.integral || tok == Tok.derivative:
+          if (!expectOperand) {
+            _pushBinary(_Op(_OpType.binary, Priority.impliedFunction, i, _mul));
+          }
+          i = _calculus(i);
+          expectOperand = false;
+          continue;
         case TokKind.function:
           if (!expectOperand) {
             _pushBinary(_Op(_OpType.binary, Priority.impliedFunction, i, _mul));
@@ -291,6 +299,82 @@ class _Evaluator {
       }
     }
     return values.single;
+  }
+
+  /// ∫( f, a, b[, n] ) and d/dx( f, a[, Δx] ): the first argument is an
+  /// expression in X evaluated repeatedly. Returns the index after `)`.
+  int _calculus(int start) {
+    final args = <(int, int)>[]; // token ranges
+    var depth = 0, argStart = start + 1, end = tokens.length;
+    for (var j = start + 1; j < tokens.length; j++) {
+      final t = tokens[j];
+      if (t == Tok.openParen || t.kind == TokKind.function) depth++;
+      if (t == Tok.closeParen) {
+        if (depth == 0) {
+          end = j;
+          break;
+        }
+        depth--;
+      }
+      if (t == Tok.comma && depth == 0) {
+        args.add((argStart, j));
+        argStart = j + 1;
+      }
+    }
+    args.add((argStart, end));
+    final integral = tokens[start] == Tok.integral;
+    final (minArgs, maxArgs) = integral ? (3, 4) : (2, 3);
+    if (args.length < minArgs || args.length > maxArgs) _syntax(end);
+    for (final (a, b) in args) {
+      if (a == b) _syntax(a);
+    }
+
+    Dec number(int k) {
+      final (a, b) = args[k];
+      return _guarded(a, () => _Evaluator(tokens.sublist(a, b), ctx).run().dec);
+    }
+
+    final (fa, fb) = args[0];
+    final body = tokens.sublist(fa, fb);
+    Wide f(Wide x) => Wide.fromDec(
+      _guarded(
+        fa,
+        () => _Evaluator(
+          body,
+          EvalContext(
+            ans: ctx.ans,
+            angle: ctx.angle,
+            format: ctx.format,
+            variables: {...ctx.variables, 'X': Value.dec(x.toDec())},
+            improperFractions: ctx.improperFractions,
+            random: ctx.random,
+          ),
+        ).run().dec,
+      ),
+    );
+
+    late Dec result;
+    if (integral) {
+      final a = number(1), b = number(2);
+      int? n;
+      if (args.length == 4) {
+        final nd = number(3);
+        if (!nd.isInteger || nd < Dec.one || nd > Dec.fromInt(9)) {
+          throw CalcError(CalcErrorKind.math, args[3].$1);
+        }
+        n = nd.toInt();
+      }
+      result = _guarded(
+        start,
+        () => _simpson(f, Wide.fromDec(a), Wide.fromDec(b), n),
+      );
+    } else {
+      final a = number(1);
+      final h = args.length == 3 ? number(2) : null;
+      result = _guarded(start, () => _derivative(f, Wide.fromDec(a), h));
+    }
+    _pushValue(Value.dec(result), start);
+    return end < tokens.length ? end + 1 : end;
   }
 
   /// Closes a parenthesis; for a function, applies it to its arguments.
@@ -554,4 +638,51 @@ Dec _convert(int n, Dec x) {
   final (num, den) = conversionFactors[(n - 1) ~/ 2];
   final a = Dec.parse(num), b = Dec.parse(den);
   return n.isOdd ? x * a / b : x * b / a;
+}
+
+/// Simpson's rule with N = 2^[n] intervals; [n] null = increase N until the
+/// result settles (up to 2^9).
+Dec _simpson(Wide Function(Wide) f, Wide a, Wide b, int? n) {
+  if (a == b) return Dec.zero;
+  final width = b - a;
+  // Trapezoid sums T_k with 2^k intervals; Simpson S_k = (4T_k − T_{k−1}) / 3.
+  var intervals = 1;
+  var trapezoid = (f(a) + f(b)) * Wide.half * width;
+  Wide? previousSimpson;
+  final three = Wide.fromInt(3), four = Wide.fromInt(4);
+  for (var k = 1; k <= 9; k++) {
+    final h = width / Wide.fromInt(intervals * 2);
+    var midSum = Wide.zero;
+    for (var i = 0; i < intervals; i++) {
+      midSum = midSum + f(a + h * Wide.fromInt(2 * i + 1));
+    }
+    final next = trapezoid * Wide.half + h * midSum;
+    final simpson = (four * next - trapezoid) / three;
+    trapezoid = next;
+    intervals *= 2;
+    if (n != null) {
+      if (k == n) return simpson.toDec();
+      continue;
+    }
+    final prev = previousSimpson;
+    if (prev != null && k >= 3) {
+      final diff = (simpson - prev).abs();
+      if (diff <= simpson.abs() * Wide.parse('1e-12') || diff.isZero) {
+        return simpson.toDec();
+      }
+    }
+    previousSimpson = simpson;
+  }
+  return previousSimpson!.toDec();
+}
+
+/// Central difference with one Richardson step: (4·D(h/2) − D(h)) / 3.
+Dec _derivative(Wide Function(Wide) f, Wide a, Dec? step) {
+  var h = step == null
+      ? Wide.parse('1e-3') * (a.abs() > Wide.one ? a.abs() : Wide.one)
+      : Wide.fromDec(step.abs());
+  if (h.isZero) h = Wide.parse('1e-3');
+  Wide central(Wide h) => (f(a + h) - f(a - h)) / (Wide.two * h);
+  final coarse = central(h), fine = central(h * Wide.half);
+  return ((Wide.fromInt(4) * fine - coarse) / Wide.fromInt(3)).toDec();
 }

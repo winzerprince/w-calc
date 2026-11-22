@@ -24,7 +24,8 @@ Clean-room Flutter app that behaves like the user's physical two-line MS-series 
 - TDD: write failing engine test first (from manual example or device vector), then code. Engine coverage ≥ 90 % (enforced on PR → main).
 - Test vectors from the user: `keys | expected display | mode/setup` → add verbatim as golden tests.
 - Before every PR: `dart format lib test packages`, analyze, engine + widget tests all green locally.
-  Judge analyze by its exit code / final line, never by grepping its output (warnings slipped through once).
+  Judge analyze/format by exit code, never through a pipe (`cmd | tail` hides failures; it let an
+  unformatted file reach CI once). Use `set -o pipefail` or run the command bare.
 - CI builds Android only, and only on `main`. Web is local only (`tool/web.sh`).
 - Number type: own decimal, never `double`, for anything that reaches the display.
 

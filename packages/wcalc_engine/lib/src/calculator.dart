@@ -366,6 +366,7 @@ class Calculator {
       CalcKey.exp => shift ? Tok.pi : Tok.exp,
       CalcKey.dot => shift ? Tok.ran : Tok.point,
       CalcKey.add when shift => Tok.pol,
+      CalcKey.integrate => shift ? Tok.derivative : Tok.integral,
       CalcKey.subtract when shift => Tok.rec,
       _ when shift => null,
       CalcKey.comma => Tok.comma,

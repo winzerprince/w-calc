@@ -89,6 +89,8 @@ const _names = <String, List<CalcKey>>{
   'CONST': [CalcKey.constant],
   'ab/c': [CalcKey.fraction],
   'Pol(': [CalcKey.shift, CalcKey.add],
+  'd/dx': [CalcKey.shift, CalcKey.integrate],
+  'int': [CalcKey.integrate],
   'Rec(': [CalcKey.shift, CalcKey.subtract],
   'CONV': [CalcKey.shift, CalcKey.constant],
   'd/c': [CalcKey.shift, CalcKey.fraction],
