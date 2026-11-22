@@ -127,7 +127,7 @@ jobs:
             echo "new=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: steps.check.outputs.new == 'true'
         with:
           name: w-calc-android-${{ needs.android.outputs.version }}-build${{ github.run_number }}
@@ -173,7 +173,7 @@ jobs:
           if [ -n "$PLAY_JSON" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT";
           else echo "::notice::Play upload skipped (PLAY_SERVICE_ACCOUNT_JSON not set)."; fi
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: steps.cfg.outputs.enabled == 'true'
         with:
           name: w-calc-android-${{ needs.android.outputs.version }}-build${{ github.run_number }}
