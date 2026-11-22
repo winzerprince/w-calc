@@ -24,6 +24,12 @@ enum TokKind {
 
   /// `:` between statements of a multi-statement.
   separator,
+
+  /// Marks inside number literals: fraction `┘` (a b/c) and sexagesimal `°`.
+  literalMark,
+
+  /// `%` (SHIFT =) at the end of a percent calculation.
+  percent,
 }
 
 /// One input step on the upper line. Each key press inserts one token, so
@@ -95,7 +101,19 @@ enum Tok {
   varM('M', TokKind.variable),
   varX('X', TokKind.variable),
   varY('Y', TokKind.variable),
-  colon(':', TokKind.separator);
+  colon(':', TokKind.separator),
+  fracSep('┘', TokKind.literalMark),
+  dms('°', TokKind.literalMark),
+  percent('%', TokKind.percent),
+  engT('T', TokKind.postfix),
+  engG('G', TokKind.postfix),
+  engMega('M', TokKind.postfix),
+  engKilo('k', TokKind.postfix),
+  engMilli('m', TokKind.postfix),
+  engMicro('μ', TokKind.postfix),
+  engNano('n', TokKind.postfix),
+  engPico('p', TokKind.postfix),
+  engFemto('f', TokKind.postfix);
 
   const Tok(this.text, this.kind);
 
