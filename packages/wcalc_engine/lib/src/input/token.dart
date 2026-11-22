@@ -123,6 +123,8 @@ enum Tok {
   comma(',', TokKind.comma),
   pol('Pol(', TokKind.function),
   rec('Rec(', TokKind.function),
+  integral('∫(', TokKind.function),
+  derivative('d/dx(', TokKind.function),
   // Scientific constants (CONST 01-40) and metric conversions (CONV 01-40).
   const01('mₚ', TokKind.constant),
   const02('mₙ', TokKind.constant),

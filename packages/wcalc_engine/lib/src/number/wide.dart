@@ -30,7 +30,7 @@ final class Wide implements Comparable<Wide> {
 
   /// Working precision in significant digits. Raised temporarily by
   /// [withPrecision] where cancellation would otherwise lose digits.
-  static int precision = 34;
+  static int precision = 24;
 
   static T withPrecision<T>(int digits, T Function() body) {
     final saved = precision;
