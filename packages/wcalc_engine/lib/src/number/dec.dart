@@ -136,6 +136,14 @@ final class Dec implements Comparable<Dec> {
     return Dec(_roundDrop(coefficient, drop), -places);
   }
 
+  /// floor(x) as an int.
+  int toIntFloor() {
+    final t = isInteger ? this : roundDecimals(0);
+    var v = t.toInt();
+    if (Dec.fromInt(v) > this) v -= 1;
+    return v;
+  }
+
   int toInt() {
     if (!isInteger) throw StateError('$this is not an integer');
     return (coefficient * _pow10(exponent)).toInt();

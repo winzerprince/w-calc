@@ -64,7 +64,7 @@ class LcdPainter extends CustomPainter {
     (Indicator.reg, 'REG'),
     (Indicator.fix, 'FIX'),
     (Indicator.sci, 'SCI'),
-    (Indicator.eng, 'ENG'),
+    (Indicator.eng, 'Eng'),
     (Indicator.deg, 'D'),
     (Indicator.rad, 'R'),
     (Indicator.gra, 'G'),
@@ -113,7 +113,7 @@ class LcdPainter extends CustomPainter {
     const style = TextStyle(
       fontFamily: 'Barlow',
       fontFamilyFallback: ['WCalcSymbols'],
-      fontSize: 34,
+      fontSize: 27,
       fontWeight: FontWeight.w700,
       height: 1,
     );
@@ -228,9 +228,16 @@ class LcdPainter extends CustomPainter {
       _paintMenuMarks(canvas, marks, ink);
       return;
     }
-    final grouped = display.exponent == null
+    var grouped = display.exponent == null
         ? groupDigits(display.lower)
         : display.lower;
+    if (display.decimalComma) {
+      // Comma setting: decimal comma, period separators.
+      grouped = grouped
+          .replaceAll('.', '\u0000')
+          .replaceAll(',', '.')
+          .replaceAll('\u0000', ',');
+    }
     final cells = toCells(grouped);
     final start = _mantissaCells - cells.length;
     for (var i = 0; i < cells.length; i++) {
@@ -246,6 +253,8 @@ class LcdPainter extends CustomPainter {
       );
     }
 
+    final symbol = display.engSymbol;
+    if (symbol != null) _paintEngSymbol(canvas, symbol, ink);
     final exp = display.exponent;
     if (exp != null) {
       final digits = exp.startsWith('-') ? exp.substring(1) : exp;
@@ -268,6 +277,25 @@ class LcdPainter extends CustomPainter {
           _expH,
           segmentsFor(digits[i]),
           null,
+          ink,
+        );
+      }
+    }
+  }
+
+  /// EngON symbol (k, m, μ …) as small dot-matrix text in the exponent area.
+  void _paintEngSymbol(Canvas canvas, String symbol, Paint ink) {
+    final glyph = glyphFor(symbol);
+    const pitch = 7.0;
+    const left = _mantissaRight + 24 + _expW * 0.6;
+    for (var r = 0; r < dotFontHeight; r++) {
+      for (var c = 0; c < dotFontWidth; c++) {
+        if (glyph[r][c] != '#') continue;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(left + c * pitch, _lowerTop + 6 + r * pitch, 6, 6),
+            const Radius.circular(1),
+          ),
           ink,
         );
       }

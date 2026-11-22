@@ -33,6 +33,9 @@ final Map<String, Set<Segment>> sevenSegmentMap = {
   'F': _seg('aefg'),
   'r': _seg('eg'),
   'o': _seg('cdeg'),
+  // Fraction mark ⌟ and sexagesimal degree mark.
+  '┘': _seg('cd'),
+  '°': _seg('abfg'),
 };
 
 /// Segments for [char]; unknown characters light nothing.

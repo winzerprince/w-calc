@@ -5,8 +5,11 @@ import 'calc_key.dart';
 import 'display_state.dart';
 import 'eval/evaluator.dart';
 import 'format/number_format.dart';
+import 'format/value_format.dart';
 import 'input/token.dart';
 import 'number/dec.dart';
+import 'number/frac.dart';
+import 'number/value.dart';
 
 enum _Modifier { none, shift, alpha }
 
@@ -46,6 +49,13 @@ const _sciPrompt = _Menu('Sci 0~9?', {});
 const _normPrompt = _Menu('Norm 1~2?', {});
 const _clrMenu = _Menu('Mcl Mode All', {1: '1', 5: '2', 10: '3'});
 
+/// Disp setup screens (MODE … 1), paged with ◀ ▶.
+const _dispPages = [
+  _Menu('EngON EngOFF', {1: '1', 7: '2'}),
+  _Menu('ab/c d/c', {1: '1', 6: '2'}),
+  _Menu('Dot Comma', {1: '1', 5: '2'}),
+];
+
 /// CLR confirmations (press = to execute, AC to cancel).
 const _clrMcl = _Menu('Mcl', {});
 const _clrMode = _Menu('Mode', {});
@@ -56,7 +66,7 @@ class _Entry {
   _Entry(this.tokens, this.value);
 
   final List<Tok> tokens;
-  final Dec value;
+  final Value value;
 
   /// Approximate memory use, for the ~150-byte history budget.
   int get bytes => tokens.length + 7;
@@ -100,12 +110,17 @@ class Calculator {
   _Phase _phase = _Phase.editing;
   _Menu? _menu;
 
-  Dec _ans = Dec.zero;
-  Dec? _resultValue;
+  Value _ans = Value.zero;
+  Value? _resultValue;
   CalcError? _error;
-  DisplayFormat _format = const DisplayFormat.norm1();
+  DisplaySettings _settings = const DisplaySettings();
   AngleUnit _angle = AngleUnit.deg;
-  final Map<String, Dec> _vars = {};
+  final Map<String, Value> _vars = {};
+
+  /// Result conversions (a b/c, d/c, °′″, ENG) applied to the shown result.
+  ResultView _view = ResultView.auto;
+  bool _flipFractionStyle = false;
+  int? _engExponent;
 
   /// Upper-line text while a result is shown, when it differs from the input
   /// (current statement of a multi-statement, `A=` after RCL).
@@ -122,14 +137,30 @@ class Calculator {
   int _statement = 0;
 
   AngleUnit get angleUnit => _angle;
-  DisplayFormat get displayFormat => _format;
+  DisplayFormat get displayFormat => _settings.format;
+  DisplaySettings get displaySettings => _settings;
+
+  DisplayFormat get _format => _settings.format;
 
   bool get _midMulti =>
       _phase == _Phase.result && _statement < _statements.length - 1;
 
-  FormattedNumber get _result => _resultValue == null
-      ? const FormattedNumber('0.')
-      : formatNumber(_resultValue!, _format);
+  FormattedNumber get _result {
+    final v = _resultValue;
+    if (v == null) return const FormattedNumber('0.');
+    final settings = _flipFractionStyle
+        ? _settings.copyWith(improperFractions: !_settings.improperFractions)
+        : _settings;
+    return formatValue(v, settings, view: _view, engExponent: _engExponent);
+  }
+
+  /// A new result: forget conversions applied to the previous one.
+  void _setResult(Value v) {
+    _resultValue = v;
+    _view = ResultView.auto;
+    _flipFractionStyle = false;
+    _engExponent = null;
+  }
 
   DisplayState get display {
     final browse = _browse;
@@ -140,7 +171,8 @@ class Calculator {
       if (_hyp) Indicator.hyp,
       if (_pending == _Pending.sto) Indicator.sto,
       if (_pending == _Pending.rcl) Indicator.rcl,
-      if (!(_vars['M'] ?? Dec.zero).isZero) Indicator.memory,
+      if (!(_vars['M'] ?? Value.zero).dec.isZero) Indicator.memory,
+      if (_settings.engOn) Indicator.eng,
       if (_format.mode == DisplayMode.fix) Indicator.fix,
       if (_format.mode == DisplayMode.sci) Indicator.sci,
       _angle.indicator,
@@ -171,6 +203,8 @@ class Calculator {
         upper: _clip(_upperOverride ?? text, 0),
         lower: result.mantissa,
         exponent: result.exponent,
+        engSymbol: result.engSymbol,
+        decimalComma: _settings.decimalComma,
         indicators: indicators,
       );
     }
@@ -178,6 +212,8 @@ class Calculator {
       upper: _clip(text, _windowStart),
       lower: result.mantissa,
       exponent: result.exponent,
+      engSymbol: result.engSymbol,
+      decimalComma: _settings.decimalComma,
       indicators: indicators,
       cursor: _cursorColumn - _windowStart,
       cursorStyle: _insert
@@ -250,6 +286,11 @@ class Calculator {
         if (_phase == _Phase.editing) _insert = !_insert;
       case (_Modifier.none, CalcKey.equals):
         _execute();
+      case (_Modifier.shift, CalcKey.equals):
+        _percent();
+      case (_, CalcKey.fraction || CalcKey.degMinSec || CalcKey.eng)
+          when _phase == _Phase.result && !_midMulti:
+        _convertResult(key, modifier == _Modifier.shift);
       case (_Modifier.none, CalcKey.up || CalcKey.down):
         _scrollHistory(key == CalcKey.up ? -1 : 1);
       case (_Modifier.shift, CalcKey.up):
@@ -263,13 +304,18 @@ class Calculator {
       case (_Modifier.none, CalcKey.del):
         if (_phase == _Phase.editing) _delete();
       default:
-        final tok = _tokenFor(key, modifier, hyp);
+        final tok = _tokenFor(key, modifier, hyp, engOn: _settings.engOn);
         if (tok != null) _enter(tok);
     }
   }
 
   /// Token for [key] under [modifier]/[hyp], or null if the key does nothing yet.
-  static Tok? _tokenFor(CalcKey key, _Modifier modifier, bool hyp) {
+  static Tok? _tokenFor(
+    CalcKey key,
+    _Modifier modifier,
+    bool hyp, {
+    bool engOn = false,
+  }) {
     final shift = modifier == _Modifier.shift;
     if (modifier == _Modifier.alpha) {
       return _variableKeys[key] ??
@@ -282,7 +328,8 @@ class Calculator {
     final digit = key.digit;
     if (digit != null) {
       if (!shift) return Tok.digits[digit];
-      return digit == 0 ? Tok.rnd : null;
+      if (digit == 0) return Tok.rnd;
+      return engOn ? _engSymbolKeys[digit - 1] : null;
     }
     return switch (key) {
       CalcKey.sin => _trig(Tok.sin, Tok.asin, Tok.sinh, Tok.asinh, shift, hyp),
@@ -299,6 +346,8 @@ class Calculator {
       CalcKey.exp => shift ? Tok.pi : Tok.exp,
       CalcKey.dot => shift ? Tok.ran : Tok.point,
       _ when shift => null,
+      CalcKey.fraction => Tok.fracSep,
+      CalcKey.degMinSec => Tok.dms,
       CalcKey.add => Tok.add,
       CalcKey.subtract => Tok.subtract,
       CalcKey.negative => Tok.negative,
@@ -308,6 +357,19 @@ class Calculator {
       _ => null,
     };
   }
+
+  /// SHIFT 1…9 with EngON: f p n μ m k M G T.
+  static const _engSymbolKeys = [
+    Tok.engFemto,
+    Tok.engPico,
+    Tok.engNano,
+    Tok.engMicro,
+    Tok.engMilli,
+    Tok.engKilo,
+    Tok.engMega,
+    Tok.engG,
+    Tok.engT,
+  ];
 
   static Tok _trig(
     Tok plain,
@@ -325,6 +387,15 @@ class Calculator {
 
   /// Inserts [tok]; right after a result, operators continue from Ans.
   void _enter(Tok tok) {
+    if (_phase == _Phase.result &&
+        _tokens.isNotEmpty &&
+        _tokens.last == Tok.percent &&
+        (tok == Tok.add || tok == Tok.subtract)) {
+      // Mark-up / discount: A × B % + → A + A·B/100 (manual p.21).
+      _tokens.add(tok);
+      _execute();
+      return;
+    }
     if (_phase == _Phase.result) {
       final continueWith = _continueWith;
       _clearInput();
@@ -349,6 +420,23 @@ class Calculator {
     _modifier = _Modifier.none;
     if (key == CalcKey.ac) {
       _menu = null;
+      return;
+    }
+    if (_dispPages.contains(menu)) {
+      final i = _dispPages.indexOf(menu);
+      if (key == CalcKey.right && i < _dispPages.length - 1) {
+        _menu = _dispPages[i + 1];
+      }
+      if (key == CalcKey.left && i > 0) _menu = _dispPages[i - 1];
+      final d = key.digit;
+      if (d == 1 || d == 2) {
+        _settings = switch (i) {
+          0 => _settings.copyWith(engOn: d == 1),
+          1 => _settings.copyWith(improperFractions: d == 2),
+          _ => _settings.copyWith(decimalComma: d == 2),
+        };
+        _menu = null;
+      }
       return;
     }
     if (key == CalcKey.mode && _modePages.contains(menu)) {
@@ -378,20 +466,22 @@ class Calculator {
       return;
     }
     if (identical(menu, _fixPrompt)) {
-      _format = DisplayFormat.fix(d);
+      _settings = _settings.copyWith(format: DisplayFormat.fix(d));
       _menu = null;
       return;
     }
     if (identical(menu, _sciPrompt)) {
-      _format = DisplayFormat.sci(d);
+      _settings = _settings.copyWith(format: DisplayFormat.sci(d));
       _menu = null;
       return;
     }
     if (identical(menu, _normPrompt)) {
       if (d != 1 && d != 2) return;
-      _format = d == 1
-          ? const DisplayFormat.norm1()
-          : const DisplayFormat.norm2();
+      _settings = _settings.copyWith(
+        format: d == 1
+            ? const DisplayFormat.norm1()
+            : const DisplayFormat.norm2(),
+      );
       _menu = null;
       return;
     }
@@ -407,6 +497,8 @@ class Calculator {
         _menu = _sciPrompt;
       case (4, 3):
         _menu = _normPrompt;
+      case (5, 1):
+        _menu = _dispPages.first;
       default:
         // CMPLX, SD, REG, BASE, EQN, MAT, VCT, Disp: later milestones.
         break;
@@ -418,10 +510,10 @@ class Calculator {
     if (!identical(which, _clrMode)) _vars.clear();
     if (!identical(which, _clrMcl)) {
       _angle = AngleUnit.deg;
-      _format = const DisplayFormat.norm1();
+      _settings = const DisplaySettings();
       _history.clear();
     }
-    if (identical(which, _clrAll)) _ans = Dec.zero;
+    if (identical(which, _clrAll)) _ans = Value.zero;
     _menu = null;
     _clearInput();
     _resultValue = null;
@@ -446,9 +538,9 @@ class Calculator {
       if (value == null) return;
       _vars[variable.text] = value;
       _ans = value;
-      _resultValue = value;
+      _setResult(value);
     } else {
-      _resultValue = _vars[variable.text] ?? Dec.zero;
+      _setResult(_vars[variable.text] ?? Value.zero);
       _tokens = [variable];
       _cursor = _tokens.length;
       _upperOverride = '${variable.text}=';
@@ -462,7 +554,7 @@ class Calculator {
   void _addToMemory(int sign) {
     final value = _commitValue();
     if (value == null) return;
-    final m = _vars['M'] ?? Dec.zero;
+    final m = _vars['M'] ?? Value.zero;
     try {
       _vars['M'] = sign > 0 ? m + value : m - value;
     } on CalcError catch (e) {
@@ -470,12 +562,12 @@ class Calculator {
       return;
     }
     _ans = value;
-    _resultValue = value;
+    _setResult(value);
   }
 
   /// The value STO / M+ act on: evaluates pending input (like =), otherwise
   /// the value on the display. Null if evaluation failed (error shown).
-  Dec? _commitValue() {
+  Value? _commitValue() {
     if (_phase == _Phase.editing && _tokens.isNotEmpty) {
       _execute();
       while (_midMulti) {
@@ -483,7 +575,7 @@ class Calculator {
       }
       return _phase == _Phase.result ? _resultValue : null;
     }
-    return _resultValue ?? Dec.zero;
+    return _resultValue ?? Value.zero;
   }
 
   // ------------------------------------------------------------------ execution
@@ -517,19 +609,19 @@ class Calculator {
   void _runStatement(int index) {
     final (start, end) = _statements[index];
     try {
-      final value = evaluate(
+      final value = evaluateValue(
         _tokens.sublist(start, end),
-        ans: _ans,
-        context: EvalContext(
+        EvalContext(
           ans: _ans,
           angle: _angle,
           format: _format,
           variables: _vars,
+          improperFractions: _settings.improperFractions,
           random: _random,
         ),
       );
       _ans = value;
-      _resultValue = value;
+      _setResult(value);
       _statement = index;
       _phase = _Phase.result;
       _upperOverride = _statements.length > 1
@@ -548,9 +640,56 @@ class Calculator {
     _upperOverride = null;
   }
 
+  /// SHIFT =: append % and calculate.
+  void _percent() {
+    if (_phase == _Phase.result &&
+        _tokens.isNotEmpty &&
+        _tokens.last == Tok.percent) {
+      return;
+    }
+    if (_phase != _Phase.editing || _tokens.isEmpty) return;
+    _cursor = _tokens.length;
+    _insert = false;
+    _input(Tok.percent);
+    _execute();
+  }
+
+  /// Conversion keys on a shown result: a b/c (fraction ↔ decimal),
+  /// d/c (mixed ↔ improper), °′″ / ← (sexagesimal ↔ decimal), ENG / ←.
+  void _convertResult(CalcKey key, bool shift) {
+    final v = _resultValue;
+    if (v == null) return;
+    final shown = _result.mantissa;
+    final showingFraction = shown.contains(fractionMark);
+    final showingSexagesimal = shown.contains('°');
+    switch (key) {
+      case CalcKey.fraction when shift:
+        if (showingFraction) _flipFractionStyle = !_flipFractionStyle;
+      case CalcKey.fraction:
+        _engExponent = null;
+        _view = showingFraction ? ResultView.decimal : ResultView.fraction;
+      case CalcKey.degMinSec when shift:
+        _engExponent = null;
+        _view = ResultView.sexagesimal;
+      case CalcKey.degMinSec:
+        if (showingSexagesimal) _view = ResultView.decimal;
+      case CalcKey.eng:
+        final current = _engExponent;
+        _view = ResultView.decimal;
+        if (current == null) {
+          final natural = engExponentFor(v.dec);
+          _engExponent = shift ? natural + 3 : natural;
+        } else {
+          _engExponent = shift ? current + 3 : current - 3;
+        }
+      default:
+        break;
+    }
+  }
+
   // ------------------------------------------------------------------ history
 
-  void _record(Dec value) {
+  void _record(Value value) {
     _history.add(_Entry(List.of(_tokens), value));
     var bytes = _history.fold<int>(0, (s, e) => s + e.bytes);
     while (_history.length > 1 && bytes > historyBytes) {
@@ -574,7 +713,7 @@ class Calculator {
     _browse = target;
     _tokens = List.of(entry.tokens);
     _cursor = _tokens.length;
-    _resultValue = entry.value;
+    _setResult(entry.value);
     _upperOverride = null;
     _continueWith = Tok.ans;
     _statements = const [];
@@ -685,12 +824,28 @@ class Calculator {
 
   /// What survives switching the device off: memories, Ans and setup.
   Map<String, Object?> saveState() => {
-    'version': 1,
-    'ans': _ans.toString(),
-    'vars': {for (final e in _vars.entries) e.key: e.value.toString()},
+    'version': 2,
+    'ans': _encode(_ans),
+    'vars': {for (final e in _vars.entries) e.key: _encode(e.value)},
     'angle': _angle.name,
     'format': '${_format.mode.name}:${_format.digits}',
+    'engOn': _settings.engOn,
+    'improper': _settings.improperFractions,
+    'comma': _settings.decimalComma,
   };
+
+  static String _encode(Value v) => v.frac != null
+      ? 'f:${v.frac!.n}/${v.frac!.d}'
+      : (v.isSexagesimal ? 's:${v.dec}' : v.dec.toString());
+
+  static Value _decode(String s) {
+    if (s.startsWith('f:')) {
+      final [n, d] = s.substring(2).split('/');
+      return Value.frac(Frac(BigInt.parse(n), BigInt.parse(d)));
+    }
+    if (s.startsWith('s:')) return Value.sexagesimal(Dec.parse(s.substring(2)));
+    return Value.dec(Dec.parse(s));
+  }
 
   /// Restores [saveState] output; silently ignores anything malformed.
   void restoreState(Map<String, Object?> state) {
@@ -699,13 +854,13 @@ class Calculator {
       final vars = state['vars'];
       final angle = state['angle'];
       final format = state['format'];
-      final newVars = <String, Dec>{};
+      final newVars = <String, Value>{};
       if (vars is Map) {
         for (final MapEntry(:key, :value) in vars.entries) {
-          if (key is String && value is String) newVars[key] = Dec.parse(value);
+          if (key is String && value is String) newVars[key] = _decode(value);
         }
       }
-      final newAns = ans is String ? Dec.parse(ans) : _ans;
+      final newAns = ans is String ? _decode(ans) : _ans;
       final newAngle = angle is String
           ? AngleUnit.values.byName(angle)
           : _angle;
@@ -715,7 +870,12 @@ class Calculator {
         ..addAll(newVars);
       _ans = newAns;
       _angle = newAngle;
-      _format = newFormat;
+      _settings = DisplaySettings(
+        format: newFormat,
+        engOn: state['engOn'] == true,
+        improperFractions: state['improper'] == true,
+        decimalComma: state['comma'] == true,
+      );
     } on Object {
       // Corrupt or foreign snapshot: keep defaults.
     }

@@ -36,3 +36,10 @@ how to verify on the device, result.
 | 29 | ▲ after AC | shows the newest history entry | `1 + 1 = AC ▲` | to verify |
 | 30 | ON | clears screen and history, keeps memories, Ans and setup | `ON` | to verify |
 | 31 | Memory persistence | variables, M, Ans and setup survive closing the app (device keeps them while off) | close and reopen app | — |
+| 32 | Fraction input | `a┘b` / `a┘b┘c` is part of the number (integers only); so `2^3┘4` = 2^(3/4). Device priority table puts fractions below powers, which would give (2³)/4 | `2 ^ 3 a b/c 4 =` | to verify |
+| 33 | % rule | splits at the last top-level + − × ÷ before `%` (`A op B %`); `B %` alone = B/100 | `1 + 2 × 3 SHIFT =` | to verify |
+| 34 | % then + / − | only after `A × B %`: `+` → A + A·B/100, `−` → A − A·B/100; upper line shows `A×B%+` | `2500 × 15 SHIFT = +` | to verify display |
+| 35 | Sexagesimal result | `d°m°s` using a `°` cell between parts; seconds get the decimals left of 10 digits; minutes/seconds not zero-padded | `12°34°56° × 3.45 =` → `43°24°31.2` | to verify |
+| 36 | °′″ after a decimal result | does nothing (SHIFT °′″ converts to sexagesimal); after a sexagesimal result converts to decimal | `2.258 = °′″` | to verify |
+| 37 | EngON display | symbol drawn small in the exponent area; `5` stays `5.`; values outside f…T use normal exponent display | `9 ÷ 10 =` | to verify |
+| 38 | Disp screen | shows `Disp` only (contrast `◀CONT▶` not emulated) | MODE ×6 | — |

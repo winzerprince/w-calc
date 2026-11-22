@@ -30,10 +30,13 @@ class DisplayFormat {
 
 /// What the result line shows: mantissa and optional 2-digit exponent (`"-03"`).
 class FormattedNumber {
-  const FormattedNumber(this.mantissa, [this.exponent]);
+  const FormattedNumber(this.mantissa, [this.exponent, this.engSymbol]);
 
   final String mantissa;
   final String? exponent;
+
+  /// Engineering symbol (k, m, μ …) shown in the exponent area (EngON).
+  final String? engSymbol;
 }
 
 /// Total digit positions on the result line (excluding sign and exponent).
