@@ -58,7 +58,10 @@ void main() {
       expect(press('8').upper, 'C₀');
     });
     test('speed of light', () => vector('CONST 28 =', '299792458.'));
-    test('implied multiplication: 2c₀', () => vector('2 CONST 28 =', '599584916.'));
+    test(
+      'implied multiplication: 2c₀',
+      () => vector('2 CONST 28 =', '599584916.'),
+    );
     test('constant times constant', () {
       vector('CONST 24 × CONST 25 =', '8.314462145');
     });
