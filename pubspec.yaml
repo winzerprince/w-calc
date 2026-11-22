@@ -1,0 +1,24 @@
+name: w_calc
+description: "W-Calc: two-line scientific calculator"
+publish_to: 'none'
+
+# Release version. Bump on `dev` via PR; merging to `main` creates tag v<version-without-build>.
+# Build number (+N) is overridden in CI by the workflow run number.
+version: 0.0.1-alpha+1
+
+environment:
+  sdk: ^3.13.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  wcalc_engine:
+    path: packages/wcalc_engine
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
