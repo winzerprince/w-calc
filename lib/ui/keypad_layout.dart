@@ -59,7 +59,6 @@ const _t = LabelKind.stat;
 const _b = LabelKind.base;
 const _p = LabelKind.plain;
 const _n = LabelKind.neutral;
-const _l = LabelSlot.left;
 const _m = LabelSlot.center;
 const _r = LabelSlot.right;
 
