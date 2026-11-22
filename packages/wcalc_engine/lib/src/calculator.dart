@@ -21,7 +21,10 @@ enum _Phase {
   error,
 }
 
-/// A menu or prompt screen (MODE setup pages, DRG▶, Fix/Sci/Norm prompts).
+/// Waiting for a variable key after STO or RCL.
+enum _Pending { none, sto, rcl }
+
+/// A menu or prompt screen (MODE pages, CLR, DRG▶, Fix/Sci/Norm prompts).
 class _Menu {
   const _Menu(this.text, this.marks);
 
@@ -41,6 +44,36 @@ const _drgMenu = _Menu(' D   R   G', {1: '1', 5: '2', 9: '3'});
 const _fixPrompt = _Menu('Fix 0~9?', {});
 const _sciPrompt = _Menu('Sci 0~9?', {});
 const _normPrompt = _Menu('Norm 1~2?', {});
+const _clrMenu = _Menu('Mcl Mode All', {1: '1', 5: '2', 10: '3'});
+
+/// CLR confirmations (press = to execute, AC to cancel).
+const _clrMcl = _Menu('Mcl', {});
+const _clrMode = _Menu('Mode', {});
+const _clrAll = _Menu('All', {});
+
+/// One calculation-history entry: what was typed and what it gave.
+class _Entry {
+  _Entry(this.tokens, this.value);
+
+  final List<Tok> tokens;
+  final Dec value;
+
+  /// Approximate memory use, for the ~150-byte history budget.
+  int get bytes => tokens.length + 7;
+}
+
+/// Variable names in key order, with the key that selects each after STO/RCL.
+const _variableKeys = {
+  CalcKey.negative: Tok.varA,
+  CalcKey.degMinSec: Tok.varB,
+  CalcKey.hyp: Tok.varC,
+  CalcKey.sin: Tok.varD,
+  CalcKey.cos: Tok.varE,
+  CalcKey.tan: Tok.varF,
+  CalcKey.mPlus: Tok.varM,
+  CalcKey.closeParen: Tok.varX,
+  CalcKey.comma: Tok.varY,
+};
 
 /// Key-driven calculator state machine (COMP mode so far).
 class Calculator {
@@ -52,6 +85,9 @@ class Calculator {
   /// From this step on the cursor turns into a block.
   static const int lowMemoryStep = 73;
 
+  /// Calculation history budget (manual: "approximately 150 bytes").
+  static const int historyBytes = 150;
+
   final math.Random _random;
 
   List<Tok> _tokens = [];
@@ -60,6 +96,7 @@ class Calculator {
   bool _insert = false;
   _Modifier _modifier = _Modifier.none;
   bool _hyp = false;
+  _Pending _pending = _Pending.none;
   _Phase _phase = _Phase.editing;
   _Menu? _menu;
 
@@ -68,22 +105,48 @@ class Calculator {
   CalcError? _error;
   DisplayFormat _format = const DisplayFormat.norm1();
   AngleUnit _angle = AngleUnit.deg;
+  final Map<String, Dec> _vars = {};
+
+  /// Upper-line text while a result is shown, when it differs from the input
+  /// (current statement of a multi-statement, `A=` after RCL).
+  String? _upperOverride;
+
+  /// Token an operator continues from after a result (Ans, or the recalled variable).
+  Tok _continueWith = Tok.ans;
+
+  final List<_Entry> _history = [];
+  int? _browse; // history index shown in the result phase
+
+  /// Multi-statement execution: statement ranges and the one shown.
+  List<(int, int)> _statements = const [];
+  int _statement = 0;
 
   AngleUnit get angleUnit => _angle;
   DisplayFormat get displayFormat => _format;
+
+  bool get _midMulti =>
+      _phase == _Phase.result && _statement < _statements.length - 1;
 
   FormattedNumber get _result => _resultValue == null
       ? const FormattedNumber('0.')
       : formatNumber(_resultValue!, _format);
 
   DisplayState get display {
+    final browse = _browse;
+    final showScroll = _phase == _Phase.result && browse != null && !_midMulti;
     final indicators = {
       if (_modifier == _Modifier.shift) Indicator.shift,
       if (_modifier == _Modifier.alpha) Indicator.alpha,
       if (_hyp) Indicator.hyp,
+      if (_pending == _Pending.sto) Indicator.sto,
+      if (_pending == _Pending.rcl) Indicator.rcl,
+      if (!(_vars['M'] ?? Dec.zero).isZero) Indicator.memory,
       if (_format.mode == DisplayMode.fix) Indicator.fix,
       if (_format.mode == DisplayMode.sci) Indicator.sci,
       _angle.indicator,
+      if (showScroll && browse > 0) Indicator.scrollUp,
+      if (showScroll && browse < _history.length - 1) Indicator.scrollDown,
+      if (_midMulti) Indicator.disp,
     };
     final menu = _menu;
     if (menu != null) {
@@ -105,7 +168,7 @@ class Calculator {
     final result = _result;
     if (_phase == _Phase.result) {
       return DisplayState(
-        upper: _clip(text, 0),
+        upper: _clip(_upperOverride ?? text, 0),
         lower: result.mantissa,
         exponent: result.exponent,
         indicators: indicators,
@@ -125,7 +188,13 @@ class Calculator {
     );
   }
 
+  // ------------------------------------------------------------------ keys
+
   void press(CalcKey key) {
+    if (key == CalcKey.on) {
+      _powerOn();
+      return;
+    }
     if (_menu != null) {
       _pressInMenu(key);
       return;
@@ -134,6 +203,10 @@ class Calculator {
     if (key == CalcKey.shift || key == CalcKey.alpha) {
       final pressed = key == CalcKey.shift ? _Modifier.shift : _Modifier.alpha;
       _modifier = modifier == pressed ? _Modifier.none : pressed;
+      return;
+    }
+    if (_pending != _Pending.none) {
+      _pressPending(key);
       return;
     }
     if (key == CalcKey.hyp && modifier == _Modifier.none) {
@@ -161,27 +234,34 @@ class Calculator {
     switch ((modifier, key)) {
       case (_Modifier.none, CalcKey.mode):
         _menu = _modePages.first;
-        return;
+      case (_Modifier.shift, CalcKey.mode):
+        _menu = _clrMenu;
       case (_Modifier.shift, CalcKey.ans):
         _menu = _drgMenu;
-        return;
+      case (_Modifier.shift, CalcKey.rcl):
+        _pending = _Pending.sto;
+      case (_Modifier.none, CalcKey.rcl):
+        _pending = _Pending.rcl;
+      case (_Modifier.none, CalcKey.mPlus):
+        _addToMemory(1);
+      case (_Modifier.shift, CalcKey.mPlus):
+        _addToMemory(-1);
       case (_Modifier.shift, CalcKey.del):
         if (_phase == _Phase.editing) _insert = !_insert;
-        return;
       case (_Modifier.none, CalcKey.equals):
         _execute();
-        return;
+      case (_Modifier.none, CalcKey.up || CalcKey.down):
+        _scrollHistory(key == CalcKey.up ? -1 : 1);
+      case (_Modifier.shift, CalcKey.up):
+        _copyHistory();
       case (_Modifier.none, CalcKey.left || CalcKey.right):
         if (_phase == _Phase.result) {
-          _phase = _Phase.editing;
-          _setCursor(key == CalcKey.left ? _tokens.length : 0);
+          _startEditing(key == CalcKey.left ? _tokens.length : 0);
         } else {
           _setCursor(_cursor + (key == CalcKey.left ? -1 : 1));
         }
-        return;
       case (_Modifier.none, CalcKey.del):
         if (_phase == _Phase.editing) _delete();
-        return;
       default:
         final tok = _tokenFor(key, modifier, hyp);
         if (tok != null) _enter(tok);
@@ -192,10 +272,12 @@ class Calculator {
   static Tok? _tokenFor(CalcKey key, _Modifier modifier, bool hyp) {
     final shift = modifier == _Modifier.shift;
     if (modifier == _Modifier.alpha) {
-      return switch (key) {
-        CalcKey.ln => Tok.e,
-        _ => null,
-      };
+      return _variableKeys[key] ??
+          switch (key) {
+            CalcKey.ln => Tok.e,
+            CalcKey.integrate => Tok.colon,
+            _ => null,
+          };
     }
     final digit = key.digit;
     if (digit != null) {
@@ -244,9 +326,10 @@ class Calculator {
   /// Inserts [tok]; right after a result, operators continue from Ans.
   void _enter(Tok tok) {
     if (_phase == _Phase.result) {
+      final continueWith = _continueWith;
       _clearInput();
       if (tok.kind == TokKind.binary || tok.kind == TokKind.postfix) {
-        _tokens.add(Tok.ans);
+        _tokens.add(continueWith);
       }
       _cursor = _tokens.length;
       if (tok == Tok.rnd) {
@@ -259,6 +342,8 @@ class Calculator {
     _input(tok);
   }
 
+  // ------------------------------------------------------------------ menus
+
   void _pressInMenu(CalcKey key) {
     final menu = _menu!;
     _modifier = _Modifier.none;
@@ -267,12 +352,24 @@ class Calculator {
       return;
     }
     if (key == CalcKey.mode && _modePages.contains(menu)) {
-      _menu = _modePages[(_modePages.indexOf(menu) + 1) % _modePages.length];
+      // After the last setup page, MODE returns to the calculation screen.
+      final next = _modePages.indexOf(menu) + 1;
+      _menu = next < _modePages.length ? _modePages[next] : null;
+      return;
+    }
+    if (identical(menu, _clrMcl) ||
+        identical(menu, _clrMode) ||
+        identical(menu, _clrAll)) {
+      if (key == CalcKey.equals) _clear(menu);
       return;
     }
     final d = key.digit;
     if (d == null) return;
 
+    if (identical(menu, _clrMenu)) {
+      if (d >= 1 && d <= 3) _menu = [_clrMcl, _clrMode, _clrAll][d - 1];
+      return;
+    }
     if (identical(menu, _drgMenu)) {
       const marks = [Tok.degMark, Tok.radMark, Tok.graMark];
       if (d < 1 || d > 3) return;
@@ -316,8 +413,203 @@ class Calculator {
     }
   }
 
+  /// Executes a confirmed CLR choice.
+  void _clear(_Menu which) {
+    if (!identical(which, _clrMode)) _vars.clear();
+    if (!identical(which, _clrMcl)) {
+      _angle = AngleUnit.deg;
+      _format = const DisplayFormat.norm1();
+      _history.clear();
+    }
+    if (identical(which, _clrAll)) _ans = Dec.zero;
+    _menu = null;
+    _clearInput();
+    _resultValue = null;
+  }
+
+  // ------------------------------------------------------------------ memory
+
+  void _pressPending(CalcKey key) {
+    final pending = _pending;
+    _pending = _Pending.none;
+    _modifier = _Modifier.none;
+    final variable = _variableKeys[key];
+    if (variable == null) {
+      if (key == CalcKey.ac) {
+        _clearInput();
+        _resultValue = null;
+      }
+      return; // Any other key cancels STO / RCL.
+    }
+    if (pending == _Pending.sto) {
+      final value = _commitValue();
+      if (value == null) return;
+      _vars[variable.text] = value;
+      _ans = value;
+      _resultValue = value;
+    } else {
+      _resultValue = _vars[variable.text] ?? Dec.zero;
+      _tokens = [variable];
+      _cursor = _tokens.length;
+      _upperOverride = '${variable.text}=';
+      _continueWith = variable;
+      _browse = null;
+      _phase = _Phase.result;
+    }
+  }
+
+  /// M+ ([sign] 1) / M− ([sign] −1): evaluate, then add to / subtract from M.
+  void _addToMemory(int sign) {
+    final value = _commitValue();
+    if (value == null) return;
+    final m = _vars['M'] ?? Dec.zero;
+    try {
+      _vars['M'] = sign > 0 ? m + value : m - value;
+    } on CalcError catch (e) {
+      _showError(e);
+      return;
+    }
+    _ans = value;
+    _resultValue = value;
+  }
+
+  /// The value STO / M+ act on: evaluates pending input (like =), otherwise
+  /// the value on the display. Null if evaluation failed (error shown).
+  Dec? _commitValue() {
+    if (_phase == _Phase.editing && _tokens.isNotEmpty) {
+      _execute();
+      while (_midMulti) {
+        _execute();
+      }
+      return _phase == _Phase.result ? _resultValue : null;
+    }
+    return _resultValue ?? Dec.zero;
+  }
+
+  // ------------------------------------------------------------------ execution
+
+  void _execute() {
+    if (_midMulti) {
+      _runStatement(_statement + 1);
+      return;
+    }
+    if (_tokens.isEmpty) return;
+    _insert = false;
+    _upperOverride = null;
+    _continueWith = Tok.ans;
+    // Split at ':' into statements.
+    final statements = <(int, int)>[];
+    var start = 0;
+    for (var i = 0; i <= _tokens.length; i++) {
+      if (i == _tokens.length || _tokens[i] == Tok.colon) {
+        if (i == start) {
+          _showError(CalcError(CalcErrorKind.syntax, i));
+          return;
+        }
+        statements.add((start, i));
+        start = i + 1;
+      }
+    }
+    _statements = statements;
+    _runStatement(0);
+  }
+
+  void _runStatement(int index) {
+    final (start, end) = _statements[index];
+    try {
+      final value = evaluate(
+        _tokens.sublist(start, end),
+        ans: _ans,
+        context: EvalContext(
+          ans: _ans,
+          angle: _angle,
+          format: _format,
+          variables: _vars,
+          random: _random,
+        ),
+      );
+      _ans = value;
+      _resultValue = value;
+      _statement = index;
+      _phase = _Phase.result;
+      _upperOverride = _statements.length > 1
+          ? _tokens.sublist(start, end).map((t) => t.text).join()
+          : null;
+      if (index == _statements.length - 1) _record(value);
+    } on CalcError catch (e) {
+      _showError(CalcError(e.kind, start + (e.position ?? end - start)));
+    }
+  }
+
+  void _showError(CalcError e) {
+    _error = e;
+    _phase = _Phase.error;
+    _statements = const [];
+    _upperOverride = null;
+  }
+
+  // ------------------------------------------------------------------ history
+
+  void _record(Dec value) {
+    _history.add(_Entry(List.of(_tokens), value));
+    var bytes = _history.fold<int>(0, (s, e) => s + e.bytes);
+    while (_history.length > 1 && bytes > historyBytes) {
+      bytes -= _history.removeAt(0).bytes;
+    }
+    _browse = _history.length - 1;
+  }
+
+  void _scrollHistory(int step) {
+    if (_history.isEmpty || _midMulti) return;
+    int target;
+    if (_phase == _Phase.result && _browse != null) {
+      target = _browse! + step;
+    } else if (_phase == _Phase.editing && _tokens.isEmpty) {
+      target = _history.length - 1; // After AC, ▲ shows the newest entry.
+    } else {
+      return;
+    }
+    if (target < 0 || target >= _history.length) return;
+    final entry = _history[target];
+    _browse = target;
+    _tokens = List.of(entry.tokens);
+    _cursor = _tokens.length;
+    _resultValue = entry.value;
+    _upperOverride = null;
+    _continueWith = Tok.ans;
+    _statements = const [];
+    _phase = _Phase.result;
+  }
+
+  /// COPY: joins the shown entry and all newer ones into one multi-statement.
+  void _copyHistory() {
+    final from = _browse;
+    if (_phase != _Phase.result || from == null || _midMulti) return;
+    final joined = <Tok>[];
+    for (var i = from; i < _history.length; i++) {
+      if (joined.isNotEmpty) joined.add(Tok.colon);
+      joined.addAll(_history[i].tokens);
+    }
+    _tokens = joined.length > maxSteps ? joined.sublist(0, maxSteps) : joined;
+    _startEditing(_tokens.length);
+  }
+
+  // ------------------------------------------------------------------ editing
+
+  void _startEditing(int cursor) {
+    _phase = _Phase.editing;
+    _upperOverride = null;
+    _statements = const [];
+    _browse = null;
+    _windowStart = 0;
+    _setCursor(cursor);
+  }
+
   void _input(Tok tok) {
     _phase = _Phase.editing;
+    _browse = null;
+    _upperOverride = null;
+    _statements = const [];
     if (_cursor < _tokens.length && !_insert) {
       _tokens[_cursor] = tok;
     } else {
@@ -342,29 +634,6 @@ class Calculator {
     }
   }
 
-  void _execute() {
-    if (_tokens.isEmpty) return;
-    _insert = false;
-    try {
-      final value = evaluate(
-        _tokens,
-        ans: _ans,
-        context: EvalContext(
-          ans: _ans,
-          angle: _angle,
-          format: _format,
-          random: _random,
-        ),
-      );
-      _ans = value;
-      _resultValue = value;
-      _phase = _Phase.result;
-    } on CalcError catch (e) {
-      _error = e;
-      _phase = _Phase.error;
-    }
-  }
-
   void _clearInput() {
     _tokens = [];
     _cursor = 0;
@@ -372,6 +641,21 @@ class Calculator {
     _insert = false;
     _error = null;
     _phase = _Phase.editing;
+    _upperOverride = null;
+    _statements = const [];
+    _continueWith = Tok.ans;
+    _browse = null;
+  }
+
+  /// ON: clears the screen and calculation history; memories stay.
+  void _powerOn() {
+    _menu = null;
+    _modifier = _Modifier.none;
+    _hyp = false;
+    _pending = _Pending.none;
+    _clearInput();
+    _resultValue = null;
+    _history.clear();
   }
 
   int get _cursorColumn {
@@ -395,5 +679,55 @@ class Calculator {
     if (start >= text.length) return '';
     final end = (start + DisplayState.upperColumns).clamp(0, text.length);
     return text.substring(start, end);
+  }
+
+  // ------------------------------------------------------------------ persistence
+
+  /// What survives switching the device off: memories, Ans and setup.
+  Map<String, Object?> saveState() => {
+    'version': 1,
+    'ans': _ans.toString(),
+    'vars': {for (final e in _vars.entries) e.key: e.value.toString()},
+    'angle': _angle.name,
+    'format': '${_format.mode.name}:${_format.digits}',
+  };
+
+  /// Restores [saveState] output; silently ignores anything malformed.
+  void restoreState(Map<String, Object?> state) {
+    try {
+      final ans = state['ans'];
+      final vars = state['vars'];
+      final angle = state['angle'];
+      final format = state['format'];
+      final newVars = <String, Dec>{};
+      if (vars is Map) {
+        for (final MapEntry(:key, :value) in vars.entries) {
+          if (key is String && value is String) newVars[key] = Dec.parse(value);
+        }
+      }
+      final newAns = ans is String ? Dec.parse(ans) : _ans;
+      final newAngle = angle is String
+          ? AngleUnit.values.byName(angle)
+          : _angle;
+      final newFormat = format is String ? _parseFormat(format) : _format;
+      _vars
+        ..clear()
+        ..addAll(newVars);
+      _ans = newAns;
+      _angle = newAngle;
+      _format = newFormat;
+    } on Object {
+      // Corrupt or foreign snapshot: keep defaults.
+    }
+  }
+
+  static DisplayFormat _parseFormat(String s) {
+    final [mode, digits] = s.split(':');
+    final n = int.parse(digits);
+    return switch (mode) {
+      'fix' => DisplayFormat.fix(n),
+      'sci' => DisplayFormat.sci(n),
+      _ => n == 2 ? const DisplayFormat.norm2() : const DisplayFormat.norm1(),
+    };
   }
 }
