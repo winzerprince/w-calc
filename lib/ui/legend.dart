@@ -11,12 +11,13 @@ List<InlineSpan> legendSpans(String legend, TextStyle style) {
     if (m.start > last) {
       spans.add(TextSpan(text: legend.substring(last, m.start), style: style));
     }
-    final size = (style.fontSize ?? 14) * 0.62;
+    final size = (style.fontSize ?? 14) * 0.75;
     spans.add(
       WidgetSpan(
-        alignment: PlaceholderAlignment.top,
+        alignment: PlaceholderAlignment.baseline,
+        baseline: TextBaseline.alphabetic,
         child: Transform.translate(
-          offset: Offset(0, -size * 0.15),
+          offset: Offset(0, -size * 0.55),
           child: Text(
             m.group(1)!.replaceAll('-', '−'),
             style: style.copyWith(fontSize: size),

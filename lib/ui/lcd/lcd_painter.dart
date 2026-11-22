@@ -44,7 +44,7 @@ class LcdPainter extends CustomPainter {
   static const double _upperTop = 62;
 
   // Result line.
-  static const double _lowerTop = 200;
+  static const double _lowerTop = 192;
   static const double _digitW = 70;
   static const double _digitH = 140;
   static const double _expW = 34;
@@ -207,7 +207,7 @@ class LcdPainter extends CustomPainter {
         _digitW,
         _digitH,
         Segment.values.toSet(),
-        false,
+        const SegmentCell('8', point: true, comma: true),
         ghost,
       );
     }
@@ -218,12 +218,15 @@ class LcdPainter extends CustomPainter {
         _expW,
         _expH,
         i == 0 ? {Segment.g} : Segment.values.toSet(),
-        false,
+        null,
         ghost,
       );
     }
 
-    final cells = toCells(display.lower);
+    final grouped = display.exponent == null
+        ? groupDigits(display.lower)
+        : display.lower;
+    final cells = toCells(grouped);
     final start = _mantissaCells - cells.length;
     for (var i = 0; i < cells.length; i++) {
       final x = _mantissaRight - (_mantissaCells - (start + i)) * _digitW;
@@ -233,7 +236,7 @@ class LcdPainter extends CustomPainter {
         _digitW,
         _digitH,
         segmentsFor(cells[i].char),
-        cells[i].point,
+        cells[i],
         ink,
       );
     }
@@ -248,7 +251,7 @@ class LcdPainter extends CustomPainter {
           _expW,
           _expH,
           {Segment.g},
-          false,
+          null,
           ink,
         );
       }
@@ -259,7 +262,7 @@ class LcdPainter extends CustomPainter {
           _expW,
           _expH,
           segmentsFor(digits[i]),
-          false,
+          null,
           ink,
         );
       }
@@ -273,7 +276,7 @@ class LcdPainter extends CustomPainter {
     double w,
     double h,
     Set<Segment> on,
-    bool point,
+    SegmentCell? marks,
     Paint paint,
   ) {
     final t = w * 0.15; // stroke
@@ -319,10 +322,20 @@ class LcdPainter extends CustomPainter {
     for (final s in on) {
       canvas.drawPath(defs[s]!, paint);
     }
-    if (point) {
-      canvas.drawCircle(
-        origin + Offset(w - m * 0.2, h - t / 2),
-        t * 0.6,
+    if (marks == null) return;
+    // Every digit position has a dot and a comma tail after it.
+    final dot = origin + Offset(w - m * 0.2, h - t / 2);
+    if (marks.point || marks.comma) {
+      canvas.drawCircle(dot, t * 0.6, paint);
+    }
+    if (marks.comma) {
+      canvas.drawPath(
+        Path()
+          ..moveTo(dot.dx + t * 0.15, dot.dy + t * 0.3)
+          ..lineTo(dot.dx + t * 0.55, dot.dy + t * 0.3)
+          ..lineTo(dot.dx - t * 0.45, dot.dy + t * 1.9)
+          ..lineTo(dot.dx - t * 0.75, dot.dy + t * 1.9)
+          ..close(),
         paint,
       );
     }

@@ -41,6 +41,21 @@ void main() {
       expect(toCells('36.').last.point, isTrue);
     });
 
+    test('comma lights dot and tail on the preceding digit', () {
+      final cells = toCells('1,234.5');
+      expect(cells.map((c) => c.char).join(), '12345');
+      expect(cells[0].comma, isTrue);
+      expect(cells[3].point, isTrue);
+    });
+
+    test('integer part is grouped in threes', () {
+      expect(groupDigits('1234567.25'), '1,234,567.25');
+      expect(groupDigits('-40320.'), '-40,320.');
+      expect(groupDigits('999.'), '999.');
+      expect(groupDigits('0.000123'), '0.000123');
+      expect(groupDigits('Math'), 'Math');
+    });
+
     test('leading point gets a 0 cell', () {
       expect(toCells('.5').first.char, '0');
     });
