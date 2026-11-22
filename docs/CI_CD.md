@@ -13,7 +13,7 @@ feature/*, fix/*, chore/*, docs/*  ──PR──▶  dev  ──PR──▶  ma
 | `main` | Released code only. Every merge = Android build. | No (PR only) | `dev`, `hotfix/*` |
 | `feature/<milestone>-<topic>` etc. | One unit of work, TDD | Yes | — (branch from `dev`) |
 
-Merge style: **squash** into `dev` (one Conventional Commit per PR), **merge commit** from `dev` into `main` (keeps history of what shipped).
+Merge style: **squash** into `dev` (one Conventional Commit per PR; sync PRs from `main` use a merge commit), **merge commit** from `dev` into `main` (keeps history of what shipped).
 
 ## What runs when
 
@@ -44,15 +44,20 @@ Web is **not** built in CI. Test web locally: `tool/web.sh` (hot reload, LAN) or
 
 ## After every release: sync main back into dev
 
-`dev → main` uses a merge commit, so `main` gains a commit `dev` lacks. `main` requires PR branches to be
-up to date, so right after each release:
+`dev → main` uses a merge commit, so `main` gains a commit `dev` lacks, and `main` requires PR
+branches to be up to date. A PR with head `main` can go stale (`dev` requires up-to-date too), so sync
+through a branch cut from `dev`:
 
 ```bash
-gh pr create --base dev --head main --title "chore: sync main into dev" --body "Post-release sync."
-gh pr merge <n> --merge      # merge commit (not squash), keeps ancestry
+git fetch origin
+git switch -c chore/sync-main origin/dev
+git merge --no-edit origin/main
+git push -u origin chore/sync-main
+gh pr create --base dev --title "chore: sync main into dev after vX.Y.Z" --body "Post-release sync."
+gh pr merge <n> --merge      # merge commit, NOT squash (keeps ancestry)
 ```
 
-(Done by Claude as part of every release.)
+Done by Claude as part of every release.
 
 ## Required checks (branch protection)
 
