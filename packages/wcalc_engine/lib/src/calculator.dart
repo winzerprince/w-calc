@@ -267,7 +267,9 @@ class Calculator {
       return;
     }
     if (key == CalcKey.mode && _modePages.contains(menu)) {
-      _menu = _modePages[(_modePages.indexOf(menu) + 1) % _modePages.length];
+      // After the last setup page, MODE returns to the calculation screen.
+      final next = _modePages.indexOf(menu) + 1;
+      _menu = next < _modePages.length ? _modePages[next] : null;
       return;
     }
     final d = key.digit;

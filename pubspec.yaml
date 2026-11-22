@@ -14,6 +14,7 @@ dependencies:
     sdk: flutter
   wcalc_engine:
     path: packages/wcalc_engine
+  web: ^1.1.2
 
 dev_dependencies:
   flutter_test:

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
+import 'haptics.dart';
 import 'keyboard_shortcuts.dart';
 import 'keypad.dart';
 import 'keypad_layout.dart';
@@ -37,7 +38,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   void _press(CalcKey key) {
-    HapticFeedback.selectionClick();
+    keyVibration();
     setState(() => _calc.press(key));
   }
 
