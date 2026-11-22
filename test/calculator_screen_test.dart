@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:w_calc/main.dart';
 
 Future<void> tapKey(WidgetTester tester, String name) async {
@@ -14,6 +15,8 @@ String lcdText(WidgetTester tester, String line) =>
     '';
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   testWidgets('shows initial display', (tester) async {
     tester.view.physicalSize = const Size(1080, 2340);
     tester.view.devicePixelRatio = 2.75;
@@ -61,6 +64,27 @@ void main() {
     }
     expect(lcdText(tester, 'lower'), '6.666666667');
     expect(lcdText(tester, 'exponent'), '19');
+  });
+
+  testWidgets('memories persist across app restarts', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const WCalcApp());
+    await tester.pump(const Duration(milliseconds: 100));
+    for (final k in ['d4', 'd2', 'shift', 'rcl', 'negative']) {
+      await tapKey(tester, k);
+    }
+    await tester.pump(const Duration(milliseconds: 50));
+
+    // New app instance reads the saved state.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(const WCalcApp());
+    await tester.pump(const Duration(milliseconds: 50));
+    await tapKey(tester, 'rcl');
+    await tapKey(tester, 'negative');
+    expect(lcdText(tester, 'lower'), '42.');
   });
 
   testWidgets('SHIFT lights the S indicator', (tester) async {

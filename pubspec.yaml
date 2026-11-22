@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Release version. Bump on `dev` via PR; merging to `main` creates tag v<version-without-build>.
 # Build number (+N) is overridden in CI by the workflow run number.
-version: 0.0.3-alpha+1
+version: 0.0.4-alpha+1
 
 environment:
   sdk: ^3.13.7
@@ -12,6 +12,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  shared_preferences: ^2.5.6
   wcalc_engine:
     path: packages/wcalc_engine
   web: ^1.1.2

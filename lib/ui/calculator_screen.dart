@@ -7,6 +7,7 @@ import 'keyboard_shortcuts.dart';
 import 'keypad.dart';
 import 'keypad_layout.dart';
 import 'lcd.dart';
+import 'state_store.dart';
 
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
@@ -22,7 +23,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   @override
   void initState() {
     super.initState();
-    _replayFromUrl();
+    StateStore.load(_calc).then((_) {
+      if (!mounted) return;
+      setState(_replayFromUrl);
+    });
   }
 
   /// Web: `?keys=2,div,3,=` presses those keys on load (repro links, screenshots).
@@ -40,6 +44,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   void _press(CalcKey key) {
     keyVibration();
     setState(() => _calc.press(key));
+    StateStore.save(_calc);
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
@@ -49,6 +54,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     final keys = keysForKeyboard(event);
     if (keys == null) return KeyEventResult.ignored;
     setState(() => keys.forEach(_calc.press));
+    StateStore.save(_calc);
     return KeyEventResult.handled;
   }
 

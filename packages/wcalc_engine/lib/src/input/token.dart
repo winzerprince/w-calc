@@ -18,6 +18,12 @@ enum TokKind {
 
   /// π, e: constants (implied multiplication like memory names).
   constant,
+
+  /// Memory / variable names A–F, M, X, Y.
+  variable,
+
+  /// `:` between statements of a multi-statement.
+  separator,
 }
 
 /// One input step on the upper line. Each key press inserts one token, so
@@ -79,7 +85,17 @@ enum Tok {
   ans('Ans', TokKind.operand),
   ran('Ran#', TokKind.operand),
   pi('π', TokKind.constant),
-  e('e', TokKind.constant);
+  e('e', TokKind.constant),
+  varA('A', TokKind.variable),
+  varB('B', TokKind.variable),
+  varC('C', TokKind.variable),
+  varD('D', TokKind.variable),
+  varE('E', TokKind.variable),
+  varF('F', TokKind.variable),
+  varM('M', TokKind.variable),
+  varX('X', TokKind.variable),
+  varY('Y', TokKind.variable),
+  colon(':', TokKind.separator);
 
   const Tok(this.text, this.kind);
 
