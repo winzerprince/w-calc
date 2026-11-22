@@ -41,6 +41,8 @@ class DisplayState {
     required this.upper,
     required this.lower,
     this.exponent,
+    this.engSymbol,
+    this.decimalComma = false,
     this.indicators = const {},
     this.cursor,
     this.cursorStyle = CursorStyle.underscore,
@@ -55,6 +57,12 @@ class DisplayState {
 
   /// Two-digit exponent shown at the right of the result line (`19`, `-03`), or null.
   final String? exponent;
+
+  /// EngON: engineering symbol shown in the exponent area (k, m, μ …).
+  final String? engSymbol;
+
+  /// Comma setting: show the decimal point as a comma (separators as periods).
+  final bool decimalComma;
 
   final Set<Indicator> indicators;
 

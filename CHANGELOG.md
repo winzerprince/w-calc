@@ -2,6 +2,19 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [0.0.5-alpha] - 2026-11-22
+
+Fractions, sexagesimal, percent and engineering notation (M5).
+
+### Added
+- Exact fractions: a b/c input, mixed/improper results (`4⌟11⌟12.`), a b/c ↔ decimal and
+  d/c ↔ mixed conversion, decimal-to-fraction conversion, fractions stay exact through Ans.
+- Sexagesimal input with °′″ (`2°0°30°`), sexagesimal results, decimal ↔ d°m°s conversion.
+- Percent (SHIFT =): of, ratio, rate of change, mark-up / discount with + / −.
+- ENG and SHIFT ENG engineering shifts; EngON engineering symbols (f p n μ m k M G T) for input
+  and results.
+- Disp setup screens: EngON/EngOFF, ab/c / d/c, Dot / Comma (comma decimal display).
+
 ## [0.0.4-alpha] - 2026-11-22
 
 Memories and history (M4).

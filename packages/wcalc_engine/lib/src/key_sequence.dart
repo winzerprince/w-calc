@@ -88,6 +88,13 @@ const _names = <String, List<CalcKey>>{
   '∫dx': [CalcKey.integrate],
   'CONST': [CalcKey.constant],
   'ab/c': [CalcKey.fraction],
+  'd/c': [CalcKey.shift, CalcKey.fraction],
+  '%': [CalcKey.shift, CalcKey.equals],
+  'pct': [CalcKey.shift, CalcKey.equals],
+  '←dms': [CalcKey.shift, CalcKey.degMinSec],
+  'toDms': [CalcKey.shift, CalcKey.degMinSec],
+  'ENG←': [CalcKey.shift, CalcKey.eng],
+  'engLeft': [CalcKey.shift, CalcKey.eng],
   ',': [CalcKey.comma],
   // Shortcuts for SHIFT / ALPHA functions.
   'sin⁻¹': [CalcKey.shift, CalcKey.sin],
