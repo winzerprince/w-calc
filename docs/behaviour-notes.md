@@ -23,3 +23,9 @@ how to verify on the device, result.
 | 16 | Cursor | blinks every 0.5 s; overwrite = underline under character, INS = box around character | | to verify |
 | 17 | 3-digit separators | result line groups the integer part with comma tails (`1,234,567.25`), per the 2nd-ed. manual's *Dot* setting ("period decimal point, comma separator"); not applied to exponential results | `1234567 =` | to verify on your edition |
 | 18 | MAT / VCT legend brackets | neutral grey corner brackets (colour not documented) | look at keys 4 / 5 | to verify |
+| 19 | Rad: sin π, cos(π/2) | arguments within 1e-13 (relative) of a non-zero multiple of π/2 snap to it → `sin π = 0`, `tan(π/2)` = Math ERROR | Rad: `sin SHIFT EXP =` | to verify |
+| 20 | Rnd after a result | rounds Ans (`10 ÷ 3 = SHIFT 0 × 3 =` → `9.999` in Fix 3), shown as `Rnd Ans` | as described | to verify display text |
+| 21 | hyp | shows a `hyp` indicator until the next key; hyp + non-trig key drops hyp | press hyp | to verify |
+| 22 | Function texts | `sin⁻¹ ` (with `⁻¹` as 2 columns), `10^`, `e^`, `³√`, `ˣ√`, `Ran#`, `Rnd ` | type them, compare widths | to verify |
+| 23 | MODE menus | 6 pages (COMP CMPLX / SD REG BASE / EQN MAT VCT / Deg Rad Gra / Fix Sci Norm / Disp); selecting a setting returns to the expression being edited | MODE repeatedly | to verify |
+| 24 | Changing Fix/Sci/Norm | a result already on screen is re-shown in the new format | `100 ÷ 7 =` then Fix 3 | to verify |

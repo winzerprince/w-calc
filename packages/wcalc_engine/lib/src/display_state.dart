@@ -44,6 +44,7 @@ class DisplayState {
     this.indicators = const {},
     this.cursor,
     this.cursorStyle = CursorStyle.underscore,
+    this.menuMarks,
   });
 
   /// Visible part of the dot-matrix line (at most [upperColumns] characters).
@@ -61,6 +62,10 @@ class DisplayState {
   final int? cursor;
 
   final CursorStyle cursorStyle;
+
+  /// Menu screens: digits shown on the result line, keyed by the upper-line
+  /// column they sit under (e.g. `Deg Rad Gra` → {1: '1', 5: '2', 9: '3'}).
+  final Map<int, String>? menuMarks;
 
   static const int upperColumns = 12;
 
