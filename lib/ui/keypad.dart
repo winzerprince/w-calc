@@ -195,78 +195,35 @@ class LegendStrip extends StatelessWidget {
   final List<KeyLabel> labels;
   final bool below;
 
-  Widget _slot(LabelSlot slot) {
-    final items = labels.where((l) => l.slot == slot).toList();
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final (i, l) in items.indexed) ...[
-          if (i > 0) const SizedBox(width: 3),
-          LegendText(label: l, below: below),
-        ],
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (labels.isEmpty) return const SizedBox.shrink();
-    // Each slot keeps its natural size, pinned to the key's left edge,
-    // centre or right edge (like the printed legends). If the legends are
-    // wider than the key, the whole strip scales down uniformly.
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        return FittedBox(
-          fit: BoxFit.scaleDown,
-          child: _MinWidth(
-            width: width,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _slot(LabelSlot.left),
-                const _Gap(),
-                _slot(LabelSlot.center),
-                const _Gap(),
-                _slot(LabelSlot.right),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// Expands to fill the remaining width between slots.
-class _Gap extends StatelessWidget {
-  const _Gap();
-
-  @override
-  Widget build(BuildContext context) => const SizedBox(width: 4);
-}
-
-/// Lays out [child] at its intrinsic width but at least [width], spreading
-/// the slots: left at the start, center in the middle, right at the end.
-class _MinWidth extends StatelessWidget {
-  const _MinWidth({required this.width, required this.child});
-
-  final double width;
-  final Row child;
-
-  @override
-  Widget build(BuildContext context) {
-    return IntrinsicWidth(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minWidth: width),
+    // Legends of one key form a tight group (left → centre → right order),
+    // centred over the key, so a key's legends are closer to each other than
+    // to the neighbouring keys' legends. Scales down if wider than the key.
+    final ordered = [
+      for (final slot in LabelSlot.values)
+        ...labels.where((l) => l.slot == slot),
+    ];
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: child.children,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (i, l) in ordered.indexed) ...[
+              if (i > 0) const SizedBox(width: _legendGap),
+              LegendText(label: l, below: below),
+            ],
+          ],
         ),
       ),
     );
   }
 }
+
+/// Space between two legends of the same key.
+const double _legendGap = 5;
 
 /// One legend; mode-specific ones get corner brackets in the mode colour.
 class LegendText extends StatelessWidget {

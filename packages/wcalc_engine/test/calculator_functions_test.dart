@@ -156,13 +156,16 @@ void main() {
       expect(d.menuMarks, {1: '1', 7: '2'});
       expect(d.lower, '');
     });
-    test('MODE cycles through 6 screens and wraps', () {
+    test('MODE steps through 6 screens, then returns to calculation', () {
+      press('7 +');
       expect(press('MODE MODE').upper, 'SD REG BASE');
       expect(press('MODE').upper, 'EQN MAT VCT');
       expect(press('MODE').upper, 'Deg Rad Gra');
       expect(press('MODE').upper, 'Fix Sci Norm');
       expect(press('MODE').upper, 'Disp');
-      expect(press('MODE').upper, 'COMP CMPLX');
+      final d = press('MODE');
+      expect(d.upper, '7+');
+      expect(d.menuMarks, isNull);
     });
     test('angle unit selection updates the indicator', () {
       expect(press(rad).indicators, contains(Indicator.rad));
