@@ -41,8 +41,12 @@ class EvalContext {
     required this.ans,
     this.angle = AngleUnit.deg,
     this.format = const DisplayFormat.norm1(),
+    this.variables = const {},
     math.Random? random,
   }) : random = random ?? math.Random();
+
+  /// Values of A–F, M, X, Y by name; missing names read as 0.
+  final Map<String, Dec> variables;
 
   final Dec ans;
   final AngleUnit angle;
@@ -100,7 +104,7 @@ class _Evaluator {
           i = _literal(i);
           expectOperand = false;
           continue;
-        case TokKind.operand || TokKind.constant:
+        case TokKind.operand || TokKind.constant || TokKind.variable:
           if (!expectOperand) {
             _pushBinary(_Op(_OpType.binary, Priority.impliedOperand, i, _mul));
           }
@@ -129,6 +133,8 @@ class _Evaluator {
           // functions, so they apply to the value just completed.
           if (expectOperand) _syntax(i);
           _guard(i, () => values.add(_postfixFn(tok)(values.removeLast())));
+        case TokKind.separator:
+          _syntax(i); // Multi-statements are split before evaluation.
         case TokKind.closeParen:
           if (expectOperand) _syntax(i);
           while (ops.isNotEmpty && ops.last.type != _OpType.paren) {
@@ -155,6 +161,7 @@ class _Evaluator {
     Tok.pi => piConstant,
     Tok.e => eConstant,
     Tok.ran => Dec(BigInt.from(ctx.random.nextInt(1000)), -3),
+    _ when tok.kind == TokKind.variable => ctx.variables[tok.text] ?? Dec.zero,
     _ => throw ArgumentError('not an operand: $tok'),
   };
 

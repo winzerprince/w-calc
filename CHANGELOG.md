@@ -2,6 +2,23 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [0.0.4-alpha] - 2026-11-22
+
+Memories and history (M4).
+
+### Added
+- Variables A–F, M, X, Y: STO (SHIFT RCL), RCL, ALPHA names in expressions with implied ×.
+- Independent memory: M+, M− with the M indicator.
+- Calculation history (~150 bytes): ▲ ▼ with indicators, edit any entry, COPY (SHIFT ▲) into a
+  multi-statement.
+- Multi-statements with `:` (ALPHA ∫dx): `=` steps through, Disp indicator.
+- CLR (SHIFT MODE): Mcl / Mode / All with confirmation; ON clears history.
+- Memories, Ans and setup persist across app restarts.
+
+### Changed
+- Key legends grouped tightly per key; MODE after the last setup page returns to calculation.
+- Key presses vibrate (Android haptics; Vibration API on web).
+
 ## [0.0.3-alpha] - 2026-11-22
 
 Scientific functions (M3) and device-accurate keypad legends.
