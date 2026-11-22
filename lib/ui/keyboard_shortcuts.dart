@@ -54,6 +54,8 @@ List<CalcKey>? keysForKeyboard(KeyEvent event) {
     'a' => CalcKey.alpha,
     'n' => CalcKey.negative,
     'e' => CalcKey.exp,
+    'h' => CalcKey.hyp,
+    'm' => CalcKey.mode,
     _ => null,
   };
   return key == null ? null : [key];

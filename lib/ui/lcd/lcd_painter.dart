@@ -223,6 +223,11 @@ class LcdPainter extends CustomPainter {
       );
     }
 
+    final marks = display.menuMarks;
+    if (marks != null) {
+      _paintMenuMarks(canvas, marks, ink);
+      return;
+    }
     final grouped = display.exponent == null
         ? groupDigits(display.lower)
         : display.lower;
@@ -266,6 +271,28 @@ class LcdPainter extends CustomPainter {
           ink,
         );
       }
+    }
+  }
+
+  /// Menu screens: each digit sits in the result-line cell nearest to the
+  /// upper-line column of its label.
+  void _paintMenuMarks(Canvas canvas, Map<int, String> marks, Paint ink) {
+    const firstCell = _mantissaRight - _mantissaCells * _digitW;
+    for (final MapEntry(key: col, value: digit) in marks.entries) {
+      final centre = _pad + col * 6 * _dotPitch + 2.5 * _dotPitch;
+      final cell = ((centre - firstCell - _digitW / 2) / _digitW).round().clamp(
+        0,
+        _mantissaCells - 1,
+      );
+      _segments(
+        canvas,
+        Offset(firstCell + cell * _digitW, _lowerTop),
+        _digitW,
+        _digitH,
+        segmentsFor(digit),
+        null,
+        ink,
+      );
     }
   }
 
