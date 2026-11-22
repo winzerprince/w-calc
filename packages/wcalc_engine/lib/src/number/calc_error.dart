@@ -15,9 +15,14 @@ enum CalcErrorKind {
 
 /// Thrown by the engine; the calculator turns it into an error screen.
 class CalcError implements Exception {
-  const CalcError(this.kind);
+  const CalcError(this.kind, [this.position]);
 
   final CalcErrorKind kind;
+
+  /// Token index where the error was detected (cursor goes there on ◀/▶).
+  final int? position;
+
+  CalcError at(int pos) => CalcError(kind, position ?? pos);
 
   @override
   String toString() => 'CalcError(${kind.message})';

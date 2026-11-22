@@ -20,6 +20,19 @@ enum Indicator {
   reIm,
   scrollUp,
   scrollDown,
+  disp,
+}
+
+/// Cursor shapes on the upper line.
+enum CursorStyle {
+  /// `_` overwrite cursor (default).
+  underscore,
+
+  /// Insert cursor (after SHIFT INS).
+  insert,
+
+  /// `■` shown from the 73rd input step: memory running low.
+  block,
 }
 
 /// Immutable snapshot of what the two-line LCD shows.
@@ -27,17 +40,31 @@ class DisplayState {
   const DisplayState({
     required this.upper,
     required this.lower,
+    this.exponent,
     this.indicators = const {},
+    this.cursor,
+    this.cursorStyle = CursorStyle.underscore,
   });
 
-  /// Dot-matrix input/expression line.
+  /// Visible part of the dot-matrix line (at most [upperColumns] characters).
   final String upper;
 
-  /// Seven-segment result line (mantissa, may include `×10^` exponent later).
+  /// Result line mantissa, e.g. `-25.5`, `36.`, `6.666666667`.
   final String lower;
+
+  /// Two-digit exponent shown at the right of the result line (`19`, `-03`), or null.
+  final String? exponent;
 
   final Set<Indicator> indicators;
 
+  /// Cursor column within [upper] (0..[upperColumns]-1), or null when hidden.
+  final int? cursor;
+
+  final CursorStyle cursorStyle;
+
+  static const int upperColumns = 12;
+
   @override
-  String toString() => 'DisplayState($upper | $lower | $indicators)';
+  String toString() =>
+      'DisplayState($upper | $lower${exponent == null ? '' : 'E$exponent'} | cursor $cursor | $indicators)';
 }
