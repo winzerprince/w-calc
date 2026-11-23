@@ -506,4 +506,25 @@ void main() {
     expect(other.statItems, hasLength(2));
     expect(other.linearVariables.keys, contains('MatA'));
   });
+
+  group('profiles', () {
+    test('four-line model lists only its modes', () {
+      final c = NaturalCalculator(
+        profile: NaturalProfile.multiLine,
+        modes: {NaturalMode.comp, NaturalMode.stat, NaturalMode.table},
+      );
+      c.press(CalcKey.mode);
+      expect(c.screen.text, '1:COMP  2:STAT | 3:TABLE');
+      c.press(CalcKey.d2);
+      expect(c.mode, NaturalMode.stat);
+    });
+    test('history screen shows the current result', () {
+      final c = NaturalCalculator(profile: NaturalProfile.multiLine);
+      for (final k in parseKeySequence('1 + 1 = 2 frac 3 > + 1 frac 2 =')) {
+        c.press(k);
+      }
+      expect(c.screen.text, endsWith('= fraction{7|6}'));
+      expect(c.screen.dots.toAscii().contains('#'), isTrue);
+    });
+  });
 }

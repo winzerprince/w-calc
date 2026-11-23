@@ -24,6 +24,16 @@ import 'result_forms.dart';
 /// Calculation modes of the textbook-display models (MODE 1-8).
 enum NaturalMode { comp, cmplx, stat, base, eqn, matrix, table, vector }
 
+/// How the calculation screen is laid out.
+enum NaturalProfile {
+  /// One expression on top, its result at the bottom right (96 × 31).
+  textbook,
+
+  /// Four text lines with the history above the current line: each entry
+  /// left, its result right-aligned (on the same line when it fits).
+  multiLine,
+}
+
 /// EQN types in MODE 5 menu order.
 enum EqnType { lin2, lin3, quad, cubic }
 
@@ -82,7 +92,18 @@ final class _History {
 /// models; adds the 2-D input editor, exact result forms and the menu-style
 /// MODE / SETUP screens. Draws its own 96 × 31 dot screen.
 class NaturalCalculator implements CalcEngine {
-  NaturalCalculator({math.Random? random}) : _random = random ?? math.Random();
+  NaturalCalculator({
+    math.Random? random,
+    this.profile = NaturalProfile.textbook,
+    Set<NaturalMode>? modes,
+  }) : _random = random ?? math.Random(),
+       modes = modes ?? NaturalMode.values.toSet();
+
+  /// Screen layout of this model.
+  final NaturalProfile profile;
+
+  /// Modes this model offers on its MODE menu.
+  final Set<NaturalMode> modes;
 
   final math.Random _random;
 
@@ -2242,15 +2263,34 @@ class NaturalCalculator implements CalcEngine {
     }
   }
 
-  _Menu _modeMenu() => _Menu(
-    const [
-      '1:COMP  2:CMPLX',
-      '3:STAT  4:BASE-N',
-      '5:EQN   6:MATRIX',
-      '7:TABLE 8:VECTOR',
-    ],
-    {for (final (i, m) in NaturalMode.values.indexed) i + 1: () => _setMode(m)},
-  );
+  static const _modeNames = {
+    NaturalMode.comp: 'COMP',
+    NaturalMode.cmplx: 'CMPLX',
+    NaturalMode.stat: 'STAT',
+    NaturalMode.base: 'BASE-N',
+    NaturalMode.eqn: 'EQN',
+    NaturalMode.matrix: 'MATRIX',
+    NaturalMode.table: 'TABLE',
+    NaturalMode.vector: 'VECTOR',
+  };
+
+  /// MODE list of this model's modes, numbered in order, two per line.
+  _Menu _modeMenu() {
+    final list = [
+      for (final m in NaturalMode.values)
+        if (modes.contains(m)) m,
+    ];
+    final lines = <String>[
+      for (var i = 0; i < list.length; i += 2)
+        i + 1 < list.length
+            ? '${'${i + 1}:${_modeNames[list[i]]}'.padRight(8)}'
+                  '${i + 2}:${_modeNames[list[i + 1]]}'
+            : '${i + 1}:${_modeNames[list[i]]}',
+    ];
+    return _Menu(lines, {
+      for (final (i, m) in list.indexed) i + 1: () => _setMode(m),
+    });
+  }
 
   void _setMode(NaturalMode m) {
     if (mode == NaturalMode.stat && m != NaturalMode.stat) {
@@ -2553,7 +2593,9 @@ class NaturalCalculator implements CalcEngine {
       if (m.prev != null) ind.add(Indicator.scrollUp);
       text.write(m.lines.join(' | '));
     } else {
-      cursor = _paintCalculation(bmp, text);
+      cursor = profile == NaturalProfile.multiLine
+          ? _paintHistory(bmp, text)
+          : _paintCalculation(bmp, text);
       if (_resultShown && _history.isNotEmpty) {
         final i = _historyIndex ?? _history.length - 1;
         if (i > 0) ind.add(Indicator.scrollUp);
@@ -2612,6 +2654,80 @@ class NaturalCalculator implements CalcEngine {
     return editing ? cursor : null;
   }
 
+  /// Four-line screen: the current line at the bottom, earlier entries and
+  /// results above it (newest lowest), like a paper roll.
+  CursorRect? _paintHistory(DotBitmap bmp, StringBuffer text) {
+    // (input, result) pairs, oldest first; the current one last.
+    final entries = <(MathRow, MathRow?)>[];
+    final keep = _resultShown ? _history.length - 1 : _history.length;
+    for (var i = 0; i < keep; i++) {
+      final h = _history[i];
+      entries.add((h.input, _rowFor(h.result)));
+    }
+    final editing = !_resultShown;
+    if (_resultShown && _result != null) {
+      entries.add((_ed.root, _currentResultRow()));
+    } else {
+      entries.add((_ed.root, null));
+    }
+    var bottom = DotScreen.height; // next free row from the bottom
+    CursorRect? cursor;
+    for (final (i, (input, result)) in entries.reversed.indexed) {
+      if (bottom <= 0) break;
+      final inLayout = MathLayout(input);
+      final current = i == 0;
+      if (result != null) {
+        final r = MathLayout(result);
+        final sameLine =
+            inLayout.width + r.width + 6 <= DotScreen.width &&
+            inLayout.height <= 8 &&
+            r.height <= 8;
+        if (sameLine) {
+          final h = inLayout.height > r.height ? inLayout.height : r.height;
+          final top = bottom - h;
+          if (top < 0 && !current) break; // only whole entries are shown
+          inLayout.paint(bmp, 1, top + h - inLayout.height);
+          r.paint(bmp, DotScreen.width - r.width - 1, top + h - r.height);
+          bottom = top - 1;
+          continue;
+        }
+        if (!current && bottom - r.height < 0) break;
+        r.paint(bmp, DotScreen.width - r.width - 1, bottom - r.height);
+        bottom -= r.height + 1;
+      }
+      final top = bottom - inLayout.height;
+      if (top < 0 && !current) break;
+      final c = inLayout.paint(
+        bmp,
+        1,
+        top,
+        cursor: current && editing ? _ed.cursor : null,
+      );
+      if (current && editing) cursor = c;
+      bottom = top - 1;
+    }
+    if (editing && _ed.isEmpty) {
+      cursor = const CursorRect(1, DotScreen.height - 7, 7);
+    }
+    text.write(_ed.root.toString());
+    if (_resultShown && _result != null) {
+      text.write(' = ${_currentResultRow()}');
+    }
+    // Entries left above the screen are marked like the device does.
+    return cursor;
+  }
+
+  /// The shown result honouring S⇔D, SHIFT = and ENG (as on the result line).
+  MathRow _currentResultRow() {
+    final probe = DotBitmap(DotScreen.width, DotScreen.height);
+    final sb = StringBuffer();
+    _lastResultRow = null;
+    _paintResult(probe, sb);
+    return _lastResultRow!;
+  }
+
+  MathRow? _lastResultRow;
+
   void _paintResult(DotBitmap bmp, StringBuffer text) {
     final r = _result!;
     final settings = DisplaySettings(
@@ -2652,6 +2768,7 @@ class NaturalCalculator implements CalcEngine {
             );
       row = _decimalRow(f);
     }
+    _lastResultRow = row;
     text.write(row.toString());
     final layout = MathLayout(row);
     // Clear the result area, then draw right-aligned on the bottom row.

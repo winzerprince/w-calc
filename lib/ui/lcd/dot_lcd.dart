@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
+import '../../app/calc_model.dart';
 import '../skin.dart';
 import 'lcd_painter.dart';
 
@@ -55,6 +56,7 @@ class _DotLcdState extends State<DotLcd> {
   @override
   Widget build(BuildContext context) {
     final s = widget.screen;
+    final labels = ModelScope.of(context).indicatorLabels;
     return Semantics(
       key: const Key('lcd'),
       label: s.text,
@@ -76,6 +78,7 @@ class _DotLcdState extends State<DotLcd> {
             aspectRatio: DotLcd.aspectRatio,
             child: CustomPaint(
               painter: _DotLcdPainter(
+                labels: labels,
                 screen: s,
                 cursorOn: _cursorOn,
                 palette: CalcSkin.of(context).lcd,
@@ -112,11 +115,13 @@ const _indicatorOrder = [
 
 class _DotLcdPainter extends CustomPainter {
   _DotLcdPainter({
+    required this.labels,
     required this.screen,
     required this.cursorOn,
     required this.palette,
   });
 
+  final Map<Indicator, String> labels;
   final DotScreen screen;
   final bool cursorOn;
   final LcdPalette palette;
@@ -143,7 +148,8 @@ class _DotLcdPainter extends CustomPainter {
     final tp = TextPainter(textDirection: TextDirection.ltr);
     final slotW = (size.width - 2 * left) / _indicatorOrder.length;
     for (var i = 0; i < _indicatorOrder.length; i++) {
-      final (ind, label) = _indicatorOrder[i];
+      final (ind, standard) = _indicatorOrder[i];
+      final label = labels[ind] ?? standard;
       if (!screen.indicators.contains(ind)) continue;
       tp.text = TextSpan(
         text: label,
