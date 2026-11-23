@@ -43,5 +43,5 @@ Assumptions waiting for confirmation are listed in [`behaviour-notes.md`](behavi
 
 ## Repro links (web)
 Append `?keys=` with comma-separated keys to the web URL to replay them on load, e.g.
-`http://<ip>:8080/?keys=56,times,(,neg,12,),=`. In URLs write `+` as `%2B` (a bare `+` means space). Names: digits, `plus minus times div neg`,
+`http://<ip>:8080/?keys=56,times,(,neg,12,),=`. In URLs write `+` as `%2B` (a bare `+` means space) and the comma key as `comma`. Names: digits, `plus minus times div neg`,
 `( ) EXP Ans = AC DEL INS SHIFT ALPHA MODE hyp < > up down`, functions `sin cos tan log ln sqrt x2 x-1 pow`, shortcuts `asin acos atan 10^ e^ e cbrt x3 xroot fact nPr nCr pi Ran# Rnd DRG`.

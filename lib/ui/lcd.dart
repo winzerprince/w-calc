@@ -18,6 +18,13 @@ class Lcd extends StatefulWidget {
   State<Lcd> createState() => _LcdState();
 }
 
+/// Screen-reader text for the private-use statistics symbols.
+String _speakable(String text) => text
+    .replaceAll('\uE000', 'x bar')
+    .replaceAll('\uE001', 'y bar')
+    .replaceAll('\uE002', 'x hat')
+    .replaceAll('\uE003', 'y hat');
+
 class _LcdState extends State<Lcd> {
   Timer? _blink;
   bool _cursorOn = true;
@@ -54,7 +61,7 @@ class _LcdState extends State<Lcd> {
   Widget build(BuildContext context) {
     final d = widget.display;
     final spoken = [
-      d.upper,
+      _speakable(d.upper),
       d.lower,
       if (d.exponent != null) 'times ten to the ${d.exponent}',
     ].where((s) => s.isNotEmpty).join(', ');
