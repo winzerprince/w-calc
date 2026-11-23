@@ -30,6 +30,11 @@ class AboutPage extends StatelessWidget {
           'endorsed by or sponsored by any calculator manufacturer. Most '
           'examinations do not allow phones; use an approved calculator there.',
         ),
+        const PageSection('Privacy'),
+        const PageText(
+          'W-Calc collects no data. It works offline; settings, memories and '
+          'graphs stay on this device.',
+        ),
         const PageSection('Legal'),
         const PageText('© 2026 winzerprince. All rights reserved.'),
         ListTile(
