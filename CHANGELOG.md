@@ -4,6 +4,34 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+## [0.13.2-beta] - 2026-11-23
+
+Display fixes (fractions, equation entry, indicators) and an easy way to report bugs.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
+### Fixed
+- Textbook display: when the answer is a fraction, the fractions you typed keep their full
+  denominators (only the answer's own area is cleared).
+- Equation mode: the coefficient being entered is named on the bottom line (a=, b=, …) and the
+  column letters are larger; ▲ sits a little further from “Math”.
+
+### Added
+- About ▸ Help improve W-Calc: report a bug or suggest an idea on GitHub; the website says the
+  same. Bug-report and idea forms and a CONTRIBUTING guide on GitHub.
+
+### Fixed
+- Textbook and multi-line displays: status indicators are spaced by their width, so “Math” and
+  the ▲/▼ scroll arrows no longer overlap.
+
+### Changed
+- Website: square, clear frame round the app with a “live” marker; GitHub logo and a chalk-drawn
+  coffee cup on the buttons; shorter disclaimer; optional phone banner slot under the app.
+
+### Added
+- Website easter egg: pick up a chalk stick or the eraser from the tray and draw on the board.
+
 ## [0.13.1-beta] - 2026-11-23
 
 Ko-fi link in the menu; blackboard website; black app icon.

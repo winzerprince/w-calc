@@ -1,0 +1,39 @@
+name: Bug report
+description: Something shows or calculates differently from what you expected.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping improve W-Calc! The keys you pressed are the most useful part.
+  - type: input
+    id: model
+    attributes:
+      label: Calculator model in W-Calc
+      placeholder: e.g. Textbook Plus II
+    validations:
+      required: true
+  - type: textarea
+    id: keys
+    attributes:
+      label: Keys pressed
+      description: In order, including MODE / SHIFT. Example — MODE 1, 1 ▭ 2 + 2 ▭ 3 =
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected (or what your real calculator shows)
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What W-Calc showed
+      description: A screenshot helps a lot.
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Version and device
+      placeholder: e.g. v0.13.2-beta, Android 14 (Samsung S21) / web, Chrome
