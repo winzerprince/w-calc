@@ -11,6 +11,9 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
   accepts fractions and √, exact quadratic roots (−1/2 ± √2/2 i, double root shown once).
 - Textbook models: BASE-N mode (16-bit binary, 32-bit octal / hex, padded results, logic
   menu with d h b o prefixes).
+- Textbook models: MATRIX and VECTOR modes (Dim / Data menus, grid editor, MatAns / VctAns
+  screens that continue with an operator, det, Trn, inverse, powers, Abs, Dot, cross product).
+  All eight textbook modes now work.
 - Textbook models: TABLE mode (f(X), Start / End / Step, up to 30 rows, Insufficient MEM).
 
 ## [0.3.0-beta] - 2026-11-23

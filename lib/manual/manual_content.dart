@@ -871,18 +871,65 @@ const manualChapters = <ManualChapter>[
         ],
       ),
       ManualArticle(
-        id: 'textbook-modes',
-        title: 'Other modes on textbook models',
-        summary: 'What is available now.',
+        id: 'matrix-tb',
+        title: 'Matrices (MATRIX)',
+        summary: 'Up to 3 × 3: +, −, ×, det, Trn, inverse, powers.',
         audience: _tb,
-        keywords: ['mode', 'stat', 'table', 'matrix', 'vector', 'eqn'],
+        keywords: ['matrix', 'determinant', 'inverse', 'transpose'],
         blocks: [
-          Para(
-            'MODE lists COMP, CMPLX, STAT, BASE-N, EQN, MATRIX, TABLE and '
-            'VECTOR. COMP (with CALC and SOLVE), CMPLX, STAT, BASE-N, EQN and TABLE work today; the '
-            'other modes are being added and will appear here with their own '
-            'instructions.',
+          Steps([
+            ManualStep(
+              'Enter MATRIX mode, pick MatA and a size (5 = 2×2).',
+              'MODE 6 1 5',
+            ),
+            ManualStep(
+              'Type each element and press = (fractions and √ allowed).',
+            ),
+            ManualStep(
+              'AC goes to the calculation screen; SHIFT 4 has Dim, Data, MatA–C, MatAns, det and Trn.',
+            ),
+            ManualStep(
+              'x⁻¹ inverts, x² squares, SHIFT x² cubes, SHIFT hyp is Abs.',
+            ),
+          ]),
+          Example(
+            title: 'det of [[2, 1], [1, 1]]',
+            setup: 'MODE 6 1 5 2 = 1 = 1 = 1 = AC',
+            keys: 'SHIFT 4 7 SHIFT 4 3 ) =',
+            result: '1',
+            verify: '1',
           ),
+          Tip(
+            'A matrix result opens the MatAns screen; pressing +, −, ×, ÷, '
+            'x⁻¹ or x² there continues the calculation from MatAns.',
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'vector-tb',
+        title: 'Vectors (VECTOR)',
+        summary: '2-D and 3-D vectors: dot and cross products, length.',
+        audience: _tb,
+        keywords: ['vector', 'dot product', 'cross product', 'length', 'angle'],
+        blocks: [
+          Steps([
+            ManualStep(
+              'Enter VECTOR mode, pick VctA and its size (2 = 2-D).',
+              'MODE 8 1 2',
+            ),
+            ManualStep('Type the elements with =, then AC.'),
+            ManualStep(
+              'SHIFT 5 has Dim, Data, VctA–C, VctAns and Dot; × is the cross product.',
+            ),
+          ]),
+          Example(
+            title: '(1, 2) • (3, 4)',
+            setup: 'MODE 8 1 2 1 = 2 = SHIFT 5 1 2 2 3 = 4 = AC',
+            keys: 'SHIFT 5 3 SHIFT 5 7 SHIFT 5 4 =',
+            result: '11',
+            verify: '11',
+          ),
+          Tip('Length: Abs (SHIFT hyp). Angle: cos⁻¹(A•B ÷ (|A|·|B|)).'),
         ],
       ),
     ],
