@@ -152,4 +152,28 @@ void main() {
     expect(c.graphTokens, isNotNull);
     expect(c.angleUnit, AngleUnit.deg);
   });
+
+  test('menu rows: ◀ ▶ move the highlight, = chooses', () {
+    final v = NaturalCalculator(
+      menuCursor: true,
+      modes: {NaturalMode.comp, NaturalMode.stat, NaturalMode.table},
+    );
+    for (final k in parseKeySequence('MODE > =')) {
+      v.press(k);
+    }
+    expect(v.mode, NaturalMode.stat);
+    for (final k in parseKeySequence('AC MODE < =')) {
+      v.press(k);
+    }
+    expect(v.mode, NaturalMode.table);
+    // Numbers still choose directly.
+    for (final k in parseKeySequence('AC MODE 1')) {
+      v.press(k);
+    }
+    expect(v.mode, NaturalMode.comp);
+    for (final k in parseKeySequence('MODE')) {
+      v.press(k);
+    }
+    expect(v.screen.dots.toAscii().contains('#'), isTrue);
+  });
 }

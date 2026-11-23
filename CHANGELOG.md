@@ -2,6 +2,12 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [Unreleased]
+
+### Added
+- Scientific View and Two-View: menus show option names in rows; ◀ ▶ move the highlight and
+  enter chooses (numbers still work).
+
 ## [0.7.0-beta] - 2026-11-23
 
 Graphs, more key styles, constant and conversion lists, glass displays.
