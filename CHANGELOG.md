@@ -5,6 +5,12 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Changed
+- W-Calc is now free and open source under the MIT licence; source link in About.
+
+### Added
+- Settings ▸ Support and About: "Buy me a coffee" opens W-Calc's Ko-fi page.
+
+### Changed
 - Graph redesigned: expressions are typeset (fractions, powers, roots, |a|, Σ, ∫, d/dx) and typed
   with a maths keypad (functions panel, letters page); numbered rows with colour buttons; add,
   undo/redo, edit mode (table, duplicate, colour, delete all) and hide; wrench settings (grid,

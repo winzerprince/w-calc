@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/app_settings.dart';
+import '../../app/links.dart';
 import '../haptics.dart';
 import 'page_scaffold.dart';
 import '../tour/tours.dart';
@@ -178,6 +179,17 @@ class SettingsPage extends StatelessWidget {
             context,
             SoftRoute<void>(builder: (_) => const ManualPage(startTour: true)),
           ),
+        ),
+        const PageSection('Support'),
+        ListTile(
+          key: const Key('setting-kofi'),
+          leading: const Icon(Icons.coffee_outlined, color: Color(0xFFFF5E5B)),
+          title: const Text('Buy me a coffee'),
+          subtitle: const Text(
+            'W-Calc is free. Enjoying it? Support it on Ko-fi',
+          ),
+          trailing: const Icon(Icons.open_in_new),
+          onTap: () => openLink(kofiUrl),
         ),
         const PageSection('Calculator'),
         ListTile(

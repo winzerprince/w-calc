@@ -41,5 +41,7 @@ tool/web.sh             # run in a browser (LAN-accessible); `tool/web.sh releas
 Android builds run only in CI on `main`. Workflow and CI rules: [`docs/CI_CD.md`](docs/CI_CD.md).
 
 ## License
-Proprietary — all rights reserved. See [`LICENSE`](LICENSE). Releases up to v0.4.0-beta were
-GPL-3.0-or-later. Third-party components: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+MIT — see [`LICENSE`](LICENSE). Free and open source; contributions welcome. (v0.5.0–v0.12.0
+were briefly proprietary; up to v0.4.0 were GPL-3.0.)
+
+Like W-Calc? [Buy me a coffee on Ko-fi](https://ko-fi.com/winzerprince). Third-party components: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

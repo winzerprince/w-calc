@@ -9,9 +9,12 @@ Clean-room Flutter app that behaves like the user's physical two-line MS-series 
 - `docs/downloads/` is private and gitignored: never commit, quote or bundle it. Write our own help text.
 - Never use CASIO firmware/ROM, logos, or trademarks ("CASIO", "fx-", "991", "V.P.A.M.") in code, assets,
   names, package ids or store text. Only allowed mention: one factual compatibility line + disclaimer in the store listing/About.
-- License: proprietary, all rights reserved (LICENSE). Releases ≤ v0.4.0-beta were GPL-3.0.
-  Only add dependencies/assets whose licences allow closed-source use (MIT, BSD, Apache-2.0, OFL);
-  never GPL/LGPL/AGPL code. List every third-party component in THIRD_PARTY_NOTICES.md.
+- License: MIT, open source, public repo (LICENSE). Earlier releases were GPL-3.0 (≤ v0.4.0) and
+  proprietary (v0.5–v0.11). Only add permissive dependencies/assets (MIT, BSD, Apache-2.0, OFL) so
+  the app stays MIT; never GPL/LGPL/AGPL code.
+- Distribution: itch.io first (web build + Android APK). Everything for the store page
+  (descriptions, screenshots, disclaimers, roadmap) lives in `docs/downloads/release-kit/` (private).
+- Donations: Ko-fi link in Settings ▸ Support and About (`lib/app/links.dart`). List every third-party component in THIRD_PARTY_NOTICES.md.
 
 ## Layout
 - `packages/wcalc_engine/` — pure Dart, no Flutter imports. All calculator behaviour lives here.
