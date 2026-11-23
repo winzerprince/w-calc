@@ -63,7 +63,14 @@ enum CalcKey {
   dot,
   exp,
   ans,
-  equals;
+  equals,
+
+  // Textbook-display models only.
+  /// log_□ (Σ on SHIFT).
+  logBase,
+
+  /// S⇔D: exact ↔ decimal result (a b/c ⇔ d/c on SHIFT, Y on ALPHA).
+  sd;
 
   /// Digit value for `d0`..`d9`, otherwise null.
   int? get digit => switch (this) {

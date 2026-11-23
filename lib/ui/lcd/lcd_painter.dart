@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
-import 'dot_font.dart';
 import 'seven_segment.dart';
 
 /// Colours of the LCD glass.

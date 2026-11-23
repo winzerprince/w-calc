@@ -32,6 +32,10 @@ enum Indicator {
 
   /// CMPLX results in polar format (r∠θ setting).
   polar,
+
+  /// Textbook-display models: STAT mode and Natural (Math) display.
+  stat,
+  math,
 }
 
 /// Cursor shapes on the upper line.
