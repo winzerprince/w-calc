@@ -10,6 +10,7 @@ import '../legend.dart';
 import '../reading_theme.dart';
 import '../skin.dart';
 import '../tour/tours.dart';
+import '../soft_route.dart';
 
 /// Manual home: search and chapters for the model in use.
 class ManualPage extends StatefulWidget {
@@ -209,7 +210,7 @@ class _Results extends StatelessWidget {
 
 void openArticle(BuildContext context, ManualChapter c, ManualArticle a) {
   Navigator.of(context).push(
-    MaterialPageRoute<void>(
+    SoftRoute<void>(
       builder: (_) => ArticlePage(chapter: c, article: a),
     ),
   );
@@ -298,7 +299,7 @@ class ArticlePage extends StatelessWidget {
 
   void _replace(BuildContext context, ManualArticle a) {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
+      SoftRoute<void>(
         builder: (_) => ArticlePage(chapter: chapter, article: a),
       ),
     );

@@ -7,6 +7,7 @@ import '../tour/tours.dart';
 import 'manual_page.dart';
 import 'model_page.dart';
 import 'theme_page.dart';
+import '../soft_route.dart';
 
 /// Feedback, appearance and reset.
 class SettingsPage extends StatelessWidget {
@@ -90,7 +91,7 @@ class SettingsPage extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(builder: (_) => const ThemePage()),
+            SoftRoute<void>(builder: (_) => const ThemePage()),
           ),
         ),
         const PageSection('Help'),
@@ -110,9 +111,7 @@ class SettingsPage extends StatelessWidget {
           title: const Text('Models tour'),
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(
-              builder: (_) => const ModelPage(startTour: true),
-            ),
+            SoftRoute<void>(builder: (_) => const ModelPage(startTour: true)),
           ),
         ),
         ListTile(
@@ -121,9 +120,7 @@ class SettingsPage extends StatelessWidget {
           title: const Text('Theme tour'),
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(
-              builder: (_) => const ThemePage(startTour: true),
-            ),
+            SoftRoute<void>(builder: (_) => const ThemePage(startTour: true)),
           ),
         ),
         ListTile(
@@ -132,9 +129,7 @@ class SettingsPage extends StatelessWidget {
           title: const Text('Manual tour'),
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(
-              builder: (_) => const ManualPage(startTour: true),
-            ),
+            SoftRoute<void>(builder: (_) => const ManualPage(startTour: true)),
           ),
         ),
         const PageSection('Calculator'),
@@ -146,7 +141,7 @@ class SettingsPage extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute<void>(builder: (_) => const ModelPage()),
+            SoftRoute<void>(builder: (_) => const ModelPage()),
           ),
         ),
         ListTile(

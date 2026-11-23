@@ -2,6 +2,11 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [Unreleased]
+
+### Changed
+- Pages open and close with a soft fade-and-rise animation.
+
 ## [0.9.0-beta] - 2026-11-23
 
 Store readiness: launch screen, adaptive icon, key hints, privacy policy, crash fuzzing.

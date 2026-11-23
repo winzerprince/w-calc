@@ -8,6 +8,7 @@ import 'pages/manual_page.dart';
 import 'pages/model_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/theme_page.dart';
+import 'soft_route.dart';
 
 /// One entry of the W-Calc menu. Entries that are not [ready] are shown but
 /// marked "Soon" (visible constraint) and explain themselves when tapped.
@@ -112,7 +113,7 @@ class _AppMenuState extends State<AppMenu> {
       return;
     }
     Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => page(widget.onReset)));
+        .push(SoftRoute<void>(builder: (_) => page(widget.onReset)));
   }
 
   @override
