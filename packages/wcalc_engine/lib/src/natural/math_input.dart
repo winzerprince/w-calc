@@ -250,12 +250,44 @@ final class MathEditor {
 
   /// Inserts a template and moves into its first empty slot. A fraction
   /// typed right after a number takes that number as its numerator.
-  bool insertTemplate(MathTemplate kind) {
+  bool insertTemplate(MathTemplate kind, {bool wrap = false}) {
     if (!_fits(kind.bytes)) return false;
     final r = row;
     final t = TemplateItem(kind);
     var at = cursor.pos;
     var slot = 0;
+    if (wrap) {
+      // INS: what follows the cursor, up to the next function or bracket,
+      // becomes the argument.
+      var end = at;
+      while (end < r.items.length) {
+        final i = r.items[end];
+        if (i is TokItem &&
+            (i.paren ||
+                i.tok.kind == TokKind.function ||
+                i.tok == Tok.openParen ||
+                i.tok == Tok.closeParen)) {
+          break;
+        }
+        end++;
+      }
+      final taken = r.items.sublist(at, end);
+      r.items.removeRange(at, end);
+      final target = switch (kind) {
+        MathTemplate.root || MathTemplate.logBase => 1,
+        _ => 0,
+      };
+      t.slots[target].items.addAll(taken);
+      r.items.insert(at, t);
+      // Cursor goes to the next empty slot, else after the argument.
+      final next = target + 1 < t.slots.length ? target + 1 : target;
+      final into = next != target && t.slots[next].isEmpty ? next : target;
+      cursor = MathCursor([
+        ...cursor.path,
+        (at, into),
+      ], t.slots[into].items.length);
+      return true;
+    }
     if (kind == MathTemplate.fraction) {
       var from = at;
       while (from > 0 && _isNumberPart(r.items[from - 1])) {

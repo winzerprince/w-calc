@@ -5,6 +5,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Added
+- Textbook models: INS (SHIFT DEL) before a function wraps what follows the cursor into it, e.g.
+  1+7/6 → 1+√(7/6).
 - History button next to the logo: earlier calculations and answers; tap one to copy its answer.
 - *Textbook Basic* model: everyday textbook display with COMP, STAT and TABLE (no calculus,
   CALC/SOLVE, constants or conversions; those keys are faded); Indigo theme.
