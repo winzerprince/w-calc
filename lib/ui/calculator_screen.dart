@@ -95,6 +95,29 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     StateStore.save(_calc);
   }
 
+  /// Long press on the LCD copies the shown result.
+  void _copyResult() {
+    final text = _busy ? null : _calc.display.copyText;
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    if (text == null) {
+      messenger?.showSnackBar(
+        const SnackBar(
+          content: Text('Nothing to copy'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      return;
+    }
+    Clipboard.setData(ClipboardData(text: text));
+    keyVibration();
+    messenger?.showSnackBar(
+      SnackBar(
+        content: Text('Copied $text'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   /// Settings ▸ Reset calculator.
   void _reset() {
     setState(_calc.resetAll);
@@ -132,7 +155,16 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               // Landscape: LCD beside the keypad instead of a squashed keypad.
               final landscape = box.maxWidth > box.maxHeight * 1.15;
               final lcd = _Bezel(
-                child: Lcd(display: _busy ? DisplayState.busy : _calc.display),
+                child: GestureDetector(
+                  key: const Key('lcd-copy'),
+                  onLongPress: _copyResult,
+                  child: Semantics(
+                    onLongPressHint: 'copy result',
+                    child: Lcd(
+                      display: _busy ? DisplayState.busy : _calc.display,
+                    ),
+                  ),
+                ),
               );
               final keypad = Keypad(onPress: _press);
               return Center(

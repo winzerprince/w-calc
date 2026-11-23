@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:w_calc/app/app_settings.dart';
@@ -123,5 +124,36 @@ void main() {
       await tester.pump();
     }
     expect(lcd(tester, 'lower'), '7.');
+  });
+
+  testWidgets('long press on the LCD copies the result', (tester) async {
+    final copied = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied.add((call.arguments as Map)['text'] as String);
+        }
+        return null;
+      },
+    );
+    await openApp(tester);
+    for (final k in ['d1', 'd2', 'multiply', 'd3', 'equals']) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    await tester.longPress(find.byKey(const Key('lcd-copy')));
+    await settle(tester);
+    expect(copied, ['36']);
+    expect(find.text('Copied 36'), findsOneWidget);
+  });
+
+  testWidgets('keys can be activated by a screen reader', (tester) async {
+    final handle = tester.ensureSemantics();
+    await openApp(tester);
+    tester.semantics.tap(find.semantics.byLabel('5'));
+    await tester.pump();
+    expect(lcd(tester, 'upper'), '5');
+    handle.dispose();
   });
 }

@@ -15,6 +15,7 @@ const guideTopics = [
     'Type a calculation the way you would write it, then press =. The top line shows what you typed, the bottom line the result.',
     'AC clears the current calculation. DEL deletes the character under the cursor; SHIFT DEL switches to insert mode.',
     '◀ and ▶ move the cursor. Right after a result, ◀ lets you edit the calculation you just did.',
+    'Long-press the display to copy the result to the clipboard.',
     'Coloured labels above a key are its second functions: orange with SHIFT, red with ALPHA. Purple, blue and green labels work in the CMPLX, SD/REG and BASE modes.',
     'Menu ▸ Calculator model switches between Scientific Plus (every mode) and Scientific Basic (calculations, statistics and regression). Your memories and data stay.',
   ]),
