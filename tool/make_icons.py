@@ -12,23 +12,15 @@ def lerp(a, b, t):
 
 
 def icon(size=S, padding=0.0, rounded=True, body_layer=True):
-    """W-Calc icon: indigo tile, bright display with a pixel W, white keys
-    with one orange accent. High contrast, few shapes."""
+    """W-Calc icon: pure black tile (blends into AMOLED black), bright
+    display with a pixel W, white keys with one orange accent."""
     img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     p = int(S * padding)
     if body_layer:
         body = Image.new('RGBA', (S, S))
         bd = ImageDraw.Draw(body)
-        for y in range(S):
-            bd.line([(0, y), (S, y)], fill=lerp((0x2B, 0x3C, 0xB0), (0x0D, 0x12, 0x3A), y / S) + (255,))
-        # Soft highlight across the top third.
-        hl = Image.new('RGBA', (S, S), (0, 0, 0, 0))
-        hd = ImageDraw.Draw(hl)
-        for y in range(int(S * 0.35)):
-            a = int(38 * (1 - y / (S * 0.35)))
-            hd.line([(0, y), (S, y)], fill=(255, 255, 255, a))
-        body = Image.alpha_composite(body, hl)
+        bd.rectangle([0, 0, S, S], fill=(0, 0, 0, 255))
         mask = Image.new('L', (S, S), 0)
         ImageDraw.Draw(mask).rounded_rectangle(
             [p, p, S - p, S - p], radius=int(S * 0.23) if rounded else 0, fill=255)
@@ -37,7 +29,7 @@ def icon(size=S, padding=0.0, rounded=True, body_layer=True):
     def X(f): return p + int(inner * f)
     ink = (0x0C, 0x18, 0x10)
     # Display: bright mint glass with a dark bezel line.
-    d.rounded_rectangle([X(0.14), X(0.15), X(0.86), X(0.47)], radius=int(inner * 0.06), fill=(0x08, 0x0C, 0x24))
+    d.rounded_rectangle([X(0.14), X(0.15), X(0.86), X(0.47)], radius=int(inner * 0.06), fill=(0x3A, 0x3D, 0x44))
     d.rounded_rectangle([X(0.165), X(0.175), X(0.835), X(0.445)], radius=int(inner * 0.045), fill=(0xD4, 0xF5, 0xC4))
     # Bold pixel W.
     w = ['#...#', '#...#', '#.#.#', '#.#.#', '#.#.#', '##.##', '#...#']

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../app/app_settings.dart';
-import '../../app/links.dart';
 import '../haptics.dart';
 import 'page_scaffold.dart';
 import '../tour/tours.dart';
@@ -62,33 +61,6 @@ class SettingsPage extends StatelessWidget {
     return MenuPageScaffold(
       title: 'Settings',
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: Material(
-            color: const Color(0xFFFF5E5B),
-            borderRadius: BorderRadius.circular(14),
-            child: ListTile(
-              key: const Key('setting-kofi'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              leading: const Icon(Icons.coffee, color: Colors.white),
-              title: const Text(
-                'Buy me a coffee',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              subtitle: const Text(
-                'W-Calc is free. Enjoying it? Support it on Ko-fi',
-                style: TextStyle(color: Colors.white70),
-              ),
-              trailing: const Icon(Icons.open_in_new, color: Colors.white),
-              onTap: () => openLink(kofiUrl),
-            ),
-          ),
-        ),
         const PageSection('Key feedback'),
         SwitchListTile(
           key: const Key('setting-vibration'),

@@ -4,6 +4,20 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+## [0.13.1-beta] - 2026-11-23
+
+Ko-fi link in the menu; blackboard website; black app icon.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
+### Changed
+- App icon on a pure black tile (blends into AMOLED black screens).
+- “Buy me a coffee” moved to a quiet line at the bottom of the menu, with a small steaming cup;
+  removed from Settings.
+- Website: blackboard look — chalk handwriting, faint maths that is now and then wiped and
+  rewritten, a chalk tray; the privacy page matches.
+
 ## [0.13.0-beta] - 2026-11-23
 
 Snappier neon themes, the website, and graph keypad fixes.
