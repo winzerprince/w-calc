@@ -438,4 +438,62 @@ void main() {
       );
     });
   });
+
+  group('MATRIX', () {
+    const setup =
+        'MODE 6 1 5 2 = 1 = 1 = 1 = '
+        'SHIFT 4 1 2 5 2 = (-) 1 = (-) 1 = 2 = '
+        'SHIFT 4 1 3 4 1 = 0 = (-) 1 = 0 = (-) 1 = 1 = AC';
+    setUp(() => press(setup));
+    test('editor stored MatA', () {
+      expect(calc.linearVariables['MatA'].toString(), contains('2'));
+      expect(calc.screen.indicators, contains(Indicator.mat));
+    });
+    test('MatA × MatB and MatA + MatB', () {
+      expect(press('SHIFT 4 3 × SHIFT 4 4 ='), 'MatAns | 3 0 | 1 1');
+      expect(press('AC SHIFT 4 3 + SHIFT 4 4 ='), 'MatAns | 4 0 | 0 3');
+    });
+    test('3 × MatA, det, Trn, inverse, Abs, square, cube', () {
+      expect(press('3 × SHIFT 4 3 ='), 'MatAns | 6 3 | 3 3');
+      expect(result('AC SHIFT 4 7 SHIFT 4 3 ) ='), '1');
+      expect(press('AC SHIFT 4 8 SHIFT 4 5 ) ='), 'MatAns | 1 0 | 0 -1 | -1 1');
+      expect(press('AC SHIFT 4 3 x-1 ='), 'MatAns | 1 -1 | -1 2');
+      expect(press('AC SHIFT hyp SHIFT 4 4 ) ='), 'MatAns | 2 1 | 1 2');
+      expect(press('AC SHIFT 4 3 x2 ='), 'MatAns | 5 3 | 3 2');
+      expect(press('AC SHIFT 4 3 SHIFT x2 ='), 'MatAns | 13 8 | 8 5');
+    });
+    test('operator on the MatAns screen continues from MatAns', () {
+      press('SHIFT 4 3 + SHIFT 4 4 =');
+      expect(press('× 2 ='), 'MatAns | 8 0 | 0 6');
+    });
+    test('mismatched sizes: Dimension ERROR', () {
+      expect(press('SHIFT 4 3 + SHIFT 4 5 ='), startsWith('Dimension ERROR'));
+    });
+  });
+
+  group('VECTOR', () {
+    const setup =
+        'MODE 8 1 2 1 = 2 = '
+        'SHIFT 5 1 2 2 3 = 4 = '
+        'SHIFT 5 1 3 1 2 = (-) 1 = 2 = AC';
+    setUp(() => press(setup));
+    test('VctA + VctB, 3 × VctA − VctB', () {
+      expect(press('SHIFT 5 3 + SHIFT 5 4 ='), 'VctAns | 4 6');
+      expect(press('AC 3 × SHIFT 5 3 ='), 'VctAns | 3 6');
+      expect(press('- SHIFT 5 4 ='), 'VctAns | 0 2');
+    });
+    test('dot product 11, cross product, |VctC| = 3', () {
+      expect(result('SHIFT 5 3 SHIFT 5 7 SHIFT 5 4 ='), '11');
+      expect(press('AC SHIFT 5 3 × SHIFT 5 4 ='), 'VctAns | 0 0 -2');
+      expect(result('AC SHIFT hyp SHIFT 5 5 ) ='), '3');
+    });
+    test('angle between VctA and VctB (Fix 3) = 10.305', () {
+      press('SHIFT MODE 6 3');
+      press(
+        '( SHIFT 5 3 SHIFT 5 7 SHIFT 5 4 ) ÷ ( SHIFT hyp SHIFT 5 3 ) '
+        'SHIFT hyp SHIFT 5 4 ) ) =',
+      );
+      expect(result('SHIFT cos Ans ) ='), '10.305');
+    });
+  });
 }

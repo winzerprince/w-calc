@@ -165,6 +165,16 @@ class NaturalCalculator implements CalcEngine {
   List<Value>? _solutions;
   int _solIndex = 0;
 
+  // MATRIX / VECTOR
+  final Map<String, Value> _linear = {};
+
+  /// Variable shown in the grid editor (MatA … VctAns), or null.
+  String? _grid;
+  int _gRow = 0;
+  int _gCol = 0;
+
+  Map<String, Value> get linearVariables => Map.unmodifiable(_linear);
+
   // BASE-N
   int _base = 10;
 
@@ -258,6 +268,7 @@ class NaturalCalculator implements CalcEngine {
     if (_equation != null && _onEquationKey(key, shift: shift)) return;
     if (_editor && !shift && !alpha && _onEditorKey(key)) return;
     if (_eqnType != null && !shift && !alpha && _onEqnKey(key)) return;
+    if (_grid != null && !shift && !alpha && _onGridKey(key)) return;
     if (mode == NaturalMode.table && !shift && !alpha && _onTableKey(key)) {
       return;
     }
@@ -524,6 +535,10 @@ class NaturalCalculator implements CalcEngine {
         });
       case CalcKey.d9:
         _menu = _clrMenu();
+      case CalcKey.d4 when mode == NaturalMode.matrix:
+        _menu = _linearMenu(matrix: true);
+      case CalcKey.d5 when mode == NaturalMode.vector:
+        _menu = _linearMenu(matrix: false);
       case CalcKey.d3 when mode == NaturalMode.base:
         _menu = _logicMenu();
       case CalcKey.d1 when mode == NaturalMode.stat:
@@ -719,6 +734,13 @@ class NaturalCalculator implements CalcEngine {
     }
     try {
       final v = _evalStatements(tokens, ctx);
+      if (v.isLinear) {
+        final name = v.isMatrix ? 'MatAns' : 'VctAns';
+        _linear[name] = v;
+        _history.add(_History(_ed.root.copy(), v));
+        _openGrid(name);
+        return;
+      }
       _setResult(v);
       _decimalFirst = decimal;
     } on CalcError catch (e) {
@@ -765,6 +787,7 @@ class NaturalCalculator implements CalcEngine {
           stats: c.stats,
           base: c.base,
           wideBase: c.wideBase,
+          linear: c.linear,
           store: c.store,
         );
 
@@ -781,6 +804,7 @@ class NaturalCalculator implements CalcEngine {
     stats: mode == NaturalMode.stat ? _stat : null,
     base: mode == NaturalMode.base ? _base : null,
     wideBase: true,
+    linear: _linear,
     store: (n, v) => _vars[n] = v,
   );
 
@@ -990,6 +1014,256 @@ class NaturalCalculator implements CalcEngine {
     if (statFrequency != on) _stat.clear();
     statFrequency = on;
     _col = 0;
+  }
+
+  // ------------------------------------------------------------- MATRIX / VECTOR
+
+  static const _matDims = [
+    (3, 3),
+    (3, 2),
+    (3, 1),
+    (2, 3),
+    (2, 2),
+    (2, 1),
+    (1, 3),
+    (1, 2),
+  ];
+
+  /// Matrix? / Vector? then (for Dim) the size menu.
+  _Menu _pickVariable({required bool matrix, required bool dim}) {
+    final p = matrix ? 'Mat' : 'Vct';
+    void open(String name) {
+      if (dim) {
+        _menu = matrix ? _matDimMenu(name) : _vctDimMenu(name);
+      } else if (_linear.containsKey(name)) {
+        _openGrid(name);
+      } else {
+        _error = 'Dimension ERROR';
+      }
+    }
+
+    return _Menu(
+      [matrix ? 'Matrix?' : 'Vector?', '1:${p}A  2:${p}B', '3:${p}C'],
+      {1: () => open('${p}A'), 2: () => open('${p}B'), 3: () => open('${p}C')},
+    );
+  }
+
+  _Menu _matDimMenu(String name) => _Menu(
+    ['$name(m×n) m×n?', '1:3×3  2:3×2', '3:3×1  4:2×3', '5:2×2  6:2×1 ▼'],
+    {
+      for (final (i, (r, c)) in _matDims.indexed)
+        i + 1: () => _dimension(name, Value.matrix(_zeros(r, c))),
+    },
+  );
+
+  _Menu _vctDimMenu(String name) => _Menu(
+    ['$name(m) m?', '1:3    2:2'],
+    {
+      1: () => _dimension(name, Value.vector(List.filled(3, Dec.zero))),
+      2: () => _dimension(name, Value.vector(List.filled(2, Dec.zero))),
+    },
+  );
+
+  static List<List<Dec>> _zeros(int r, int c) => [
+    for (var i = 0; i < r; i++) List.filled(c, Dec.zero),
+  ];
+
+  void _dimension(String name, Value v) {
+    _linear[name] = v;
+    _openGrid(name);
+  }
+
+  void _openGrid(String name) {
+    _grid = name;
+    _gRow = _gCol = 0;
+    _clearInput();
+  }
+
+  (int, int) _shapeOf(Value v) => v.isMatrix
+      ? (v.matrix!.length, v.matrix!.first.length)
+      : (1, v.vector!.length);
+
+  Dec _cellOf(Value v, int r, int c) =>
+      v.isMatrix ? v.matrix![r][c] : v.vector![c];
+
+  bool get _gridIsAns => _grid == 'MatAns' || _grid == 'VctAns';
+
+  /// Grid editor / Ans screen keys. False: normal handling (typing an
+  /// element goes into the input line).
+  bool _onGridKey(CalcKey key) {
+    final name = _grid!;
+    final v = _linear[name]!;
+    final (rows, cols) = _shapeOf(v);
+    final typing = !_ed.isEmpty;
+    if (_gridIsAns) {
+      // An operator continues the calculation from MatAns / VctAns.
+      final op = switch (key) {
+        CalcKey.add => Tok.add,
+        CalcKey.subtract => Tok.subtract,
+        CalcKey.multiply => Tok.multiply,
+        CalcKey.divide => Tok.divide,
+        CalcKey.reciprocal when v.isMatrix => Tok.reciprocal,
+        CalcKey.square when v.isMatrix => Tok.square,
+        _ => null,
+      };
+      if (op != null) {
+        _grid = null;
+        _clearInput();
+        _ed
+          ..insertTok(name == 'MatAns' ? Tok.matAns : Tok.vctAns)
+          ..insertTok(op);
+        return true;
+      }
+    }
+    switch (key) {
+      case CalcKey.equals when typing && !_gridIsAns:
+        try {
+          final x = _evalStatements(_ed.linearize().tokens, _context());
+          if (x.isComplex || x.isLinear) {
+            throw const CalcError(CalcErrorKind.math);
+          }
+          _setCell(name, _gRow, _gCol, x.dec);
+        } on CalcError catch (e) {
+          _error = _errorText(e.kind);
+          _errorCursor = _ed.cursor;
+          return true;
+        }
+        _clearInput();
+        if (_gCol < cols - 1) {
+          _gCol++;
+        } else if (_gRow < rows - 1) {
+          _gRow++;
+          _gCol = 0;
+        }
+        return true;
+      case CalcKey.up when !typing:
+        if (_gRow > 0) _gRow--;
+        return true;
+      case CalcKey.down when !typing:
+        if (_gRow < rows - 1) _gRow++;
+        return true;
+      case CalcKey.left when !typing:
+        if (_gCol > 0) _gCol--;
+        return true;
+      case CalcKey.right when !typing:
+        if (_gCol < cols - 1) _gCol++;
+        return true;
+      case CalcKey.ac:
+        _grid = null;
+        _clearInput();
+        return true;
+      default:
+        // Ans screens are read-only; editors accept typing.
+        return _gridIsAns && key != CalcKey.mode;
+    }
+  }
+
+  void _setCell(String name, int r, int c, Dec x) {
+    final v = _linear[name]!;
+    if (v.isMatrix) {
+      final m = [for (final row in v.matrix!) List.of(row)];
+      m[r][c] = x;
+      _linear[name] = Value.matrix(m);
+    } else {
+      final vec = List.of(v.vector!);
+      vec[c] = x;
+      _linear[name] = Value.vector(vec);
+    }
+  }
+
+  _Menu _linearMenu({required bool matrix}) {
+    final p = matrix ? 'Mat' : 'Vct';
+    Tok t(String n) => switch ('$p$n') {
+      'MatA' => Tok.matA,
+      'MatB' => Tok.matB,
+      'MatC' => Tok.matC,
+      'MatAns' => Tok.matAns,
+      'VctA' => Tok.vctA,
+      'VctB' => Tok.vctB,
+      'VctC' => Tok.vctC,
+      _ => Tok.vctAns,
+    };
+    void insert(Tok tok) {
+      if (_grid != null) {
+        _grid = null;
+        _clearInput();
+      }
+      _tok(tok);
+    }
+
+    return _Menu(
+      [
+        '1:Dim    2:Data',
+        '3:${p}A   4:${p}B',
+        '5:${p}C   6:${p}Ans',
+        matrix ? '7:det    8:Trn' : '7:Dot',
+      ],
+      {
+        1: () => _menu = _pickVariable(matrix: matrix, dim: true),
+        2: () => _menu = _pickVariable(matrix: matrix, dim: false),
+        3: () => insert(t('A')),
+        4: () => insert(t('B')),
+        5: () => insert(t('C')),
+        6: () => insert(t('Ans')),
+        if (matrix) ...{
+          7: () {
+            insert(Tok.det);
+            _ed.insertTok(Tok.openParen);
+          },
+          8: () {
+            insert(Tok.trn);
+            _ed.insertTok(Tok.openParen);
+          },
+        } else
+          7: () => insert(Tok.dot),
+      },
+    );
+  }
+
+  void _paintGrid(DotBitmap bmp, StringBuffer text) {
+    final name = _grid!;
+    final v = _linear[name]!;
+    final (rows, cols) = _shapeOf(v);
+    final short = name.replaceFirst(RegExp('^(Mat|Vct)'), '');
+    const rowNumW = 9;
+    final colW = (DotScreen.width - rowNumW) ~/ cols;
+    bmp.smallText(0, 0, short.length > 2 ? 'Ans' : short);
+    for (var c = 0; c < cols; c++) {
+      bmp.smallText(rowNumW + c * colW + colW ~/ 2 - 1, 0, '${c + 1}');
+    }
+    final top = (_gRow - 1).clamp(0, rows);
+    final chars = (colW + 1) ~/ 6;
+    for (var k = 0; k < 2 && top + k < rows; k++) {
+      final r = top + k;
+      final y = 6 + k * 8;
+      if (v.isMatrix) bmp.smallText(4, y + 1, '${r + 1}');
+      for (var c = 0; c < cols; c++) {
+        var t = _plainDecimal(Value.dec(_cellOf(v, r, c)));
+        if (t.length > chars) t = t.substring(0, chars);
+        final x0 = rowNumW + c * colW;
+        bmp.text(x0 + colW - textWidth(t) - 1, y, t);
+        if (r == _gRow && c == _gCol) {
+          bmp.invert(x0, y - 1, x0 + colW - 1, y + 7);
+        }
+      }
+    }
+    if (_ed.isEmpty) {
+      final t = _plainDecimal(Value.dec(_cellOf(v, _gRow, _gCol)));
+      bmp.text(DotScreen.width - textWidth(t) - 1, 24, t);
+    } else {
+      final layout = MathLayout(_ed.root);
+      layout.paint(
+        bmp,
+        DotScreen.width - layout.width - 2,
+        DotScreen.height - layout.height,
+      );
+    }
+    text.write(name);
+    for (var r = 0; r < rows; r++) {
+      text.write(
+        ' | ${[for (var c = 0; c < cols; c++) _plainDecimal(Value.dec(_cellOf(v, r, c)))].join(' ')}',
+      );
+    }
   }
 
   // ------------------------------------------------------------- BASE-N
@@ -1945,6 +2219,7 @@ class NaturalCalculator implements CalcEngine {
     _table = null;
     _tablePrompt = null;
     _base = 10;
+    _grid = null;
     if (m == NaturalMode.stat) {
       _history.clear();
       _clearInput();
@@ -1955,6 +2230,13 @@ class NaturalCalculator implements CalcEngine {
       _history.clear();
       _clearInput();
       _menu = _eqnTypeMenu();
+      return;
+    }
+    if (m == NaturalMode.matrix || m == NaturalMode.vector) {
+      _grid = null;
+      _history.clear();
+      _clearInput();
+      _menu = _pickVariable(matrix: m == NaturalMode.matrix, dim: true);
       return;
     }
     _history.clear();
@@ -2074,6 +2356,7 @@ class NaturalCalculator implements CalcEngine {
   }
 
   void _clearMemory() {
+    _linear.clear();
     for (final k in _vars.keys) {
       _vars[k] = Value.zero;
     }
@@ -2166,6 +2449,8 @@ class NaturalCalculator implements CalcEngine {
       if (_mathIO) Indicator.math,
       if (mode == NaturalMode.cmplx) Indicator.cmplx,
       if (mode == NaturalMode.stat) Indicator.stat,
+      if (mode == NaturalMode.matrix) Indicator.mat,
+      if (mode == NaturalMode.vector) Indicator.vct,
     };
     CursorRect? cursor;
     final text = StringBuffer();
@@ -2204,6 +2489,8 @@ class NaturalCalculator implements CalcEngine {
         _menu == null &&
         (_tablePrompt != null || _table != null)) {
       _paintTable(bmp, text);
+    } else if (_grid != null && _menu == null) {
+      _paintGrid(bmp, text);
     } else if (_eqnType != null && _menu == null) {
       _eqnCursor = null;
       _paintEqn(bmp, text);
