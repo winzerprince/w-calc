@@ -2,6 +2,23 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [0.10.0-beta] - 2026-11-23
+
+Ten models, history at a tap, INS wrapping, smoother pages.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
+### Added
+- Textbook models: INS (SHIFT DEL) before a function wraps what follows the cursor into it, e.g.
+  1+7/6 → 1+√(7/6).
+- History button next to the logo: earlier calculations and answers; tap one to copy its answer.
+- *Textbook Basic* model: everyday textbook display with COMP, STAT and TABLE (no calculus,
+  CALC/SOLVE, constants or conversions; those keys are faded); Indigo theme.
+
+### Changed
+- Pages open and close with a soft fade-and-rise animation.
+
 ## [0.9.0-beta] - 2026-11-23
 
 Store readiness: launch screen, adaptive icon, key hints, privacy policy, crash fuzzing.

@@ -105,6 +105,7 @@ class NaturalCalculator implements CalcEngine {
     this.bigLinear = false,
     this.listNames = false,
     this.menuCursor = false,
+    this.disabled = const {},
   }) : _random = random ?? math.Random(),
        modes = modes ?? NaturalMode.values.toSet();
 
@@ -116,6 +117,10 @@ class NaturalCalculator implements CalcEngine {
 
   /// Statistics editor columns named L1, L2, L3 (list-style models).
   final bool listNames;
+
+  /// Functions a simpler model does not have: (key, modifier) pairs with
+  /// modifier 0 = plain, 1 = SHIFT, 2 = ALPHA. Such presses do nothing.
+  final Set<(CalcKey, int)> disabled;
 
   /// Menus show option names in rows with a highlight moved by ◀ ▶ and
   /// chosen with = (numbers still work).
@@ -175,6 +180,10 @@ class NaturalCalculator implements CalcEngine {
   bool _sto = false;
   bool _rcl = false;
   bool _off = false;
+
+  /// Math display: SHIFT DEL (INS) makes the next template wrap the
+  /// expression right of the cursor.
+  bool _wrapNext = false;
 
   /// LineIO overwrite mode (SHIFT DEL).
   bool _overwrite = false;
@@ -320,6 +329,7 @@ class NaturalCalculator implements CalcEngine {
     }
     final shift = _shift, alpha = _alpha;
     _shift = _alpha = false;
+    if (disabled.contains((key, shift ? 1 : (alpha ? 2 : 0)))) return;
     if (_equation != null && _onEquationKey(key, shift: shift)) return;
     if (_editor && !shift && !alpha && _onEditorKey(key)) return;
     if (_eqnType != null && !shift && !alpha && _onEqnKey(key)) return;
@@ -423,7 +433,8 @@ class NaturalCalculator implements CalcEngine {
     final continues =
         t == MathTemplate.power || t == MathTemplate.fraction && _resultShown;
     _beforeInput(continues: continues);
-    _ed.insertTemplate(t);
+    _ed.insertTemplate(t, wrap: _wrapNext);
+    _wrapNext = false;
   }
 
   // ------------------------------------------------------------- key maps
@@ -629,7 +640,11 @@ class NaturalCalculator implements CalcEngine {
       case CalcKey.equals:
         _execute(decimal: true);
       case CalcKey.del:
-        if (!_mathIO) _overwrite = !_overwrite;
+        if (_mathIO) {
+          _wrapNext = true; // INS: the next function takes what follows
+        } else {
+          _overwrite = !_overwrite;
+        }
       case CalcKey.ac:
         _off = true;
       case CalcKey.mode:
@@ -3200,6 +3215,17 @@ class NaturalCalculator implements CalcEngine {
 
   @override
   AngleUnit get angleUnit => angle;
+
+  @override
+  List<({String input, String result})> get historyEntries => [
+    for (final h in _history)
+      (
+        input: h.input.plainText(),
+        result: h.result.isLinear
+            ? (h.result.isMatrix ? 'matrix' : 'vector')
+            : _rowFor(h.result).plainText(),
+      ),
+  ];
 
   @override
   GraphSpec? get graphSpec {

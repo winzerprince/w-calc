@@ -121,8 +121,16 @@ final class ManualArticle {
     required this.blocks,
     this.audience = ManualAudience.all,
     this.requires = const {},
+    this.tbModes = const {},
+    this.tbKey,
     this.keywords = const [],
   });
+
+  /// Textbook-family modes the article needs (hidden on models without).
+  final Set<NaturalMode> tbModes;
+
+  /// Textbook-family function the article needs (key, modifier 0/1/2).
+  final (CalcKey, int)? tbKey;
 
   final String id;
   final String title;
@@ -134,10 +142,15 @@ final class ManualArticle {
   final Set<CalcMode> requires;
   final List<String> keywords;
 
-  bool appliesTo(CalcModel m) =>
-      audience.includes(m.family) &&
-      (m.family == CalcFamily.textbook ||
-          requires.every(m.features.modes.contains));
+  bool appliesTo(CalcModel m) {
+    if (!audience.includes(m.family)) return false;
+    if (m.family == CalcFamily.twoLine) {
+      return requires.every(m.features.modes.contains);
+    }
+    final modes = m.naturalModes ?? NaturalMode.values.toSet();
+    return tbModes.every(modes.contains) &&
+        (tbKey == null || !m.disabled.contains(tbKey));
+  }
 
   String get searchText => [
     title,

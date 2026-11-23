@@ -195,4 +195,40 @@ void main() {
     expect(st.curves.single.$1, 'regression A+BX');
     expect(st.curves.single.$2.at(4), closeTo(9, 1e-9));
   });
+
+  test('disabled functions do nothing', () {
+    final b = NaturalCalculator(
+      disabled: {(CalcKey.integrate, 0), (CalcKey.calc, 1), (CalcKey.d7, 1)},
+    );
+    for (final k in parseKeySequence('∫dx SHIFT CALC SHIFT 7 2 + 3 =')) {
+      b.press(k);
+    }
+    expect(b.screen.text, '2+3 = 5');
+  });
+
+  test('history entries as plain text', () {
+    for (final k in parseKeySequence(
+      'frac 1 + √ 5 > down 2 = 2 frac 3 > + 1 frac 2 =',
+    )) {
+      c.press(k);
+    }
+    expect(c.historyEntries.map((e) => '${e.input} = ${e.result}'), [
+      '(1+√5)/2 = (1+√5)/2',
+      '2/3+1/2 = 7/6',
+    ]);
+    final two = Calculator();
+    for (final k in parseKeySequence('1 + 2 = 1 ÷ 4 =')) {
+      two.press(k);
+    }
+    expect(two.historyEntries.map((e) => '${e.input} = ${e.result}'), [
+      '1+2 = 3',
+      '1÷4 = 0.25',
+    ]);
+  });
+
+  test('INS wraps what follows into the next function: 1+√(7/6)', () {
+    press('1 + 7 frac 6 > < < < < < SHIFT DEL √');
+    expect(c.screen.text, startsWith('1+sqrt{fraction{7|6}}'));
+    expect(result('='), contains('sqrt{42}'));
+  });
 }

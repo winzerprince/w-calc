@@ -17,6 +17,7 @@ import 'lcd/dot_lcd.dart';
 import 'skin.dart';
 import 'tour/tours.dart';
 import 'state_store.dart';
+import 'soft_route.dart';
 
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
@@ -180,6 +181,55 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     setFullscreen(_focusMode);
   }
 
+  VoidCallback? _historyAction() =>
+      _calc.historyEntries.isEmpty ? null : _openHistory;
+
+  /// Earlier calculations, newest first; tap one to copy its answer.
+  void _openHistory() {
+    keyVibration();
+    final entries = _calc.historyEntries.reversed.toList();
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
+        child: ListView(
+          key: const Key('history-list'),
+          shrinkWrap: true,
+          children: [
+            const ListTile(
+              title: Text(
+                'Earlier calculations',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text('Tap one to copy its answer'),
+            ),
+            for (final e in entries)
+              ListTile(
+                title: Text(e.input),
+                trailing: Text(
+                  e.result,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                  ),
+                ),
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: e.result));
+                  Navigator.pop(sheet);
+                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                    SnackBar(
+                      content: Text('Copied ${e.result}'),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   VoidCallback? _graphAction() {
     if (_calc.graphSpec == null) return null;
     return _openGraph;
@@ -188,7 +238,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   void _openGraph() {
     keyVibration();
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      SoftRoute<void>(
         builder: (_) =>
             GraphPage(spec: _calc.graphSpec, angle: _calc.angleUnit),
       ),
@@ -289,6 +339,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                         focus: _focusMode,
                                         onFocus: _toggleFocus,
                                         onGraph: _graphAction(),
+                                        onHistory: _historyAction(),
                                       ),
                                       const SizedBox(height: 8),
                                       lcd,
@@ -306,6 +357,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                   focus: _focusMode,
                                   onFocus: _toggleFocus,
                                   onGraph: _graphAction(),
+                                  onHistory: _historyAction(),
                                 ),
                                 const SizedBox(height: 8),
                                 lcd,
@@ -331,7 +383,11 @@ class _Header extends StatelessWidget {
     required this.focus,
     required this.onFocus,
     this.onGraph,
+    this.onHistory,
   });
+
+  /// Shown when there are earlier calculations to look back at.
+  final VoidCallback? onHistory;
 
   final VoidCallback onReset;
   final bool focus;
@@ -355,6 +411,25 @@ class _Header extends StatelessWidget {
                 KeyedSubtree(
                   key: TourKeys.menu,
                   child: _MenuButton(onReset: onReset),
+                ),
+                // Contextual command: earlier calculations.
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  transitionBuilder: (child, a) =>
+                      ScaleTransition(scale: a, child: child),
+                  child: onHistory == null
+                      ? const SizedBox(key: ValueKey('no-history'), width: 0)
+                      : IconButton(
+                          key: const Key('history-button'),
+                          tooltip: 'Earlier calculations',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: onHistory,
+                          icon: Icon(
+                            Icons.history,
+                            color: CalcSkin.of(context).brandText
+                                .withValues(alpha: 0.8),
+                          ),
+                        ),
                 ),
                 // Contextual command: graph the expression in X.
                 AnimatedSwitcher(

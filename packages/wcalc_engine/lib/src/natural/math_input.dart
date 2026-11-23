@@ -105,6 +105,47 @@ final class MathRow {
 
   MathRow copy() => MathRow([for (final i in items) i.copy()]);
 
+  /// One-line text (`(1+√(5))/2`, `x^(2)`), for history lists.
+  String plainText() {
+    String slot(MathRow r) =>
+        r.items.length == 1 ? r.plainText() : '(${r.plainText()})';
+    final b = StringBuffer();
+    for (final i in items) {
+      switch (i) {
+        case TokItem(:final tok, :final paren):
+          final t = switch (tok) {
+            Tok.fracSep => '/',
+            Tok.negative => '−',
+            Tok.subtract => '−',
+            _ => tok.text.trim(),
+          };
+          b.write(paren && tok.kind != TokKind.function ? '$t(' : t);
+        case TemplateItem(:final kind, :final slots):
+          b.write(switch (kind) {
+            MathTemplate.fraction => '${slot(slots[0])}/${slot(slots[1])}',
+            MathTemplate.mixed =>
+              '${slots[0].plainText()} ${slot(slots[1])}/${slot(slots[2])}',
+            MathTemplate.sqrt => '√${slot(slots[0])}',
+            MathTemplate.cbrt => '∛${slot(slots[0])}',
+            MathTemplate.root => '${slot(slots[0])}√${slot(slots[1])}',
+            MathTemplate.power => '^${slot(slots[0])}',
+            MathTemplate.tenPow => '10^${slot(slots[0])}',
+            MathTemplate.ePow => 'e^${slot(slots[0])}',
+            MathTemplate.abs => '|${slots[0].plainText()}|',
+            MathTemplate.logBase =>
+              'log_${slot(slots[0])}(${slots[1].plainText()})',
+            MathTemplate.integral =>
+              '∫(${slots[0].plainText()}, ${slots[1].plainText()}, ${slots[2].plainText()})',
+            MathTemplate.derivative =>
+              'd/dx(${slots[0].plainText()}, ${slots[1].plainText()})',
+            MathTemplate.sum =>
+              'Σ(${slots[0].plainText()}, ${slots[1].plainText()}, ${slots[2].plainText()})',
+          });
+      }
+    }
+    return b.toString();
+  }
+
   int get bytes => items.fold(
     0,
     (sum, i) =>
@@ -209,12 +250,44 @@ final class MathEditor {
 
   /// Inserts a template and moves into its first empty slot. A fraction
   /// typed right after a number takes that number as its numerator.
-  bool insertTemplate(MathTemplate kind) {
+  bool insertTemplate(MathTemplate kind, {bool wrap = false}) {
     if (!_fits(kind.bytes)) return false;
     final r = row;
     final t = TemplateItem(kind);
     var at = cursor.pos;
     var slot = 0;
+    if (wrap) {
+      // INS: what follows the cursor, up to the next function or bracket,
+      // becomes the argument.
+      var end = at;
+      while (end < r.items.length) {
+        final i = r.items[end];
+        if (i is TokItem &&
+            (i.paren ||
+                i.tok.kind == TokKind.function ||
+                i.tok == Tok.openParen ||
+                i.tok == Tok.closeParen)) {
+          break;
+        }
+        end++;
+      }
+      final taken = r.items.sublist(at, end);
+      r.items.removeRange(at, end);
+      final target = switch (kind) {
+        MathTemplate.root || MathTemplate.logBase => 1,
+        _ => 0,
+      };
+      t.slots[target].items.addAll(taken);
+      r.items.insert(at, t);
+      // Cursor goes to the next empty slot, else after the argument.
+      final next = target + 1 < t.slots.length ? target + 1 : target;
+      final into = next != target && t.slots[next].isEmpty ? next : target;
+      cursor = MathCursor([
+        ...cursor.path,
+        (at, into),
+      ], t.slots[into].items.length);
+      return true;
+    }
     if (kind == MathTemplate.fraction) {
       var from = at;
       while (from > 0 && _isNumberPart(r.items[from - 1])) {
