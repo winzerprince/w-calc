@@ -11,7 +11,7 @@ def lerp(a, b, t):
     return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
 
 
-def icon(size=S, padding=0.0, rounded=True):
+def icon(size=S, padding=0.0, rounded=True, body_layer=True):
     img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     p = int(S * padding)
@@ -22,7 +22,8 @@ def icon(size=S, padding=0.0, rounded=True):
         bd.line([(0, y), (S, y)], fill=lerp((0x3B, 0x41, 0x53), (0x1F, 0x23, 0x2D), y / S) + (255,))
     mask = Image.new('L', (S, S), 0)
     ImageDraw.Draw(mask).rounded_rectangle([p, p, S - p, S - p], radius=int(S * 0.22) if rounded else 0, fill=255)
-    img.paste(body, (0, 0), mask)
+    if body_layer:
+        img.paste(body, (0, 0), mask)
     inner = S - 2 * p
     def X(f): return p + int(inner * f)
     # LCD.
@@ -62,6 +63,10 @@ def main():
     icon(512, padding=0.10, rounded=False).save('web/icons/Icon-maskable-512.png')
     icon(32).save('web/favicon.png')
     icon(512).save('docs/icon-512.png')
+    # Android 8+ adaptive icon: body colour behind, display and keys in the
+    # 66/108 safe zone in front (launchers crop the outer part).
+    for folder, px in [('mipmap-mdpi', 108), ('mipmap-hdpi', 162), ('mipmap-xhdpi', 216), ('mipmap-xxhdpi', 324), ('mipmap-xxxhdpi', 432)]:
+        icon(px, padding=0.17, rounded=False, body_layer=False).save(f'{base}/{folder}/ic_launcher_foreground.png')
 
 
 if __name__ == '__main__':
