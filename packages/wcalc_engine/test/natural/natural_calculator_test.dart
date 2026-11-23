@@ -555,4 +555,31 @@ void main() {
       expect(run('2 EXP 20 × 3 ='), '6. E20');
     });
   });
+
+  group('big linear algebra (four matrices up to 4×4)', () {
+    late NaturalCalculator m;
+    setUp(() => m = NaturalCalculator(bigLinear: true));
+    String run(String keys) {
+      for (final k in parseKeySequence(keys)) {
+        m.press(k);
+      }
+      return m.screen.text;
+    }
+
+    test('MatD 4×4 identity-like: det = 24', () {
+      run('MODE 6 4 4 4');
+      run('2 = 0 = 0 = 0 = 0 = 3 = 0 = 0 = 0 = 0 = 4 = 0 = 0 = 0 = 0 = 1 = AC');
+      final t = run('SHIFT 4 7 SHIFT 4 down 9 ) =');
+      expect(t.substring(t.lastIndexOf(' = ') + 3), '24');
+    });
+    test('four unknowns', () {
+      run('MODE 5 down 5');
+      // x+y+z+t=10, x−y=−1, y−z=−1, z−t=−1 → 1, 2, 3, 4
+      run('1 = 1 = 1 = 1 = 10 = 1 = (-) 1 = 0 = 0 = (-) 1 = ');
+      run('0 = 1 = (-) 1 = 0 = (-) 1 = 0 = 0 = 1 = (-) 1 = (-) 1 = =');
+      expect(m.screen.text, 'X= 1');
+      run('down down down');
+      expect(m.screen.text, 'T= 4');
+    });
+  });
 }

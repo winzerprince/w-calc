@@ -5,9 +5,12 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Fixed
+- Textbook models: the matrix size menu now shows its second page (1×3, 1×2).
 - Font licence texts are now bundled so the third-party licence page can show them.
 
 ### Added
+- *Scientific Max* model: textbook display with four matrices up to 4×4 (size typed as m?, n?),
+  four vectors and equations with four unknowns; Ocean theme.
 - *Scientific Two-View* model: classic two-line dot display (entry line with / and *, tall answer
   line with a trailing point, fractions 14/15 and 7u1/8, ◄► toggle), 2nd key, Graphite theme.
 - First-start tours: hand-drawn notes and arrows over a dark scrim explain the display, menu,
