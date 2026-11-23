@@ -3120,6 +3120,18 @@ class NaturalCalculator implements CalcEngine {
   ];
 
   @override
+  List<Tok>? get graphTokens =>
+      mode == NaturalMode.comp &&
+          _grid == null &&
+          _eqnType == null &&
+          !_ed.isEmpty
+      ? graphableTokens(_ed.linearize().tokens)
+      : null;
+
+  @override
+  AngleUnit get angleUnit => angle;
+
+  @override
   String? get copyText {
     final r = _result;
     if (!_resultShown || r == null || _error != null || r.isLinear) return null;

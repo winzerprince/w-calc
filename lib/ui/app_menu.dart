@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'graph/graph_page.dart';
 import 'haptics.dart';
 import 'pages/about_page.dart';
 import 'pages/manual_page.dart';
@@ -24,6 +25,12 @@ class MenuEntry {
 }
 
 final menuEntries = [
+  MenuEntry(
+    Icons.show_chart,
+    'Graph',
+    'Plot functions, trace points, find roots',
+    page: (_) => const GraphPage(),
+  ),
   MenuEntry(
     Icons.tune,
     'Settings',

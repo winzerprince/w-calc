@@ -1,4 +1,6 @@
+import 'angle_unit.dart';
 import 'calc_key.dart';
+import 'input/token.dart';
 
 /// What the app needs from any calculator model's engine.
 abstract interface class CalcEngine {
@@ -15,4 +17,20 @@ abstract interface class CalcEngine {
 
   /// The shown result as plain text for the clipboard, or null.
   String? get copyText;
+
+  /// The current or last calculation when it can be drawn as y = f(X)
+  /// (it uses X; a leading `Y =` is dropped), else null.
+  List<Tok>? get graphTokens;
+
+  /// Angle unit in use (graphs follow it).
+  AngleUnit get angleUnit;
+}
+
+/// Shared rule for [CalcEngine.graphTokens].
+List<Tok>? graphableTokens(List<Tok> tokens) {
+  var t = tokens;
+  if (t.length > 2 && t[0] == Tok.varY && t[1] == Tok.eqSign) t = t.sublist(2);
+  if (!t.contains(Tok.varX)) return null;
+  if (t.any((k) => k == Tok.eqSign || k == Tok.colon)) return null;
+  return List.unmodifiable(t);
 }
