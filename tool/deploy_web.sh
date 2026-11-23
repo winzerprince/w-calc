@@ -9,6 +9,7 @@
 # these are set, e.g. in your shell or a git-ignored tool/.web.env:
 #   ADSENSE_CLIENT=ca-pub-1234567890123456   publisher ID
 #   ADSENSE_SLOT=1234567890                  display ad unit for the side panel (optional)
+#   ADSENSE_SLOT_MOBILE=1234567890           320×50 banner under the app on phones (optional)
 # Requires: `npx wrangler@3 login` once.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -26,11 +27,15 @@ if [[ -n "${ADSENSE_CLIENT:-}" ]]; then
   if [[ -n "${ADSENSE_SLOT:-}" ]]; then
     slot="<div class=\"ad\"><ins class=\"adsbygoogle\" style=\"display:block\" data-ad-client=\"$ADSENSE_CLIENT\" data-ad-slot=\"$ADSENSE_SLOT\" data-ad-format=\"auto\" data-full-width-responsive=\"true\"></ins><script>(adsbygoogle = window.adsbygoogle || []).push({});</script></div>"
   fi
-  python3 - "$OUT/index.html" "$head" "$slot" <<'PY'
+  mobile=""
+  if [[ -n "${ADSENSE_SLOT_MOBILE:-}" ]]; then
+    mobile="<div id=\"mobile-ad\"><ins class=\"adsbygoogle\" style=\"display:inline-block;width:320px;height:50px;margin-top:5px\" data-ad-client=\"$ADSENSE_CLIENT\" data-ad-slot=\"$ADSENSE_SLOT_MOBILE\"></ins><script>if (innerWidth < 900) (adsbygoogle = window.adsbygoogle || []).push({});</script></div>"
+  fi
+  python3 - "$OUT/index.html" "$head" "$slot" "$mobile" <<'PY'
 import sys
-p, head, slot = sys.argv[1:4]
+p, head, slot, mobile = sys.argv[1:5]
 s = open(p).read()
-s = s.replace('<!-- ADS:HEAD -->', head).replace('<!-- ADS:SLOT -->', slot)
+s = s.replace('<!-- ADS:HEAD -->', head).replace('<!-- ADS:SLOT -->', slot).replace('<!-- ADS:MOBILE -->', mobile)
 open(p, 'w').write(s)
 PY
   echo "google.com, ${ADSENSE_CLIENT#ca-}, DIRECT, f08c47fec0942fa0" > "$OUT/ads.txt"

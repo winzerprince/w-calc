@@ -86,11 +86,21 @@
     .try svg { display: block; margin: 2px auto 0; width: 92px; height: 54px; }
     .try path { stroke: var(--pink); stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
-    #frame { flex: none; width: 412px; height: min(880px, calc(100vh - 100px)); padding: 12px; border-radius: 44px;
-      background: linear-gradient(145deg, #2E2F33, #121315); box-shadow: 0 30px 80px rgba(0,0,0,.6), inset 0 0 0 2px rgba(255,255,255,.07); }
-    #app-host { position: relative; width: 100%; height: 100%; border-radius: 34px; overflow: hidden; background: #15171C;
-      clip-path: inset(0 round 34px); isolation: isolate; }
-    #app-host flutter-view { border-radius: inherit; }
+    .stage { position: relative; flex: none; }
+    #frame { display: block; width: 412px; height: min(860px, calc(100vh - 120px)); padding: 10px;
+      background: #0D0E10; border: 2px solid rgba(243,241,231,.55);
+      box-shadow: 0 0 0 6px rgba(0,0,0,.35), 0 28px 70px rgba(0,0,0,.55); }
+    #app-host { position: relative; width: 100%; height: 100%; overflow: hidden; background: #15171C; }
+    .live { position: absolute; left: 4px; top: -40px; font-size: 22px; color: var(--mint); display: flex; align-items: center; gap: 8px; }
+    .live i { width: 11px; height: 11px; border-radius: 50%; background: #5BE38F; box-shadow: 0 0 0 0 rgba(91,227,143,.6); animation: live 1.8s ease-out infinite; }
+    @keyframes live { 70% { box-shadow: 0 0 0 9px rgba(91,227,143,0); } 100% { box-shadow: 0 0 0 0 rgba(91,227,143,0); } }
+    #mobile-ad { display: none; }
+    .btn svg { width: 22px; height: 22px; vertical-align: -4px; margin-left: 6px; }
+    .btn .gh { fill: currentColor; margin: 0 6px 0 0; }
+    .cup path { stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .cup .steam { opacity: .8; animation: steam 2.6s ease-in-out infinite; }
+    .cup .steam.b { animation-delay: .9s; }
+    @keyframes steam { 0% { transform: translateY(2px); opacity: 0; } 40% { opacity: .85; } 100% { transform: translateY(-4px); opacity: 0; } }
     #splash { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 16px; background: var(--board); color: var(--dim); transition: opacity .35s; z-index: 2; font-size: 22px; }
     #splash img { width: 84px; height: 84px; border-radius: 20px; animation: bob 1.4s ease-in-out infinite; }
@@ -98,9 +108,20 @@
     @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
 
     /* Chalk tray along the bottom of the board. */
-    #tray { position: fixed; left: 0; right: 0; bottom: 0; height: 22px; pointer-events: none;
+    #tray { position: fixed; z-index: 2; left: 0; right: 0; bottom: 0; height: 22px; pointer-events: none;
       background: linear-gradient(var(--wood1), var(--wood2)); box-shadow: 0 -4px 12px rgba(0,0,0,.45); }
-    #tray i { position: absolute; bottom: 12px; height: 9px; border-radius: 4px; }
+    #tray i { position: absolute; bottom: 12px; height: 9px; border-radius: 4px; pointer-events: auto; cursor: grab; transition: transform .15s, opacity .15s; }
+    #tray i:hover { transform: translateY(-3px) rotate(-2deg); }
+    #tray i.taken { opacity: 0; }
+    /* Easter egg: pick up chalk or the eraser and use the board. */
+    #draw { position: fixed; inset: 0; pointer-events: none; }
+    #page { z-index: 1; }
+    body.holding #page { pointer-events: none; }
+    body.holding, body.holding * { cursor: none !important; }
+    body.holding #tray i { pointer-events: auto; }
+    #held { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 5; display: none; border-radius: 4px;
+      transform-origin: 0 50%; box-shadow: 0 3px 8px rgba(0,0,0,.4); }
+    body.holding #held { display: block; }
     #tray .c1 { left: 18%; width: 64px; background: #F4F2EA; transform: rotate(-3deg); }
     #tray .c2 { left: 23%; width: 40px; background: var(--yellow); }
     #tray .c3 { left: 26.5%; width: 30px; background: var(--pink); transform: rotate(4deg); }
@@ -109,15 +130,19 @@
 
     @media (prefers-reduced-motion: reduce) {
       .underline path { animation: none; stroke-dashoffset: 0; }
-      .eq.wipe, .eq.write, #splash img { animation: none; }
+      .eq.wipe, .eq.write, #splash img, .live i, .cup .steam { animation: none; }
     }
     @media (max-width: 1120px) { .try { display: none; } #page { gap: 44px; } }
     /* Phones and narrow windows (and the itch.io embed): the app fills the screen. */
     @media (max-width: 899px) {
       #page { display: block; padding: 0; }
-      #info, #board, #tray { display: none; }
-      #frame { width: 100%; height: 100vh; height: 100dvh; padding: 0; border-radius: 0; background: none; box-shadow: none; transform: none; }
-      #app-host { border-radius: 0; clip-path: none; }
+      #info, #board, #tray, #draw, #held { display: none !important; }
+      .live { display: none; }
+      #frame { width: 100%; height: 100vh; height: 100dvh; padding: 0; border: 0; background: none; box-shadow: none; }
+      /* A mobile banner (when the site has one and it filled) sits under the app. */
+      #mobile-ad { display: none; position: fixed; left: 0; right: 0; bottom: 0; height: 60px; background: #000; text-align: center; }
+      body:has(#mobile-ad ins[data-ad-status="filled"]) #mobile-ad { display: block; }
+      body:has(#mobile-ad ins[data-ad-status="filled"]) #frame { height: calc(100dvh - 60px); }
     }
   </style>
 </head>
@@ -154,27 +179,32 @@
       </ul>
       <div class="buttons">
         <a class="btn android" href="https://winzerprince.itch.io/w-calc" rel="noopener">Get the Android app ↓</a>
-        <a class="btn kofi" href="https://ko-fi.com/winzerprince" rel="noopener">Buy me a coffee ☕</a>
-        <a class="btn src" href="https://github.com/winzerprince/w-calc" rel="noopener">source code</a>
+        <a class="btn kofi" href="https://ko-fi.com/winzerprince" rel="noopener">Buy me a coffee<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path class="steam" d="M8 7c-1-1.5 1-2.5 0-4"/><path class="steam b" d="M12 7c-1-1.5 1-2.5 0-4"/><path d="M4 10h12l-1 9.5a1.5 1.5 0 0 1-1.5 1.3H6.5A1.5 1.5 0 0 1 5 19.5Z"/><path d="M16 12h1.5a2.5 2.5 0 0 1 0 5H15.6"/></svg></a>
+        <a class="btn src" href="https://github.com/winzerprince/w-calc" rel="noopener"><svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>source code</a>
       </div>
       <!-- ADS:SLOT -->
       <p class="fine">
-        W-Calc is an independent product and is not affiliated with, endorsed by or sponsored by any
-        calculator manufacturer. Product names belong to their owners. For learning and practice — use
-        an approved calculator in exams. ·
-        <a href="privacy.html">Privacy</a> · <a href="https://github.com/winzerprince/w-calc/blob/main/LICENSE">MIT licence</a>
+        Independent educational software, not affiliated with or endorsed by any calculator
+        manufacturer. Trademarks belong to their owners.
+        <a href="privacy.html">Privacy</a> · <a href="https://github.com/winzerprince/w-calc/blob/main/LICENSE">Licence</a>
       </p>
       <div class="try" aria-hidden="true">try it here!
         <svg viewBox="0 0 92 54"><path d="M4 10 C30 4, 58 14, 80 40"/><path d="M66 40 L81 41 L80 26"/></svg>
       </div>
     </section>
-    <main id="frame">
-      <div id="app-host">
-        <div id="splash"><img src="icons/Icon-192.png" alt="">getting the chalk ready…</div>
-      </div>
-    </main>
+    <div class="stage">
+      <div class="live" aria-hidden="true"><i></i>live — tap the keys</div>
+      <main id="frame">
+        <div id="app-host">
+          <div id="splash"><img src="icons/Icon-192.png" alt="">getting the chalk ready…</div>
+        </div>
+      </main>
+    </div>
   </div>
-  <div id="tray" aria-hidden="true"><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="eraser"></i></div>
+  <canvas id="draw" aria-hidden="true"></canvas>
+  <div id="held" aria-hidden="true"></div>
+  <div id="tray" aria-hidden="true"><i class="c1" title="Chalk"></i><i class="c2" title="Chalk"></i><i class="c3" title="Chalk"></i><i class="eraser" title="Eraser"></i></div>
+  <!-- ADS:MOBILE -->
   <noscript>W-Calc needs JavaScript to run. It is a free scientific calculator with exact fractions, statistics, equations, matrices and graphs.</noscript>
   <script>
     // Now and then the eraser wipes one line and something new is written.
@@ -197,6 +227,69 @@
           el.classList.remove('wipe'); el.classList.add('write');
         }, 1200);
       }, 6500);
+    })();
+  </script>
+  <script>
+    // Easter egg: click a chalk stick or the eraser to hold it, drag on the
+    // board to draw or erase; click the tray or press Esc to put it down.
+    (function () {
+      var canvas = document.getElementById('draw'), ctx = canvas.getContext('2d');
+      var held = document.getElementById('held');
+      var tool = null, piece = null, last = null;
+      function size() {
+        var r = devicePixelRatio || 1, img = canvas.width ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
+        canvas.width = innerWidth * r; canvas.height = innerHeight * r;
+        canvas.style.width = innerWidth + 'px'; canvas.style.height = innerHeight + 'px';
+        ctx.setTransform(r, 0, 0, r, 0, 0);
+        if (img) ctx.putImageData(img, 0, 0);
+      }
+      size(); addEventListener('resize', size);
+      function drop() {
+        if (piece) piece.classList.remove('taken');
+        tool = piece = last = null; document.body.classList.remove('holding');
+      }
+      function pick(el) {
+        drop(); piece = el; el.classList.add('taken');
+        var cs = getComputedStyle(el);
+        tool = el.classList.contains('eraser') ? { erase: true } : { color: cs.backgroundColor };
+        held.style.width = el.offsetWidth + 'px'; held.style.height = el.offsetHeight + 'px';
+        held.style.background = cs.backgroundImage !== 'none' ? cs.backgroundImage : cs.backgroundColor;
+        document.body.classList.add('holding');
+      }
+      document.querySelectorAll('#tray i').forEach(function (el) {
+        el.addEventListener('click', function (e) { e.stopPropagation(); piece === el ? drop() : pick(el); });
+      });
+      addEventListener('keydown', function (e) { if (e.key === 'Escape') drop(); });
+      function line(a, b) {
+        if (tool.erase) {
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.lineWidth = 44; ctx.lineCap = 'round'; ctx.strokeStyle = 'rgba(0,0,0,.9)';
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          return;
+        }
+        ctx.globalCompositeOperation = 'source-over';
+        // Chalk: a solid core plus grainy specks along the stroke.
+        ctx.strokeStyle = tool.color; ctx.globalAlpha = .75; ctx.lineWidth = 3.2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        var d = Math.hypot(b.x - a.x, b.y - a.y);
+        ctx.fillStyle = tool.color;
+        for (var i = 0; i < d; i += 1.5) {
+          var t = i / (d || 1), x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t;
+          ctx.globalAlpha = Math.random() * .5;
+          ctx.fillRect(x + (Math.random() - .5) * 5, y + (Math.random() - .5) * 5, 1.2, 1.2);
+        }
+        ctx.globalAlpha = 1;
+      }
+      addEventListener('pointermove', function (e) {
+        if (!tool) return;
+        held.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px) rotate(' + (tool.erase ? 0 : -35) + 'deg)';
+        if (last && e.buttons) { var p = { x: e.clientX, y: e.clientY }; line(last, p); last = p; }
+      });
+      addEventListener('pointerdown', function (e) {
+        if (!tool || e.target.closest('#tray')) return;
+        last = { x: e.clientX, y: e.clientY }; line(last, { x: last.x + .1, y: last.y + .1 });
+      });
+      addEventListener('pointerup', function () { last = null; });
     })();
   </script>
   <script src="flutter_bootstrap.js" async></script>

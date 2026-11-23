@@ -152,27 +152,50 @@ class _DotLcdPainter extends CustomPainter {
     final indicatorH = cell * 7;
     final top = indicatorH + cell * 2;
 
-    // Indicators (always the same slots, only lit ones drawn).
-    final tp = TextPainter(textDirection: TextDirection.ltr);
-    final slotW = (size.width - 2 * left) / _indicatorOrder.length;
-    for (var i = 0; i < _indicatorOrder.length; i++) {
-      final (ind, standard) = _indicatorOrder[i];
-      final label = labels[ind] ?? standard;
-      if (!screen.indicators.contains(ind)) continue;
-      tp.text = TextSpan(
-        text: label,
+    // Indicators: fixed slots sized to their labels (so wide ones like
+    // "Math" never run into their neighbours); only lit ones are drawn.
+    TextPainter label(String text, double fontSize) => TextPainter(
+      text: TextSpan(
+        text: text,
         style: TextStyle(
           color: ink,
           fontFamily: 'Barlow',
           fontFamilyFallback: const ['WCalcSymbols'],
-          fontSize: indicatorH * 0.78,
+          fontSize: fontSize,
           fontWeight: FontWeight.w700,
           height: 1,
         ),
-      );
-      tp.layout();
-      final x = left + slotW * i + (slotW - tp.width) / 2;
-      tp.paint(canvas, Offset(x, cell * 1.2));
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final avail = size.width - 2 * left;
+    final minGap = cell * 1.5;
+    var fontSize = indicatorH * 0.78;
+    var painters = [
+      for (final (ind, standard) in _indicatorOrder)
+        label(labels[ind] ?? standard, fontSize),
+    ];
+    var total = painters.fold<double>(0, (t, p) => t + p.width);
+    final room = avail - minGap * (painters.length - 1);
+    if (total > room) {
+      fontSize *= room / total;
+      painters = [
+        for (final (ind, standard) in _indicatorOrder)
+          label(labels[ind] ?? standard, fontSize),
+      ];
+      total = painters.fold<double>(0, (t, p) => t + p.width);
+    }
+    final gap = (avail - total) / (painters.length - 1);
+    var x = left;
+    for (var i = 0; i < painters.length; i++) {
+      final p = painters[i];
+      if (screen.indicators.contains(_indicatorOrder[i].$1)) {
+        p.paint(
+          canvas,
+          Offset(x, cell * 1.2 + (indicatorH * 0.78 - p.height) / 2),
+        );
+      }
+      x += p.width + gap;
     }
 
     // Faint ghost of the dot grid, then the lit dots.

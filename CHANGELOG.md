@@ -4,6 +4,17 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Fixed
+- Textbook and multi-line displays: status indicators are spaced by their width, so “Math” and
+  the ▲/▼ scroll arrows no longer overlap.
+
+### Changed
+- Website: square, clear frame round the app with a “live” marker; GitHub logo and a chalk-drawn
+  coffee cup on the buttons; shorter disclaimer; optional phone banner slot under the app.
+
+### Added
+- Website easter egg: pick up a chalk stick or the eraser from the tray and draw on the board.
+
 ## [0.13.1-beta] - 2026-11-23
 
 Ko-fi link in the menu; blackboard website; black app icon.
