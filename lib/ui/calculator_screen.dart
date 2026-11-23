@@ -34,7 +34,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
   /// Neon themes: the display ring after a key press.
   late final AnimationController _ring = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1100),
+    duration: const Duration(milliseconds: 420),
   );
 
   CalcEngine _calc = Calculator();
@@ -150,9 +150,10 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 
   Future<void> _press(CalcKey key) async {
     if (_busy) return;
-    if (CalcSkin.of(context).isNeon) {
-      // After the key's own light, a lap round the display.
-      Future<void>.delayed(const Duration(milliseconds: 140), () {
+    if (key == CalcKey.equals && CalcSkin.of(context).isNeon) {
+      // An answer: after the = key's own light, a quick lap round the
+      // display.
+      Future<void>.delayed(const Duration(milliseconds: 60), () {
         if (mounted) _ring.forward(from: 0);
       });
     }

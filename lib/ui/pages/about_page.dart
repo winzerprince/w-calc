@@ -64,14 +64,6 @@ class AboutPage extends StatelessWidget {
           onTap: () => openLink(sourceUrl),
         ),
         ListTile(
-          key: const Key('about-kofi'),
-          leading: const Icon(Icons.coffee_outlined),
-          title: const Text('Buy me a coffee'),
-          subtitle: const Text('Support W-Calc on Ko-fi'),
-          trailing: const Icon(Icons.open_in_new),
-          onTap: () => openLink(kofiUrl),
-        ),
-        ListTile(
           leading: const Icon(Icons.description_outlined),
           title: const Text('Third-party licences'),
           trailing: const Icon(Icons.chevron_right),

@@ -40,7 +40,15 @@ _K _n(String s) => _t(s, tone: _Tone.number);
 /// The graph keypad: maths keys, digits, a letters page and a functions
 /// panel. Calls [onEdit] for edits and [onEnter] for ↵.
 class GxKeypad extends StatefulWidget {
-  const GxKeypad({super.key, required this.onEdit, required this.onEnter});
+  const GxKeypad({
+    super.key,
+    required this.onEdit,
+    required this.onEnter,
+    this.onKey,
+  });
+
+  /// Every key's id after it is handled (first-use hints).
+  final ValueChanged<String>? onKey;
 
   final ValueChanged<GxEdit> onEdit;
   final VoidCallback onEnter;
@@ -274,8 +282,12 @@ class _GxKeypadState extends State<GxKeypad> {
     ),
   ];
 
+  /// Taps outside the functions panel (and its key) close it.
+  static const _funcsGroup = 'gx-funcs';
+
   void _press(_K k) {
     keyVibration();
+    widget.onKey?.call(k.id ?? k.action ?? k.label);
     switch (k.action) {
       case 'funcs':
         return setState(() => _funcs = !_funcs);
@@ -324,7 +336,15 @@ class _GxKeypadState extends State<GxKeypad> {
                             else
                               Expanded(
                                 flex: (k.flex * 10).round(),
-                                child: _KeyCap(k: k, onTap: () => _press(k)),
+                                child: k.action == 'funcs'
+                                    ? TapRegion(
+                                        groupId: _funcsGroup,
+                                        child: _KeyCap(
+                                          k: k,
+                                          onTap: () => _press(k),
+                                        ),
+                                      )
+                                    : _KeyCap(k: k, onTap: () => _press(k)),
                               ),
                         ],
                       ),
@@ -333,7 +353,15 @@ class _GxKeypadState extends State<GxKeypad> {
               ),
               if (_funcs)
                 Positioned.fill(
-                  child: _FuncsPanel(sections: _sections, onTap: _press),
+                  child: TapRegion(
+                    groupId: _funcsGroup,
+                    onTapOutside: (_) => setState(() => _funcs = false),
+                    child: _FuncsPanel(
+                      sections: _sections,
+                      onTap: _press,
+                      onClose: () => setState(() => _funcs = false),
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -400,10 +428,15 @@ class _KeyCap extends StatelessWidget {
 }
 
 class _FuncsPanel extends StatelessWidget {
-  const _FuncsPanel({required this.sections, required this.onTap});
+  const _FuncsPanel({
+    required this.sections,
+    required this.onTap,
+    required this.onClose,
+  });
 
   final List<(String, List<_K>)> sections;
   final ValueChanged<_K> onTap;
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -413,34 +446,56 @@ class _FuncsPanel extends StatelessWidget {
       color: scheme.surfaceContainerLow,
       elevation: 6,
       borderRadius: BorderRadius.circular(8),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+      child: Stack(
         children: [
-          for (final (title, keys) in sections) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(2, 8, 0, 4),
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 11,
-                  letterSpacing: 0.8,
-                  fontWeight: FontWeight.w600,
-                  color: scheme.onSurfaceVariant,
-                ),
+          _list(scheme),
+          Positioned(
+            right: 2,
+            top: 2,
+            child: IconButton(
+              key: const Key('gx-funcs-close'),
+              tooltip: 'Close functions',
+              visualDensity: VisualDensity.compact,
+              style: IconButton.styleFrom(
+                backgroundColor: scheme.surfaceContainerHighest,
               ),
+              icon: const Icon(Icons.close, size: 20),
+              onPressed: onClose,
             ),
-            GridView.count(
-              crossAxisCount: 4,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 2.1,
-              children: [
-                for (final k in keys) _KeyCap(k: k, onTap: () => onTap(k)),
-              ],
-            ),
-          ],
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _list(ColorScheme scheme) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+      children: [
+        for (final (title, keys) in sections) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(2, 8, 0, 4),
+            child: Text(
+              title,
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: 0.8,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          GridView.count(
+            crossAxisCount: 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: 2.1,
+            children: [
+              for (final k in keys) _KeyCap(k: k, onTap: () => onTap(k)),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

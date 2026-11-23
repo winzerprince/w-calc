@@ -62,6 +62,33 @@ class SettingsPage extends StatelessWidget {
     return MenuPageScaffold(
       title: 'Settings',
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Material(
+            color: const Color(0xFFFF5E5B),
+            borderRadius: BorderRadius.circular(14),
+            child: ListTile(
+              key: const Key('setting-kofi'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              leading: const Icon(Icons.coffee, color: Colors.white),
+              title: const Text(
+                'Buy me a coffee',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              subtitle: const Text(
+                'W-Calc is free. Enjoying it? Support it on Ko-fi',
+                style: TextStyle(color: Colors.white70),
+              ),
+              trailing: const Icon(Icons.open_in_new, color: Colors.white),
+              onTap: () => openLink(kofiUrl),
+            ),
+          ),
+        ),
         const PageSection('Key feedback'),
         SwitchListTile(
           key: const Key('setting-vibration'),
@@ -179,17 +206,6 @@ class SettingsPage extends StatelessWidget {
             context,
             SoftRoute<void>(builder: (_) => const ManualPage(startTour: true)),
           ),
-        ),
-        const PageSection('Support'),
-        ListTile(
-          key: const Key('setting-kofi'),
-          leading: const Icon(Icons.coffee_outlined, color: Color(0xFFFF5E5B)),
-          title: const Text('Buy me a coffee'),
-          subtitle: const Text(
-            'W-Calc is free. Enjoying it? Support it on Ko-fi',
-          ),
-          trailing: const Icon(Icons.open_in_new),
-          onTap: () => openLink(kofiUrl),
         ),
         const PageSection('Calculator'),
         ListTile(
