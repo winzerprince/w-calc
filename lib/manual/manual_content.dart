@@ -676,6 +676,49 @@ const manualChapters = <ManualChapter>[
     ],
   ),
   ManualChapter(
+    id: 'graph',
+    title: 'Graphs',
+    icon: Icons.show_chart,
+    articles: [
+      ManualArticle(
+        id: 'graphing',
+        title: 'Drawing graphs',
+        summary: 'Plot y = f(x), move around, read points, find roots.',
+        keywords: [
+          'graph',
+          'plot',
+          'curve',
+          'root',
+          'intersection',
+          'function',
+        ],
+        blocks: [
+          Para(
+            'Type a calculation that uses X (ALPHA ) on most models) and a '
+            'graph button appears next to the W-Calc name: tap it to see the '
+            'curve. Menu ▸ Graph opens the graph on its own.',
+          ),
+          Steps([
+            ManualStep('Drag to move, pinch or double-tap to zoom.'),
+            ManualStep('Tap a curve to show its point (x, y).'),
+            ManualStep(
+              'Grey dots mark roots, turning points, y-intercepts and where curves cross; tap one to read it.',
+            ),
+            ManualStep(
+              'Type more functions below the graph: 2x+1, x^2-4, sin(x), sqrt(x), ln(x), abs(x).',
+            ),
+            ManualStep(
+              'Tap a colour dot to hide or show its curve; Rad / Deg sets the angle unit.',
+            ),
+          ]),
+          Tip(
+            'Typing: ^ for powers, * may be left out (2x, 3sin(x)), pi and e are understood.',
+          ),
+        ],
+      ),
+    ],
+  ),
+  ManualChapter(
     id: 'memory',
     title: 'Memories',
     icon: Icons.save_outlined,

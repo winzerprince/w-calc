@@ -5,6 +5,7 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 
 import '../haptics.dart';
 import '../reading_theme.dart';
+import '../tour/tours.dart';
 
 /// Colours for successive curves (readable on light and dark paper).
 const _palette = [
@@ -86,6 +87,9 @@ class _GraphPageState extends State<GraphPage> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) runTourOnce(context, Tours.graph, () => graphTour);
+    });
     final t = widget.tokens;
     if (t != null) {
       _curves.add(
@@ -176,6 +180,17 @@ class _GraphPageState extends State<GraphPage> {
         }
         final y0 = f.at(0);
         if (y0 != null) pts.add((Offset(0, y0), 'y-intercept'));
+      }
+      final shown = [
+        for (final c in _curves)
+          if (c.visible && c.function != null) c.function!,
+      ];
+      for (var i = 0; i < shown.length; i++) {
+        for (var j = i + 1; j < shown.length; j++) {
+          for (final p in intersections(shown[i], shown[j], a, b)) {
+            pts.add((Offset(p.x, p.y), 'intersection'));
+          }
+        }
       }
       setState(() => _poi = pts);
     });
@@ -305,6 +320,7 @@ class _GraphPageState extends State<GraphPage> {
                             onTapUp: (d) => _onTap(d.localPosition),
                             onDoubleTapDown: (d) => _zoom(2, d.localPosition),
                             child: CustomPaint(
+                              key: TourKeys.graphCanvas,
                               size: Size.infinite,
                               painter: _GraphPainter(
                                 center: _center,
@@ -353,6 +369,7 @@ class _GraphPageState extends State<GraphPage> {
                   ),
                 ),
                 _FunctionList(
+                  key: TourKeys.graphList,
                   curves: _curves,
                   onChanged: (c) {
                     setState(() => _parse(c));
@@ -433,6 +450,7 @@ class _RoundButton extends StatelessWidget {
 /// formula, remove; "Add function" at the end.
 class _FunctionList extends StatelessWidget {
   const _FunctionList({
+    super.key,
     required this.curves,
     required this.onChanged,
     required this.onToggle,

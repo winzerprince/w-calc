@@ -20,6 +20,8 @@ abstract final class TourKeys {
   static final finish = GlobalKey(debugLabel: 'tour-finish');
   static final manualSearch = GlobalKey(debugLabel: 'tour-manual-search');
   static final manualChapters = GlobalKey(debugLabel: 'tour-manual-chapters');
+  static final graphCanvas = GlobalKey(debugLabel: 'tour-graph-canvas');
+  static final graphList = GlobalKey(debugLabel: 'tour-graph-list');
 }
 
 /// Tour ids (stored once seen).
@@ -28,6 +30,7 @@ abstract final class Tours {
   static const models = 'models';
   static const theme = 'theme';
   static const manual = 'manual';
+  static const graph = 'graph';
 }
 
 List<TourStep> calculatorTour(CalcModel model) {
@@ -86,6 +89,17 @@ final manualTour = [
   TourStep(
     TourKeys.manualChapters,
     '…or browse the chapters,\nwritten for your model',
+  ),
+];
+
+final graphTour = [
+  TourStep(
+    TourKeys.graphCanvas,
+    'Drag to move, pinch to zoom.\nTap a curve to read its point',
+  ),
+  TourStep(
+    TourKeys.graphList,
+    'Type functions of x here —\ntry 2x+1 or sin(x)',
   ),
 ];
 

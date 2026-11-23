@@ -7,7 +7,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ### Added
 - Graph: plot functions (typed like 2x+1, sin(x), sqrt(x)), pan and pinch to zoom, tap to trace,
   roots, extrema and y-intercepts marked, Rad/Deg. A graph button appears next to the logo when
-  the calculation uses X; Menu ▸ Graph opens graph mode.
+  the calculation uses X; Menu ▸ Graph opens graph mode. Intersections are marked too; a short
+  tour and a manual chapter explain it.
 - Manual: full lists of the 40 constants (name, symbol, value, unit) and 40 unit conversions,
   with a filter box; values come straight from the calculator.
 - Key styles: Classic (the original W-Calc look, now the default), Flat, Raised and Soft join
