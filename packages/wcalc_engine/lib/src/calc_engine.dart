@@ -26,6 +26,9 @@ abstract interface class CalcEngine {
   /// Angle unit in use (graphs follow it).
   AngleUnit get angleUnit;
 
+  /// Earlier calculations, oldest first: what was typed and its answer.
+  List<({String input, String result})> get historyEntries;
+
   /// Something worth drawing right now (a function of X, an equation's
   /// polynomial, paired statistics data), or null.
   GraphSpec? get graphSpec;

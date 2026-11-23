@@ -211,4 +211,27 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('SHIFT ▸ sin⁻¹'), findsOneWidget);
   });
+
+  testWidgets('history button lists earlier calculations', (tester) async {
+    await tester.pumpWidget(WCalcApp());
+    expect(find.byKey(const Key('history-button')), findsNothing);
+    for (final k in [
+      'd1',
+      'add',
+      'd2',
+      'equals',
+      'd5',
+      'multiply',
+      'd5',
+      'equals',
+    ]) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byKey(const Key('history-button')));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('1+2'), findsOneWidget);
+    expect(find.text('25'), findsOneWidget);
+  });
 }
