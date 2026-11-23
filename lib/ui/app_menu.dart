@@ -6,7 +6,6 @@ import 'pages/about_page.dart';
 import 'pages/manual_page.dart';
 import 'pages/model_page.dart';
 import 'pages/settings_page.dart';
-import 'pages/shortcuts_page.dart';
 import 'pages/theme_page.dart';
 
 /// One entry of the W-Calc menu. Entries that are not [ready] are shown but
@@ -48,12 +47,6 @@ final menuEntries = [
     'Manual',
     'Searchable how-to for every mode of your model',
     page: (_) => const ManualPage(),
-  ),
-  MenuEntry(
-    Icons.keyboard_outlined,
-    'Keyboard shortcuts',
-    'Use a physical keyboard on the web',
-    page: (_) => const ShortcutsPage(),
   ),
   MenuEntry(
     Icons.info_outline,

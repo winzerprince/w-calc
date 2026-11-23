@@ -10,6 +10,7 @@ class AppSettings extends ChangeNotifier {
     this.keySound = false,
     this.skinId = 'classic',
     this.modelId = 'plus',
+    this.finishId = 'glossy',
   });
 
   static const _key = 'wcalc.app.v1';
@@ -26,6 +27,9 @@ class AppSettings extends ChangeNotifier {
   /// Selected calculator model id (see CalcModel).
   String modelId;
 
+  /// Surface finish of body and keys (see CalcFinish).
+  String finishId;
+
   Future<void> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -39,6 +43,8 @@ class AppSettings extends ChangeNotifier {
       if (skin is String) skinId = skin;
       final model = m['model'];
       if (model is String) modelId = model;
+      final finish = m['finish'];
+      if (finish is String) finishId = finish;
       notifyListeners();
     } on Object {
       // Unreadable preferences: keep defaults.
@@ -50,11 +56,13 @@ class AppSettings extends ChangeNotifier {
     bool? keySound,
     String? skinId,
     String? modelId,
+    String? finishId,
   }) {
     this.vibration = vibration ?? this.vibration;
     this.keySound = keySound ?? this.keySound;
     this.skinId = skinId ?? this.skinId;
     this.modelId = modelId ?? this.modelId;
+    this.finishId = finishId ?? this.finishId;
     notifyListeners();
     _save();
   }
@@ -75,6 +83,8 @@ class AppSettings extends ChangeNotifier {
           'vibration': vibration,
           'keySound': keySound,
           'skin': skinId,
+          'model': modelId,
+          'finish': finishId,
         }),
       );
     } on Object {

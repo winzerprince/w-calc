@@ -305,6 +305,7 @@ class NaturalCalculator implements CalcEngine {
   }
 
   void _clearInput() {
+    _pendingStatements = null;
     _equation = null;
     _polarOverride = null;
     _ed.clear();
@@ -404,6 +405,11 @@ class NaturalCalculator implements CalcEngine {
         _tok(Tok.square);
       case CalcKey.reciprocal:
         _tok(Tok.reciprocal);
+      case CalcKey.degMinSec when _resultShown && _result != null:
+        // °′″ on a result switches decimal ↔ degrees-minutes-seconds.
+        final r = _result!;
+        _result = r.isSexagesimal ? Value.dec(r.dec) : Value.sexagesimal(r.dec);
+        _decimalFirst = r.isSexagesimal; // the decimal, not a fraction
       case CalcKey.degMinSec:
         _tok(Tok.dms);
       case CalcKey.sin:
@@ -718,7 +724,17 @@ class NaturalCalculator implements CalcEngine {
 
   // ------------------------------------------------------------- results
 
+  /// Remaining statements of a multi-statement after a Disp stop.
+  List<List<Tok>>? _pendingStatements;
+
   void _execute({bool decimal = false}) {
+    final pending = _pendingStatements;
+    if (_resultShown && pending != null && pending.isNotEmpty) {
+      _runStatement(pending.removeAt(0), decimal: decimal);
+      if (pending.isEmpty) _pendingStatements = null;
+      return;
+    }
+    _pendingStatements = null;
     if (_resultShown) {
       // = again repeats the calculation (with the new Ans).
       _resultShown = false;
@@ -731,6 +747,20 @@ class NaturalCalculator implements CalcEngine {
     if (tokens.isNotEmpty && tokens.last.kind == TokKind.formatCommand) {
       _polarOverride = tokens.last == Tok.toPolar;
       tokens = tokens.sublist(0, tokens.length - 1);
+    }
+    // A:B: each = shows the next statement (Disp shown until the last).
+    final parts = <List<Tok>>[];
+    var from = 0;
+    for (var i = 0; i <= tokens.length; i++) {
+      if (i == tokens.length || tokens[i] == Tok.colon) {
+        parts.add(tokens.sublist(from, i));
+        from = i + 1;
+      }
+    }
+    if (parts.length > 1 && _equation == null) {
+      _pendingStatements = parts.sublist(1);
+      _runStatement(parts.first, decimal: decimal, offset: 0);
+      return;
     }
     try {
       final v = _evalStatements(tokens, ctx);
@@ -749,6 +779,18 @@ class NaturalCalculator implements CalcEngine {
         e.position ?? form.tokens.length,
         _ed.cursor,
       );
+    }
+  }
+
+  void _runStatement(List<Tok> tokens, {bool decimal = false, int offset = 0}) {
+    try {
+      final v = evaluateValue(tokens, _context());
+      _setResult(v, record: _pendingStatements == null);
+      _decimalFirst = decimal;
+    } on CalcError catch (e) {
+      _pendingStatements = null;
+      _error = _errorText(e.kind);
+      _errorCursor = _ed.cursor;
     }
   }
 
@@ -2452,6 +2494,8 @@ class NaturalCalculator implements CalcEngine {
       if (_mathIO) Indicator.math,
       if (mode == NaturalMode.cmplx) Indicator.cmplx,
       if (mode == NaturalMode.stat) Indicator.stat,
+      if (_resultShown && (_pendingStatements?.isNotEmpty ?? false))
+        Indicator.disp,
       if (mode == NaturalMode.matrix) Indicator.mat,
       if (mode == NaturalMode.vector) Indicator.vct,
     };

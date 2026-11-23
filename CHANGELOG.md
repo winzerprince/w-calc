@@ -2,6 +2,36 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [0.5.0-beta] - 2026-11-23
+
+Finishes and body shapes, model previews, focus mode, a fuller manual, and a proprietary licence.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
+### Fixed
+- The chosen calculator model was not remembered after restarting the app.
+
+### Removed
+- Keyboard shortcuts page (physical keyboards still work).
+
+### Added
+- Manual: Advanced functions chapter (hyperbolic, Pol/Rec, ENG, DRG▸, °′″, multi-statements,
+  Abs/Rnd, replay and history).
+- Textbook models: multi-statements stop at each result (Disp); °′″ on a result switches to the
+  decimal.
+- Finishes (Menu ▸ Theme ▸ Finish): glossy plastic, soft-touch matte, rubber keys or metallic,
+  for keys, cursor pad and body; the body is now a shaded shell with a rim and curved lower edge.
+- Model picker shows a miniature of each calculator (its real keypad and colours); tap it for a
+  large preview with a "Use this model" button.
+- Focus mode: tap the solar panel to show the calculator full screen (system bars hidden, or
+  browser full screen); tap again to return.
+
+### Changed
+- About page shortened to version, purpose, notice and legal information.
+- Licence: W-Calc is now proprietary (all rights reserved). Versions up to v0.4.0-beta remain
+  GPL-3.0-or-later for anyone who received them.
+
 ## [0.4.0-beta] - 2026-11-23
 
 All eight modes on the textbook-display models, and working key vibration on Android.

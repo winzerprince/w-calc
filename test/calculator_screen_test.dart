@@ -182,4 +182,24 @@ void main() {
       expect(lcdText(tester, 'upper'), '8');
     });
   }
+
+  testWidgets('solar panel toggles focus (full-screen) mode', (tester) async {
+    final calls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
+          calls.add('${call.arguments}');
+        }
+        return null;
+      },
+    );
+    await tester.pumpWidget(WCalcApp());
+    await tester.tap(find.byKey(const Key('solar-panel')));
+    await tester.pump();
+    expect(calls.last, contains('immersiveSticky'));
+    await tester.tap(find.byKey(const Key('solar-panel')));
+    await tester.pump();
+    expect(calls.last, contains('edgeToEdge'));
+  });
 }

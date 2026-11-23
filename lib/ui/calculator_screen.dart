@@ -5,6 +5,8 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 import '../app/app_settings.dart';
 import '../app/calc_model.dart';
 import 'app_menu.dart';
+import 'finish.dart';
+import 'fullscreen.dart';
 import 'haptics.dart';
 import 'keyboard_shortcuts.dart';
 import 'keypad.dart';
@@ -142,6 +144,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     );
   }
 
+  /// Focus mode: system bars hidden, calculator edge to edge.
+  bool _focusMode = false;
+
+  void _toggleFocus() {
+    keyVibration();
+    setState(() => _focusMode = !_focusMode);
+    setFullscreen(_focusMode);
+  }
+
   /// Settings ▸ Reset calculator.
   void _reset() {
     setState(_calc.resetAll);
@@ -174,6 +185,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   void dispose() {
+    if (_focusMode) setFullscreen(false);
     _focus.dispose();
     super.dispose();
   }
@@ -188,6 +200,8 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         autofocus: true,
         onKeyEvent: _onKey,
         child: SafeArea(
+          top: !_focusMode,
+          bottom: !_focusMode,
           child: LayoutBuilder(
             builder: (context, box) {
               // Landscape: LCD beside the keypad instead of a squashed keypad.
@@ -210,51 +224,46 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                       : _portraitBody(box),
                   child: Container(
                     key: const Key('calc-body'),
-                    margin: const EdgeInsets.all(8),
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [skin.bodyTop, skin.body],
-                      ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black54,
-                          blurRadius: 18,
-                          offset: Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: landscape
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                flex: 4,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    _Header(onReset: _reset),
-                                    const SizedBox(height: 8),
-                                    lcd,
-                                  ],
+                    margin: EdgeInsets.all(_focusMode ? 0 : 8),
+                    child: CalcShell(
+                      flat: _focusMode,
+                      child: landscape
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  flex: 4,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _Header(
+                                        onReset: _reset,
+                                        focus: _focusMode,
+                                        onFocus: _toggleFocus,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      lcd,
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(flex: 5, child: keypad),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              _Header(onReset: _reset),
-                              const SizedBox(height: 8),
-                              lcd,
-                              const SizedBox(height: 12),
-                              Expanded(child: keypad),
-                            ],
-                          ),
+                                const SizedBox(width: 16),
+                                Expanded(flex: 5, child: keypad),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                _Header(
+                                  onReset: _reset,
+                                  focus: _focusMode,
+                                  onFocus: _toggleFocus,
+                                ),
+                                const SizedBox(height: 8),
+                                lcd,
+                                const SizedBox(height: 12),
+                                Expanded(child: keypad),
+                              ],
+                            ),
+                    ),
                   ),
                 ),
               );
@@ -267,9 +276,15 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onReset});
+  const _Header({
+    required this.onReset,
+    required this.focus,
+    required this.onFocus,
+  });
 
   final VoidCallback onReset;
+  final bool focus;
+  final VoidCallback onFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -300,32 +315,53 @@ class _Header extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        // Decorative solar strip.
-        Container(
-          width: 92,
-          height: 22,
-          decoration: BoxDecoration(
-            color: CalcSkin.of(context).solarStrip,
-            borderRadius: BorderRadius.circular(3),
-            border: Border.all(color: Colors.black54),
-          ),
-          child: Row(
-            children: [
-              for (var i = 0; i < 4; i++)
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.all(1.5),
-                    color: Color.lerp(
-                      CalcSkin.of(context).solarStrip,
-                      Colors.white,
-                      0.08,
-                    ),
-                  ),
-                ),
-            ],
+        // The solar panel toggles focus (full-screen) mode.
+        Tooltip(
+          message: focus ? 'Exit full screen' : 'Full screen',
+          child: Semantics(
+            button: true,
+            toggled: focus,
+            label: 'Full screen',
+            excludeSemantics: true,
+            child: GestureDetector(
+              key: const Key('solar-panel'),
+              behavior: HitTestBehavior.opaque,
+              onTap: onFocus,
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: _solar(context),
+              ),
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _solar(BuildContext context) {
+    return Container(
+      width: 92,
+      height: 22,
+      decoration: BoxDecoration(
+        color: CalcSkin.of(context).solarStrip,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: Colors.black54),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < 4; i++)
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(1.5),
+                color: Color.lerp(
+                  CalcSkin.of(context).solarStrip,
+                  Colors.white,
+                  0.08,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
