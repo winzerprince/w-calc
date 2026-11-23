@@ -9,6 +9,7 @@ import '../format/number_format.dart';
 import '../format/value_format.dart';
 import '../input/token.dart';
 import '../lcd/dot_bitmap.dart';
+import '../eval/solve.dart';
 import '../number/dec.dart';
 import '../number/frac.dart';
 import '../number/surd.dart';
@@ -31,6 +32,30 @@ final class _Menu {
   /// Pages reached with ▼ / ▲ (setup menu).
   final _Menu Function()? next;
   final _Menu Function()? prev;
+}
+
+/// CALC / SOLVE prompts for the variables of a stored expression.
+final class _Equation {
+  _Equation({
+    required this.solve,
+    required this.input,
+    required this.tokens,
+    required this.variables,
+  });
+
+  final bool solve;
+  final MathRow input;
+  final List<Tok> tokens;
+
+  /// Variable names prompted, in order (SOLVE: X last, as the start value).
+  final List<String> variables;
+  int index = 0;
+  bool prompting = true;
+  String typed = '';
+
+  /// SOLVE result: X and left − right.
+  Value? solution;
+  Dec? residual;
 }
 
 /// One entry of the calculation history (▲ ▼ after a result).
@@ -114,6 +139,11 @@ class NaturalCalculator implements CalcEngine {
   String _numberDigits = '';
   void Function(int)? _numberDone;
 
+  _Equation? _equation;
+
+  /// ▶r∠θ / ▶a+bi at the end of the last calculation (null: setup).
+  bool? _polarOverride;
+
   final List<_History> _history = [];
   int? _historyIndex;
   static const historyBytes = 200;
@@ -162,6 +192,15 @@ class NaturalCalculator implements CalcEngine {
     }
     final shift = _shift, alpha = _alpha;
     _shift = _alpha = false;
+    if (_equation != null && _onEquationKey(key, shift: shift)) return;
+    if (!shift && !alpha && key == CalcKey.calc) {
+      _startEquation(solve: false);
+      return;
+    }
+    if (shift && key == CalcKey.calc) {
+      _startEquation(solve: true);
+      return;
+    }
     if (_sto || _rcl) {
       _onMemoryKey(key);
       return;
@@ -187,6 +226,8 @@ class NaturalCalculator implements CalcEngine {
   }
 
   void _clearInput() {
+    _equation = null;
+    _polarOverride = null;
     _ed.clear();
     _result = null;
     _resultShown = false;
@@ -319,6 +360,8 @@ class NaturalCalculator implements CalcEngine {
         _rcl = true;
       case CalcKey.mPlus:
         _memoryAdd(subtract: false);
+      case CalcKey.eng when mode == NaturalMode.cmplx:
+        _tok(Tok.imagUnit);
       case CalcKey.eng:
         _engStep(left: false);
       case CalcKey.sd:
@@ -412,6 +455,10 @@ class NaturalCalculator implements CalcEngine {
         });
       case CalcKey.d9:
         _menu = _clrMenu();
+      case CalcKey.d2 when mode == NaturalMode.cmplx:
+        _menu = _cmplxMenu();
+      case CalcKey.negative when mode == NaturalMode.cmplx:
+        _tok(Tok.angle);
       case CalcKey.ans:
         _menu = _drgMenu();
       case CalcKey.rcl:
@@ -463,6 +510,8 @@ class NaturalCalculator implements CalcEngine {
     switch (key) {
       case CalcKey.exp:
         _tok(Tok.e);
+      case CalcKey.eng when mode == NaturalMode.cmplx:
+        _tok(Tok.imagUnit);
       case CalcKey.integrate:
         _tok(Tok.colon);
       case CalcKey.calc:
@@ -588,19 +637,15 @@ class NaturalCalculator implements CalcEngine {
     }
     if (_ed.isEmpty) return;
     final form = _ed.linearize();
-    final ctx = EvalContext(
-      ans: _ans,
-      angle: angle,
-      format: format,
-      variables: _vars,
-      improperFractions: improper,
-      random: _random,
-      polRecVars: const ('X', 'Y'),
-      exactForms: true,
-      store: (n, v) => _vars[n] = v,
-    );
+    final ctx = _context();
+    var tokens = form.tokens;
+    _polarOverride = null;
+    if (tokens.isNotEmpty && tokens.last.kind == TokKind.formatCommand) {
+      _polarOverride = tokens.last == Tok.toPolar;
+      tokens = tokens.sublist(0, tokens.length - 1);
+    }
     try {
-      final v = evaluateValue(form.tokens, ctx);
+      final v = _evalStatements(tokens, ctx);
       _setResult(v);
       _decimalFirst = decimal;
     } on CalcError catch (e) {
@@ -611,6 +656,266 @@ class NaturalCalculator implements CalcEngine {
       );
     }
   }
+
+  /// Multi-statements (A:B): evaluated in order, the last one shown.
+  Value _evalStatements(List<Tok> tokens, EvalContext ctx) {
+    Value? last;
+    var start = 0;
+    for (var i = 0; i <= tokens.length; i++) {
+      if (i == tokens.length || tokens[i] == Tok.colon) {
+        try {
+          last = evaluateValue(
+            tokens.sublist(start, i),
+            _ctxWithAns(ctx, last),
+          );
+        } on CalcError catch (e) {
+          throw CalcError(e.kind, start + (e.position ?? 0));
+        }
+        start = i + 1;
+      }
+    }
+    return last!;
+  }
+
+  EvalContext _ctxWithAns(EvalContext c, Value? ans) => ans == null
+      ? c
+      : EvalContext(
+          ans: ans,
+          angle: c.angle,
+          format: c.format,
+          variables: c.variables,
+          improperFractions: c.improperFractions,
+          random: c.random,
+          polRecVars: c.polRecVars,
+          exactForms: c.exactForms,
+          functionParens: c.functionParens,
+          store: c.store,
+        );
+
+  EvalContext _context() => EvalContext(
+    ans: _ans,
+    angle: angle,
+    format: format,
+    variables: _vars,
+    improperFractions: improper,
+    random: _random,
+    polRecVars: const ('X', 'Y'),
+    exactForms: true,
+    functionParens: true,
+    store: (n, v) => _vars[n] = v,
+  );
+
+  // ------------------------------------------------------------- CALC / SOLVE
+
+  void _startEquation({required bool solve}) {
+    if (mode != NaturalMode.comp && mode != NaturalMode.cmplx) return;
+    if (solve && mode != NaturalMode.comp) return;
+    if (_ed.isEmpty) return;
+    final tokens = _ed.linearize().tokens;
+    final names = <String>[];
+    var skipFirst = false;
+    if (!solve &&
+        tokens.length > 1 &&
+        tokens[0].kind == TokKind.variable &&
+        tokens[1] == Tok.eqSign) {
+      skipFirst = true; // Y = … assigns to Y.
+    }
+    for (var i = skipFirst ? 2 : 0; i < tokens.length; i++) {
+      final t = tokens[i];
+      if (t.kind == TokKind.variable && !names.contains(t.text)) {
+        names.add(t.text);
+      }
+    }
+    if (solve) {
+      if (!names.contains('X')) {
+        _error = 'Variable ERROR';
+        _errorCursor = _ed.cursor;
+        return;
+      }
+      names
+        ..remove('X')
+        ..add('X');
+    }
+    _resultShown = false;
+    _equation = _Equation(
+      solve: solve,
+      input: _ed.root.copy(),
+      tokens: tokens,
+      variables: names,
+    );
+    if (names.isEmpty) _calcResult(_equation!);
+  }
+
+  /// Keys while CALC / SOLVE is active. False ends the session and lets the
+  /// key work normally.
+  bool _onEquationKey(CalcKey key, {required bool shift}) {
+    final eq = _equation!;
+    if (key == CalcKey.ac) {
+      _equation = null;
+      _resultShown = false;
+      return true;
+    }
+    if (!eq.prompting) {
+      final again =
+          (!eq.solve && !shift && key == CalcKey.calc) ||
+          (!eq.solve && key == CalcKey.equals) ||
+          (eq.solve &&
+              (key == CalcKey.equals || (shift && key == CalcKey.calc)));
+      if (again) {
+        eq
+          ..prompting = true
+          ..index = 0
+          ..typed = '';
+        _resultShown = false;
+        return true;
+      }
+      _equation = null;
+      return false;
+    }
+    final d = key.digit;
+    if (!shift && d != null) {
+      eq.typed += '$d';
+      return true;
+    }
+    switch (key) {
+      case CalcKey.dot when !shift:
+        eq.typed += '.';
+      case CalcKey.negative when !shift:
+        eq.typed += '-';
+      case CalcKey.exp when !shift:
+        eq.typed += 'E';
+      case CalcKey.del:
+        if (eq.typed.isNotEmpty) {
+          eq.typed = eq.typed.substring(0, eq.typed.length - 1);
+        }
+      case CalcKey.up when eq.index > 0:
+        eq.typed = '';
+        eq.index--;
+      case CalcKey.down when eq.index < eq.variables.length - 1:
+        eq.typed = '';
+        eq.index++;
+      case CalcKey.equals:
+        if (!_commitTyped(eq)) return true;
+        if (eq.index < eq.variables.length - 1) {
+          eq.index++;
+        } else if (eq.solve) {
+          _solve(eq);
+        } else {
+          _calcResult(eq);
+        }
+      default:
+        break;
+    }
+    return true;
+  }
+
+  bool _commitTyped(_Equation eq) {
+    if (eq.typed.isEmpty) return true;
+    final toks = <Tok>[
+      for (final c in eq.typed.split(''))
+        switch (c) {
+          '.' => Tok.point,
+          '-' => Tok.negative,
+          'E' => Tok.exp,
+          _ => Tok.digits[int.parse(c)],
+        },
+    ];
+    try {
+      _vars[eq.variables[eq.index]] = evaluateValue(toks, _context());
+      eq.typed = '';
+      return true;
+    } on CalcError catch (e) {
+      _equation = null;
+      _error = _errorText(e.kind);
+      _errorCursor = _ed.cursor;
+      return false;
+    }
+  }
+
+  void _calcResult(_Equation eq) {
+    var tokens = eq.tokens;
+    String? target;
+    if (tokens.length > 1 &&
+        tokens[0].kind == TokKind.variable &&
+        tokens[1] == Tok.eqSign) {
+      target = tokens[0].text;
+      tokens = tokens.sublist(2);
+    }
+    try {
+      final v = _evalStatements(tokens, _context());
+      if (target != null) _vars[target] = v;
+      _ed.load(eq.input);
+      _setResult(v);
+      eq.prompting = false;
+    } on CalcError catch (e) {
+      _equation = null;
+      _ed.load(eq.input);
+      _error = _errorText(e.kind);
+      _errorCursor = _ed.cursor;
+    }
+  }
+
+  void _solve(_Equation eq) {
+    final tokens = eq.tokens;
+    final bad = tokens.any(
+      (t) =>
+          t == Tok.integral ||
+          t == Tok.derivative ||
+          t == Tok.sigma ||
+          t == Tok.pol ||
+          t == Tok.rec ||
+          t == Tok.colon,
+    );
+    final at = tokens.indexOf(Tok.eqSign);
+    if (bad || tokens.lastIndexOf(Tok.eqSign) != at) {
+      _equation = null;
+      _error = 'Syntax ERROR';
+      _errorCursor = _ed.cursor;
+      return;
+    }
+    final left = at < 0 ? tokens : tokens.sublist(0, at);
+    final right = at < 0 ? const <Tok>[] : tokens.sublist(at + 1);
+    Dec diff(Dec x) {
+      final saved = _vars['X']!;
+      _vars['X'] = Value.dec(x);
+      try {
+        final l = evaluateValue(left, _context()).dec;
+        final r = right.isEmpty
+            ? Dec.zero
+            : evaluateValue(right, _context()).dec;
+        return l - r;
+      } finally {
+        _vars['X'] = saved;
+      }
+    }
+
+    try {
+      final x = newtonSolve(diff, _vars['X']!.dec);
+      final v = Value.dec(x);
+      _vars['X'] = v;
+      eq
+        ..solution = v
+        ..residual = diff(x)
+        ..prompting = false;
+      _ed.load(eq.input);
+      _setResult(v);
+    } on CalcError {
+      _equation = null;
+      _ed.load(eq.input);
+      _error = "Can't Solve";
+      _errorCursor = _ed.cursor;
+    }
+  }
+
+  _Menu _cmplxMenu() => _Menu(
+    const ['1:arg    2:Conjg', '3:▶r∠θ   4:▶a+bi'],
+    {
+      1: () => _fn(Tok.cArg),
+      2: () => _fn(Tok.conjg),
+      3: () => _tok(Tok.toPolar),
+      4: () => _tok(Tok.toRect),
+    },
+  );
 
   void _setResult(Value v, {bool record = true}) {
     _result = v;
@@ -747,6 +1052,7 @@ class NaturalCalculator implements CalcEngine {
 
   void _setMode(NaturalMode m) {
     mode = m;
+    _equation = null;
     _history.clear();
     _clearInput();
   }
@@ -954,6 +1260,7 @@ class NaturalCalculator implements CalcEngine {
       if (format.mode == DisplayMode.fix) Indicator.fix,
       if (format.mode == DisplayMode.sci) Indicator.sci,
       if (mathInput) Indicator.math,
+      if (mode == NaturalMode.cmplx) Indicator.cmplx,
     };
     CursorRect? cursor;
     final text = StringBuffer();
@@ -967,6 +1274,27 @@ class NaturalCalculator implements CalcEngine {
       bmp.text(0, 0, _numberPrompt!);
       bmp.text(0, 24, _numberDigits);
       text.write('$_numberPrompt $_numberDigits');
+    } else if (_equation case final eq? when eq.prompting) {
+      final name = eq.variables[eq.index];
+      final isStart = eq.solve && name == 'X';
+      if (isStart) bmp.text(0, 0, 'Solve for X');
+      bmp.text(0, isStart ? 12 : 0, '$name?');
+      final shown = eq.typed.isNotEmpty
+          ? eq.typed
+          : _plainDecimal(_vars[name]!);
+      final w = textWidth(shown);
+      bmp.text(DotScreen.width - w - 1, 24, shown);
+      text.write('${isStart ? 'Solve for X | ' : ''}$name? $shown');
+    } else if (_equation case final eq?
+        when eq.solve && eq.solution != null && _resultShown) {
+      MathLayout(eq.input).paint(bmp, 1, 0);
+      final x = _plainDecimal(eq.solution!);
+      final lr = _plainDecimal(Value.dec(eq.residual!));
+      bmp.text(0, 14, 'X=');
+      bmp.text(DotScreen.width - textWidth(x) - 1, 14, x);
+      bmp.text(0, 24, 'L-R=');
+      bmp.text(DotScreen.width - textWidth(lr) - 1, 24, lr);
+      text.write('${eq.input} | X= $x | L-R= $lr');
     } else if (_menu != null) {
       final m = _menu!;
       for (var i = 0; i < m.lines.length && i < 4; i++) {
@@ -1032,9 +1360,11 @@ class NaturalCalculator implements CalcEngine {
       decimalComma: decimalComma,
       leadingZeroCounts: false,
     );
-    final form = _shownForm();
+    final form = r.isComplex ? null : _shownForm();
     MathRow row;
-    if (form is FractionForm) {
+    if (r.isComplex) {
+      row = _complexRow(r);
+    } else if (form is FractionForm) {
       final improperView = improper != _flipMixed;
       row = _fractionRow(
         form.value,
@@ -1066,6 +1396,19 @@ class NaturalCalculator implements CalcEngine {
       }
     }
     layout.paint(bmp, DotScreen.width - layout.width - 1, top);
+  }
+
+  /// Decimal text in the current format (prompts, SOLVE screen).
+  String _plainDecimal(Value v) {
+    final f = formatValue(
+      v,
+      DisplaySettings(format: format, leadingZeroCounts: false),
+      view: ResultView.decimal,
+    );
+    var m = f.mantissa;
+    if (m.endsWith('.')) m = m.substring(0, m.length - 1);
+    if (decimalComma) m = m.replaceAll('.', ',');
+    return f.exponent == null ? m : '$m×10^${int.parse(f.exponent!)}';
   }
 
   MathRow _fractionRow(Frac f, bool improperView, {required bool linear}) {
@@ -1144,6 +1487,57 @@ class NaturalCalculator implements CalcEngine {
           MathRow(_digitItems('$d')),
         ]),
       );
+    }
+    return MathRow(items);
+  }
+
+  /// a+bi or r∠θ, each part in its exact form when one fits.
+  MathRow _complexRow(Value v) {
+    final polar = _polarOverride ?? polarComplex;
+    final exact = mathInput && mathOutput && !_alternate && !_decimalFirst;
+    MathRow part(Dec x) {
+      if (exact) {
+        final f = exactFormOf(Value.dec(x));
+        switch (f) {
+          case FractionForm(:final value):
+            return _fractionRow(value, true, linear: false);
+          case SurdForm(:final value):
+            return _surdRow(value);
+          case PiForm(:final coefficient):
+            return _piRow(coefficient);
+          case null:
+            break;
+        }
+      }
+      return _decimalRow(
+        formatValue(
+          Value.dec(x),
+          DisplaySettings(format: format, leadingZeroCounts: false),
+          view: ResultView.decimal,
+        ),
+      );
+    }
+
+    if (polar) {
+      final r = v.magnitude();
+      final theta = v.argument(angle);
+      return MathRow([
+        ...part(r).items,
+        TokItem(Tok.angle),
+        ...part(theta).items,
+      ]);
+    }
+    final re = v.dec, im = v.imag;
+    final items = <MathItem>[if (!re.isZero) ...part(re).items];
+    if (!im.isZero) {
+      final mag = im.abs();
+      if (im.isNegative) {
+        items.add(TokItem(re.isZero ? Tok.negative : Tok.subtract));
+      } else if (!re.isZero) {
+        items.add(TokItem(Tok.add));
+      }
+      if (mag != Dec.one) items.addAll(part(mag).items);
+      items.add(TokItem(Tok.imagUnit));
     }
     return MathRow(items);
   }

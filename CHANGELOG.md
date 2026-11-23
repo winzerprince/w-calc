@@ -18,6 +18,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 - Textbook models keep results exact: fractions, √ forms ((√2+2)×√3 = 2√3+√6, 1÷√2 = √2/2)
   and π forms (π÷6 = π/6); function results such as sin 45° are recognised. S⇔D and SHIFT =
   switch to decimals.
+- Textbook models: CMPLX mode (i, ∠, arg, Conjg, ▶r∠θ, ▶a+bi, exact parts), CALC with prompts
+  and Y = … assignment, SOLVE for X with the L−R check, multi-statements.
 
 ## [0.2.0-beta] - 2026-11-23
 

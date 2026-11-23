@@ -69,6 +69,7 @@ class EvalContext {
     this.linear = const {},
     this.polRecVars = const ('E', 'F'),
     this.exactForms = false,
+    this.functionParens = false,
     math.Random? random,
   }) : ans = ans ?? Value.zero,
        random = random ?? math.Random();
@@ -97,6 +98,10 @@ class EvalContext {
   /// Textbook-display models: decimals, √ and π stay exact where possible
   /// (results can then be shown as fractions, √ forms and π forms).
   final bool exactForms;
+
+  /// Textbook models: a function's bracket group (sin(…), √(…)) is applied
+  /// as soon as it closes.
+  final bool functionParens;
 
   /// Variables Pol/Rec write their two results to (E, F on two-line models;
   /// X, Y on textbook-display models).
@@ -354,7 +359,15 @@ class _Evaluator {
             _apply(ops.removeLast());
           }
           if (ops.isEmpty) _syntax(i);
-          _closeParen(ops.removeLast(), i);
+          final closed = ops.removeLast();
+          _closeParen(closed, i);
+          // Textbook models: f( … ) is one unit, so sin(30)A = sin(30)·A.
+          if (ctx.functionParens &&
+              ops.isNotEmpty &&
+              ops.last.type == _OpType.prefix &&
+              ops.last.pos == closed.pos - 1) {
+            _apply(ops.removeLast());
+          }
           expectOperand = false;
       }
       i++;
@@ -424,6 +437,9 @@ class _Evaluator {
             variables: {...ctx.variables, 'X': Value.dec(x.toDec())},
             improperFractions: ctx.improperFractions,
             random: ctx.random,
+            polRecVars: ctx.polRecVars,
+            exactForms: ctx.exactForms,
+            functionParens: ctx.functionParens,
           ),
         ).run().dec,
       ),
@@ -480,6 +496,9 @@ class _Evaluator {
           variables: {...ctx.variables, 'X': Value.dec(x)},
           improperFractions: ctx.improperFractions,
           random: ctx.random,
+          polRecVars: ctx.polRecVars,
+          exactForms: ctx.exactForms,
+          functionParens: ctx.functionParens,
         ),
       ).run();
       total = total + term;
