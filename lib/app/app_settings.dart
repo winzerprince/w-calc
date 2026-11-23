@@ -11,7 +11,11 @@ class AppSettings extends ChangeNotifier {
     this.skinId = 'classic',
     this.modelId = 'plus',
     this.finishId = 'classic',
+    this.saveHistory = true,
   });
+
+  /// Keep calculation history on the device between sessions.
+  bool saveHistory;
 
   static const _key = 'wcalc.app.v1';
 
@@ -67,6 +71,7 @@ class AppSettings extends ChangeNotifier {
       if (model is String) modelId = model;
       final finish = m['finish'];
       if (finish is String) finishId = finish;
+      saveHistory = m['saveHistory'] != false;
       final tours = m['tours'];
       if (tours is List) seenTours.addAll(tours.whereType<String>());
       loaded = true;
@@ -83,12 +88,14 @@ class AppSettings extends ChangeNotifier {
     String? skinId,
     String? modelId,
     String? finishId,
+    bool? saveHistory,
   }) {
     this.vibration = vibration ?? this.vibration;
     this.keySound = keySound ?? this.keySound;
     this.skinId = skinId ?? this.skinId;
     this.modelId = modelId ?? this.modelId;
     this.finishId = finishId ?? this.finishId;
+    this.saveHistory = saveHistory ?? this.saveHistory;
     notifyListeners();
     _save();
   }
@@ -112,6 +119,7 @@ class AppSettings extends ChangeNotifier {
           'model': modelId,
           'finish': finishId,
           'tours': seenTours.toList(),
+          'saveHistory': saveHistory,
         }),
       );
     } on Object {

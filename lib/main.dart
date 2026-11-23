@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'app/app_settings.dart';
 import 'app/calc_model.dart';
+import 'app/history_store.dart';
 import 'ui/calculator_screen.dart';
 import 'ui/finish.dart';
 import 'ui/skin.dart';
@@ -13,6 +14,7 @@ void main() {
   final settings = AppSettings();
   runApp(WCalcApp(settings: settings));
   settings.load().then((_) {
+    HistoryStore.instance.load(persist: settings.saveHistory);
     // Web: ?skin=midnight&model=grid previews a theme / model without saving.
     final q = Uri.base.queryParameters;
     if (q['skin'] != null || q['model'] != null) {
