@@ -2,7 +2,12 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
-## [Unreleased]
+## [0.7.0-beta] - 2026-11-23
+
+Graphs, more key styles, constant and conversion lists, glass displays.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
 
 ### Added
 - LCD glass: a soft shadow under the display window's top edge and a faint reflection.
