@@ -790,6 +790,31 @@ const manualChapters = <ManualChapter>[
         ],
       ),
       ManualArticle(
+        id: 'table-tb',
+        title: 'Number tables (TABLE)',
+        summary: 'Values of f(X) for X from Start to End.',
+        audience: _tb,
+        keywords: ['table', 'function', 'values', 'graph', 'f(x)'],
+        blocks: [
+          Steps([
+            ManualStep('Enter TABLE mode.', 'MODE 7'),
+            ManualStep('Type f(X) using ALPHA ) for X, then press =.'),
+            ManualStep(
+              'Answer Start?, End? and Step? with = (defaults 1, 5, 1).',
+            ),
+            ManualStep(
+              '▲ ▼ scroll the table, ◀ ▶ choose the column, AC edits f(X).',
+            ),
+          ]),
+          Example(
+            title: 'X² + 1/2 for X = −1 … 1, step 0.5',
+            keys: 'MODE 7 ALPHA ) x2 + 1 frac 2 = (-) 1 = 1 = 0.5 =',
+            result: 'X: −1, −0.5, 0, 0.5, 1 → F(X): 1.5, 0.75, 0.5, 0.75, 1.5',
+          ),
+          Tip('At most 30 rows; more gives Insufficient MEM. X is changed.'),
+        ],
+      ),
+      ManualArticle(
         id: 'matrix',
         title: 'Matrices (MAT)',
         summary: 'Up to 3 × 3: add, multiply, determinant, inverse.',
@@ -817,7 +842,7 @@ const manualChapters = <ManualChapter>[
         blocks: [
           Para(
             'MODE lists COMP, CMPLX, STAT, BASE-N, EQN, MATRIX, TABLE and '
-            'VECTOR. COMP (with CALC and SOLVE), CMPLX, STAT and EQN work today; the '
+            'VECTOR. COMP (with CALC and SOLVE), CMPLX, STAT, EQN and TABLE work today; the '
             'other modes are being added and will appear here with their own '
             'instructions.',
           ),

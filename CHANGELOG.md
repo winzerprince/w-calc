@@ -9,6 +9,7 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
   (FREQ column, DEL row, Ins, Del-A), and the Sum / Var / Reg / Distr / MinMax menus.
 - Textbook models: EQN mode (2-3 unknowns, quadratic, cubic) with a Coefficient Editor that
   accepts fractions and √, exact quadratic roots (−1/2 ± √2/2 i, double root shown once).
+- Textbook models: TABLE mode (f(X), Start / End / Step, up to 30 rows, Insufficient MEM).
 
 ## [0.3.0-beta] - 2026-11-23
 
