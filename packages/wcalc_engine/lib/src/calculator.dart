@@ -2464,6 +2464,20 @@ class Calculator implements CalcEngine {
   String? get copyText => display.copyText;
 
   @override
+  List<({String input, String result})> get historyEntries => [
+    for (final e in _history)
+      (
+        input: e.tokens.map((t) => t.text.trim()).join(),
+        result: () {
+          final f = formatValue(e.value, _settings, view: ResultView.decimal);
+          var m = f.mantissa;
+          if (m.endsWith('.')) m = m.substring(0, m.length - 1);
+          return f.exponent == null ? m : '${m}E${f.exponent}';
+        }(),
+      ),
+  ];
+
+  @override
   GraphSpec? get graphSpec {
     if (_mode == CalcMode.reg && _stats.items.length >= 2) {
       double d(Dec x) => double.parse(x.toString());

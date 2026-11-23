@@ -3208,6 +3208,17 @@ class NaturalCalculator implements CalcEngine {
   AngleUnit get angleUnit => angle;
 
   @override
+  List<({String input, String result})> get historyEntries => [
+    for (final h in _history)
+      (
+        input: h.input.plainText(),
+        result: h.result.isLinear
+            ? (h.result.isMatrix ? 'matrix' : 'vector')
+            : _rowFor(h.result).plainText(),
+      ),
+  ];
+
+  @override
   GraphSpec? get graphSpec {
     if (mode == NaturalMode.comp) return functionSpec(graphTokens, angle);
     double d(Dec x) => double.parse(x.toString());

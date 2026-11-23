@@ -105,6 +105,47 @@ final class MathRow {
 
   MathRow copy() => MathRow([for (final i in items) i.copy()]);
 
+  /// One-line text (`(1+√(5))/2`, `x^(2)`), for history lists.
+  String plainText() {
+    String slot(MathRow r) =>
+        r.items.length == 1 ? r.plainText() : '(${r.plainText()})';
+    final b = StringBuffer();
+    for (final i in items) {
+      switch (i) {
+        case TokItem(:final tok, :final paren):
+          final t = switch (tok) {
+            Tok.fracSep => '/',
+            Tok.negative => '−',
+            Tok.subtract => '−',
+            _ => tok.text.trim(),
+          };
+          b.write(paren && tok.kind != TokKind.function ? '$t(' : t);
+        case TemplateItem(:final kind, :final slots):
+          b.write(switch (kind) {
+            MathTemplate.fraction => '${slot(slots[0])}/${slot(slots[1])}',
+            MathTemplate.mixed =>
+              '${slots[0].plainText()} ${slot(slots[1])}/${slot(slots[2])}',
+            MathTemplate.sqrt => '√${slot(slots[0])}',
+            MathTemplate.cbrt => '∛${slot(slots[0])}',
+            MathTemplate.root => '${slot(slots[0])}√${slot(slots[1])}',
+            MathTemplate.power => '^${slot(slots[0])}',
+            MathTemplate.tenPow => '10^${slot(slots[0])}',
+            MathTemplate.ePow => 'e^${slot(slots[0])}',
+            MathTemplate.abs => '|${slots[0].plainText()}|',
+            MathTemplate.logBase =>
+              'log_${slot(slots[0])}(${slots[1].plainText()})',
+            MathTemplate.integral =>
+              '∫(${slots[0].plainText()}, ${slots[1].plainText()}, ${slots[2].plainText()})',
+            MathTemplate.derivative =>
+              'd/dx(${slots[0].plainText()}, ${slots[1].plainText()})',
+            MathTemplate.sum =>
+              'Σ(${slots[0].plainText()}, ${slots[1].plainText()}, ${slots[2].plainText()})',
+          });
+      }
+    }
+    return b.toString();
+  }
+
   int get bytes => items.fold(
     0,
     (sum, i) =>

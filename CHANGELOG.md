@@ -5,6 +5,7 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Added
+- History button next to the logo: earlier calculations and answers; tap one to copy its answer.
 - *Textbook Basic* model: everyday textbook display with COMP, STAT and TABLE (no calculus,
   CALC/SOLVE, constants or conversions; those keys are faded); Indigo theme.
 

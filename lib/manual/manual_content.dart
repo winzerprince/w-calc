@@ -673,7 +673,8 @@ const manualChapters = <ManualChapter>[
             'Right after a result, ◀ or ▶ opens the calculation for editing; '
             'change it and press = again. ▲ and ▼ step through earlier '
             'calculations and their results. History clears when the mode '
-            'changes or the calculator is switched off.',
+            'changes or the calculator is switched off. The clock button next '
+            'to the W-Calc name lists them all; tap one to copy its answer.',
           ),
         ],
       ),
