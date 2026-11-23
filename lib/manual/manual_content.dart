@@ -528,7 +528,6 @@ const manualChapters = <ManualChapter>[
         id: 'calc',
         title: 'CALC: evaluate a formula for different values',
         summary: 'Store an expression, then enter values for its variables.',
-        audience: _two,
         keywords: ['calc', 'formula', 'substitute', 'variable'],
         blocks: [
           Para(
@@ -541,6 +540,18 @@ const manualChapters = <ManualChapter>[
             keys: 'X x2 + 1 CALC 3 =',
             result: '10',
             verify: '10',
+            only: _two,
+          ),
+          Example(
+            title: '3A + B for A = 5, B = 10',
+            keys: '3 ALPHA (-) + ALPHA °′″ CALC 5 = 10 =',
+            result: '25',
+            verify: '25',
+            only: _tb,
+          ),
+          Tip(
+            'Start with a variable and = (ALPHA CALC) to store the result: '
+            'Y = X² + X + 3 puts the answer in Y.',
           ),
         ],
       ),
@@ -548,7 +559,6 @@ const manualChapters = <ManualChapter>[
         id: 'solve',
         title: 'SOLVE: find where an equation holds',
         summary: 'Newton’s method from a starting guess.',
-        audience: _two,
         keywords: ['solve', 'root', 'equation', 'newton'],
         blocks: [
           Para(
@@ -586,6 +596,41 @@ const manualChapters = <ManualChapter>[
             keys: '( 2 + 6 i ) ÷ ( 2 i ) =',
             result: '3  (Re⇔Im shows −1, so 3 − i)',
             verify: '3',
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'complex-tb',
+        title: 'Complex numbers (CMPLX)',
+        summary: 'a + bi and r∠θ, with exact parts.',
+        audience: _tb,
+        keywords: ['complex', 'imaginary', 'i', 'polar', 'cmplx', 'conjugate'],
+        blocks: [
+          Steps([ManualStep('Enter CMPLX mode.', 'MODE 2')]),
+          Para(
+            'In CMPLX mode ENG types i and SHIFT (−) types ∠. SHIFT 2 opens '
+            'arg, Conjg, ▶r∠θ and ▶a+bi. Results show both parts at once.',
+          ),
+          Example(
+            title: '(2 + 6i) ÷ 2i',
+            setup: 'MODE 2',
+            keys: '( 2 + 6 ENG ) ÷ ( 2 ENG ) =',
+            result: '3 − i',
+            verify: '3-i',
+          ),
+          Example(
+            title: '(1 − i)⁻¹',
+            setup: 'MODE 2',
+            keys: '( 1 - ENG ) x-1 =',
+            result: '1/2 + 1/2 i',
+            verify: 'fraction{1|2}+fraction{1|2}i',
+          ),
+          Example(
+            title: '√2 + √2 i in polar form',
+            setup: 'MODE 2',
+            keys: '√ 2 > + √ 2 > ENG SHIFT 2 3 =',
+            result: '2∠45',
+            verify: '2∠45',
           ),
         ],
       ),
@@ -682,8 +727,9 @@ const manualChapters = <ManualChapter>[
         blocks: [
           Para(
             'MODE lists COMP, CMPLX, STAT, BASE-N, EQN, MATRIX, TABLE and '
-            'VECTOR. COMP works fully today; the other modes are being added '
-            'and will appear here with their own instructions.',
+            'VECTOR. COMP (with CALC and SOLVE) and CMPLX work today; the '
+            'other modes are being added and will appear here with their own '
+            'instructions.',
           ),
         ],
       ),

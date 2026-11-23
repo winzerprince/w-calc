@@ -88,3 +88,5 @@ how to verify on the device, result.
 | 76 | Pol / Rec | results go to X and Y (two-line models use E and F) | manual | to implement |
 | 77 | Constants | CODATA 2007 on the 1st edition guide; 2nd edition may use newer values | printed guide | verify on device |
 | 78 | Edition differences | 1st (silver) and 2nd (black) editions behave the same; body, key colours and cursor pad differ | official manual (2nd ed.) + photos | verify on device |
+| 79 | SOLVE L−R | we show the 15-digit residual (e.g. −1×10⁻¹⁴ for X²−2); the guide's example shows 0 | guide example | verify on device |
+| 80 | Function brackets | sin(30)A = sin(30)·A: a bracketed function or template is one unit on textbook models | guide priority table | — |

@@ -5,6 +5,7 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 
 /// Key names for the textbook keypad (on top of the shared ones).
 const _extra = <String, CalcKey>{
+  'sd': CalcKey.sd,
   'S<>D': CalcKey.sd,
   'frac': CalcKey.fraction,
   'logb': CalcKey.logBase,
@@ -217,6 +218,61 @@ void main() {
       press('SHIFT MODE 2');
       expect(result('√ 2 ) ='), '1.414213562');
       expect(result('S<>D'), '1.414213562');
+    });
+  });
+
+  group('CMPLX', () {
+    setUp(() => press('MODE 2'));
+    test('(2 + 6i) ÷ (2i) = 3 − i', () {
+      expect(result('( 2 + 6 ENG ) ÷ ( 2 ENG ) ='), '3-i');
+      expect(calc.screen.indicators, contains(Indicator.cmplx));
+    });
+    test('(1 − i)⁻¹ = 1/2 + 1/2 i', () {
+      expect(result('( 1 - ENG ) x-1 ='), 'fraction{1|2}+fraction{1|2}i');
+    });
+    test('(1 + i)² + (1 − i)² = 0', () {
+      expect(result('( 1 + ENG ) x2 + ( 1 - ENG ) x2 ='), '0');
+    });
+    test('√2 + √2 i = 2∠45 with ▶r∠θ', () {
+      expect(result('√ 2 > + √ 2 > ENG SHIFT 2 3 ='), '2∠45');
+    });
+    test('2∠45 ▶a+bi = √2 + √2 i', () {
+      expect(result('2 SHIFT (-) 45 SHIFT 2 4 ='), 'sqrt{2}+sqrt{2}i');
+    });
+    test('Conjg(2 + 3i) = 2 − 3i', () {
+      expect(result('SHIFT 2 2 2 + 3 ENG ) ='), '2-3i');
+    });
+  });
+
+  group('CALC', () {
+    test('3A + B for (A, B) = (5, 10) then (7, 20)', () {
+      press('3 ALPHA (-) + ALPHA °′″ CALC');
+      expect(calc.screen.text, startsWith('A?'));
+      press('5 = 10 =');
+      expect(result(''), '25');
+      press('CALC 7 = 20 =');
+      expect(result(''), '41');
+    });
+    test('Y = X² + X + 3 stores into Y', () {
+      press('ALPHA sd ALPHA CALC ALPHA ) x2 + ALPHA ) + 3 CALC 2 =');
+      expect(calc.variables['Y']!.dec, Dec.fromInt(9));
+    });
+  });
+
+  group('SOLVE', () {
+    test('Y = AX² + B for Y = 0, A = 1, B = −2 from X = 1: X = √2', () {
+      press('ALPHA sd ALPHA CALC ALPHA (-) ALPHA ) x2 + ALPHA °′″ SHIFT CALC');
+      expect(calc.screen.text, startsWith('Y?'));
+      press('0 = 1 = (-) 2 =');
+      expect(calc.screen.text, contains('Solve for X'));
+      press('1 =');
+      expect(calc.screen.text, contains('X= 1.414213562'));
+      // L−R is 0 or a last-digit rounding remainder (behaviour note #79).
+      expect(calc.screen.text, matches(RegExp(r'L-R= (0|-?1×10\^-1[45])$')));
+    });
+    test('no X: Variable ERROR', () {
+      press('ALPHA (-) + 1 SHIFT CALC');
+      expect(calc.screen.text, startsWith('Variable ERROR'));
     });
   });
 }
