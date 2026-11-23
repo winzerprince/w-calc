@@ -102,6 +102,7 @@ class NaturalCalculator implements CalcEngine {
     this.profile = NaturalProfile.textbook,
     Set<NaturalMode>? modes,
     this.bigLinear = false,
+    this.listNames = false,
   }) : _random = random ?? math.Random(),
        modes = modes ?? NaturalMode.values.toSet();
 
@@ -110,6 +111,9 @@ class NaturalCalculator implements CalcEngine {
 
   /// Modes this model offers on its MODE menu.
   final Set<NaturalMode> modes;
+
+  /// Statistics editor columns named L1, L2, L3 (list-style models).
+  final bool listNames;
 
   /// Four matrices up to 4 × 4 (MatA–MatD), four vectors and simultaneous
   /// equations with four unknowns.
@@ -2144,7 +2148,7 @@ class NaturalCalculator implements CalcEngine {
     final colW = (DotScreen.width - rowNumW) ~/ _cols;
     final names = _colNames;
     for (var c = 0; c < _cols; c++) {
-      final n = names[c];
+      final n = listNames ? 'L${c + 1}' : names[c];
       final x = rowNumW + c * colW + (colW - smallTextWidth(n)) ~/ 2;
       bmp.smallText(x, 0, n);
     }

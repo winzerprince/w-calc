@@ -9,6 +9,7 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 - Font licence texts are now bundled so the third-party licence page can show them.
 
 ### Added
+- Scientific View: statistics editor columns named L1, L2, L3.
 - Model picker grouped by display: two-line, textbook and multi-line.
 - *Scientific Max* model: textbook display with four matrices up to 4×4 (size typed as m?, n?),
   four vectors and equations with four unknowns; Ocean theme.
