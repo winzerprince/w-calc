@@ -172,6 +172,45 @@ class _KeyButtonState extends State<KeyButton> {
     );
   }
 
+  /// Long press shows what else the key does (a learning aid); the press
+  /// itself still happens on touch.
+  Widget _hint(KeySpec spec, CalcModel model, Widget child) {
+    final modifierName = {
+      for (final k in model.layout.allKeys)
+        if (k.key == CalcKey.shift || k.key == CalcKey.alpha)
+          k.key: legendReadable(k.main),
+    };
+    final lines = <String>[
+      for (final l in spec.above)
+        if (model.showsLegend(spec.key, l))
+          switch (l.kind) {
+            LabelKind.shift =>
+              '${modifierName[CalcKey.shift] ?? 'SHIFT'} ▸ ${legendReadable(l.text)}',
+            LabelKind.alpha =>
+              '${modifierName[CalcKey.alpha] ?? 'ALPHA'} ▸ ${legendReadable(l.text)}',
+            LabelKind.complex => 'CMPLX mode ▸ ${legendReadable(l.text)}',
+            LabelKind.stat => 'statistics ▸ ${legendReadable(l.text)}',
+            LabelKind.base => 'BASE mode ▸ ${legendReadable(l.text)}',
+            _ => legendReadable(l.text),
+          },
+      for (final l in spec.below)
+        if (model.showsLegend(spec.key, l)) 'mode ▸ ${legendReadable(l.text)}',
+    ];
+    if (lines.isEmpty) return child;
+    return Tooltip(
+      triggerMode: TooltipTriggerMode.longPress,
+      waitDuration: Duration.zero,
+      showDuration: const Duration(seconds: 3),
+      message: '${legendReadable(spec.main)}\n${lines.join('\n')}',
+      textStyle: const TextStyle(
+        color: Colors.white,
+        fontSize: 14,
+        height: 1.35,
+      ),
+      child: child,
+    );
+  }
+
   Widget _cap(KeySpec spec, Color cap, Color fg) {
     final model = ModelScope.of(context);
     final finish = CalcFinish.of(context);
@@ -181,7 +220,7 @@ class _KeyButtonState extends State<KeyButton> {
       for (final l in [...spec.above, ...spec.below])
         if (model.showsLegend(spec.key, l)) legendText(l.text),
     ];
-    return Semantics(
+    final capWidget = Semantics(
       button: true,
       enabled: enabled,
       label: legendText(spec.main),
@@ -242,6 +281,7 @@ class _KeyButtonState extends State<KeyButton> {
         ),
       ),
     );
+    return _hint(spec, model, capWidget);
   }
 }
 

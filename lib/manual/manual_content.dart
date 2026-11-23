@@ -31,7 +31,8 @@ const manualChapters = <ManualChapter>[
           ),
           Para(
             'Green labels work in BASE mode, purple ones in CMPLX mode, blue '
-            'ones in the statistics modes.',
+            'ones in the statistics modes. Not sure what a key does? '
+            'Long-press it: a bubble lists all its functions.',
           ),
           Steps([
             ManualStep('Clear the whole calculation.', 'AC'),

@@ -2,6 +2,12 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [Unreleased]
+
+### Added
+- Long-press a key to see what else it does (SHIFT / 2nd, ALPHA and mode functions).
+- Store listing draft and privacy policy (no data collected); privacy line on the About page.
+
 ## [0.8.0-beta] - 2026-11-23
 
 Graphs from equations and statistics, TI-style menus, a smaller and lighter app.
