@@ -394,6 +394,40 @@ class CalcSkin {
     solarStrip: Color(0xFF221B18),
   );
 
+  /// Indigo: deep blue body, white digit keys, soft blue modifiers.
+  static const indigo = CalcSkin(
+    id: 'indigo',
+    name: 'Indigo',
+    description: 'Deep blue body, white digit keys, blue modifiers',
+    background: Color(0xFF0C1230),
+    bodyTop: Color(0xFF2A3A86),
+    body: Color(0xFF1A245C),
+    bezel: Color(0xFF0F1640),
+    brandText: Color(0xFFE8ECFF),
+    modifierKey: Color(0xFF8EA6F0),
+    modifierText: Color(0xFF0F1640),
+    functionKey: Color(0xFF15194A),
+    functionText: Color(0xFFFFFFFF),
+    digitKey: Color(0xFFF3F4FA),
+    digitText: Color(0xFF15194A),
+    operatorKey: Color(0xFFD6DBF0),
+    clearKey: Color(0xFFE85D5D),
+    clearText: Color(0xFFFFFFFF),
+    disc: Color(0xFF8EA6F0),
+    discMark: Color(0xFF15194A),
+    labels: {
+      LabelKind.shift: Color(0xFFFFC857),
+      LabelKind.alpha: Color(0xFFFF8FA3),
+      LabelKind.complex: Color(0xFFD0B0FF),
+      LabelKind.stat: Color(0xFF9CC7FF),
+      LabelKind.base: Color(0xFF9EE6B0),
+      LabelKind.plain: Color(0xFFE8ECFF),
+      LabelKind.neutral: Color(0xFFB4BCE0),
+    },
+    lcd: LcdPalette(glass: Color(0xFFC3CDB6), ink: Color(0xFF1A2118)),
+    solarStrip: Color(0xFF221A17),
+  );
+
   static const all = [
     classic,
     midnight,
@@ -405,6 +439,7 @@ class CalcSkin {
     pearl,
     graphite,
     ocean,
+    indigo,
   ];
 
   static CalcSkin byId(String? id) =>

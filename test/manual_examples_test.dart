@@ -84,4 +84,32 @@ void main() {
       'sum',
     );
   });
+
+  test('textbook models only list what they have', () {
+    final basicIds = [
+      for (final h in searchManual(
+        manualChapters,
+        CalcModel.textbookBasic,
+        'integral',
+      ))
+        h.article.id,
+    ];
+    expect(basicIds, isNot(contains('integration')));
+    expect(
+      searchManual(
+        manualChapters,
+        CalcModel.textbook,
+        'integral',
+      ).map((h) => h.article.id),
+      contains('integration'),
+    );
+    expect(
+      searchManual(
+        manualChapters,
+        CalcModel.view,
+        'matrix',
+      ).map((h) => h.article.id),
+      isNot(contains('matrix-tb')),
+    );
+  });
 }

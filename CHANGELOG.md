@@ -4,6 +4,10 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Added
+- *Textbook Basic* model: everyday textbook display with COMP, STAT and TABLE (no calculus,
+  CALC/SOLVE, constants or conversions; those keys are faded); Indigo theme.
+
 ### Changed
 - Pages open and close with a soft fade-and-rise animation.
 
