@@ -205,7 +205,7 @@ void main() {
       expect(calc.display.lower, '14.286');
     });
     test('unimplemented mode choices are ignored', () {
-      expect(press('MODE MODE MODE 1').upper, 'EQN MAT VCT');
+      expect(press('MODE MODE MODE MODE MODE MODE 2').upper, 'Disp');
     });
     test('COMP closes the menu', () {
       expect(press('MODE 1').upper, '');

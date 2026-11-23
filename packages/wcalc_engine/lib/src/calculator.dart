@@ -4,6 +4,7 @@ import 'angle_unit.dart';
 import 'calc_key.dart';
 import 'display_state.dart';
 import 'eval/evaluator.dart';
+import 'eqn/solvers.dart';
 import 'eval/solve.dart';
 import 'format/number_format.dart';
 import 'format/value_format.dart';
@@ -51,6 +52,31 @@ const _sciPrompt = _Menu('Sci 0~9?', {});
 const _normPrompt = _Menu('Norm 1~2?', {});
 const _clrMenu = _Menu('Mcl Mode All', {1: '1', 5: '2', 10: '3'});
 const _sclMenu = _Menu('Scl Mode All', {1: '1', 5: '2', 10: '3'});
+
+/// EQN type selection (manual p.59-61).
+const _unknownsPage = _Menu('Unknowns?→', {0: '2', 4: '3'});
+const _degreePage = _Menu('←Degree?', {1: '2', 5: '3'});
+
+/// Coefficient names per equation type.
+const _eqnNames = {
+  'simul2': ['a1', 'b1', 'c1', 'a2', 'b2', 'c2'],
+  'simul3': [
+    'a1',
+    'b1',
+    'c1',
+    'd1',
+    'a2',
+    'b2',
+    'c2',
+    'd2',
+    'a3',
+    'b3',
+    'c3',
+    'd3',
+  ],
+  'poly2': ['a', 'b', 'c'],
+  'poly3': ['a', 'b', 'c', 'd'],
+};
 
 /// BASE LOGIC menu (x⁻¹ repeatedly pages through).
 const _logicPages = [
@@ -109,7 +135,7 @@ const _fractionPage = _Menu('ab/c d/c', {1: '1', 6: '2'});
 const _commaPage = _Menu('Dot Comma', {1: '1', 5: '2'});
 
 /// Calculation modes implemented so far.
-enum CalcMode { comp, cmplx, sd, reg, base }
+enum CalcMode { comp, cmplx, sd, reg, base, eqn }
 
 /// CLR confirmations (press = to execute, AC to cancel).
 const _clrMcl = _Menu('Mcl', {});
@@ -213,6 +239,17 @@ class Calculator {
 
   CalcMode _mode = CalcMode.comp;
 
+  // EQN mode: chosen equation type, coefficients per type, prompt / answers.
+  String? _eqnKind;
+  final Map<String, List<Dec>> _eqnCoefficients = {
+    for (final e in _eqnNames.entries)
+      e.key: List.filled(e.value.length, Dec.zero),
+  };
+  int _eqnIndex = 0;
+  List<Tok> _eqnTyped = [];
+  List<Value>? _eqnSolutions;
+  int _eqnSolution = 0;
+
   /// BASE mode number system: 10, 16, 2 or 8.
   int _base = 10;
 
@@ -250,7 +287,7 @@ class Calculator {
   /// Disp setup pages for the current mode (a+bi / r∠θ only in CMPLX).
   List<_Menu> get _dispPages => [
     _engPage,
-    if (_mode == CalcMode.cmplx) _complexPage,
+    if (_mode == CalcMode.cmplx || _mode == CalcMode.eqn) _complexPage,
     _fractionPage,
     _commaPage,
   ];
@@ -340,6 +377,13 @@ class Calculator {
           _polarShown ? Indicator.angleMark : Indicator.imaginary,
       ],
     };
+    final kind = _eqnKind;
+    if (_mode == CalcMode.eqn &&
+        kind != null &&
+        _menu == null &&
+        _phase != _Phase.error) {
+      return _eqnDisplay(kind, indicators);
+    }
     final view = _dataView;
     if (view != null) {
       final (index, field) = view;
@@ -460,6 +504,11 @@ class Calculator {
     if (key == CalcKey.shift || key == CalcKey.alpha) {
       final pressed = key == CalcKey.shift ? _Modifier.shift : _Modifier.alpha;
       _modifier = modifier == pressed ? _Modifier.none : pressed;
+      return;
+    }
+    if (_mode == CalcMode.eqn) {
+      _modifier = _Modifier.none;
+      _pressEqn(key, modifier);
       return;
     }
     if (_pending != _Pending.none) {
@@ -993,6 +1042,20 @@ class Calculator {
       _menu = next < _modePages.length ? _modePages[next] : null;
       return;
     }
+    if (identical(menu, _unknownsPage) || identical(menu, _degreePage)) {
+      final simul = identical(menu, _unknownsPage);
+      if (key == CalcKey.right && simul) _menu = _degreePage;
+      if (key == CalcKey.left && !simul) _menu = _unknownsPage;
+      final d = key.digit;
+      if (d == 2 || d == 3) {
+        _menu = null;
+        _eqnKind = '${simul ? 'simul' : 'poly'}$d';
+        _eqnIndex = 0;
+        _eqnTyped = [];
+        _eqnSolutions = null;
+      }
+      return;
+    }
     if (_logicPages.contains(menu)) {
       final i = _logicPages.indexOf(menu);
       if (key == CalcKey.reciprocal) {
@@ -1092,6 +1155,10 @@ class Calculator {
         _setMode(d == 1 ? CalcMode.comp : CalcMode.cmplx);
       case (1, 1): // SD
         _setMode(CalcMode.sd);
+      case (2, 1): // EQN
+        _setMode(CalcMode.eqn);
+        _eqnKind = null;
+        _menu = _unknownsPage;
       case (1, 3): // BASE
         _setMode(CalcMode.base);
         _base = 10;
@@ -1237,6 +1304,171 @@ class Calculator {
     _resultValue = null;
     _history.clear();
     _clearStats();
+  }
+
+  // ------------------------------------------------------------------ EQN
+
+  DisplayState _eqnDisplay(String kind, Set<Indicator> indicators) {
+    final names = _eqnNames[kind]!;
+    final solutions = _eqnSolutions;
+    if (solutions != null) {
+      final simul = kind.startsWith('simul');
+      final name = simul
+          ? const ['x', 'y', 'z'][_eqnSolution]
+          : 'x${_eqnSolution + 1}';
+      final v = solutions[_eqnSolution];
+      final polar = _settings.polarComplex && v.isComplex;
+      final part = _complexPart == 1
+          ? (polar ? v.argument(_angle) : v.imag)
+          : (polar ? v.magnitude() : v.dec);
+      final f = formatValue(Value.dec(part), _settings);
+      return DisplayState(
+        upper: '$name=',
+        lower: f.mantissa,
+        exponent: f.exponent,
+        indicators: {
+          ...indicators,
+          if (_eqnSolution > 0) Indicator.scrollUp,
+          if (_eqnSolution < solutions.length - 1) Indicator.scrollDown,
+          if (v.isComplex) Indicator.reIm,
+          if (v.isComplex && _complexPart == 1)
+            polar ? Indicator.angleMark : Indicator.imaginary,
+        },
+      );
+    }
+    final name = names[_eqnIndex];
+    final arrows = {
+      if (_eqnIndex > 0) Indicator.scrollUp,
+      if (_eqnIndex < names.length - 1) Indicator.scrollDown,
+    };
+    if (_eqnTyped.isNotEmpty) {
+      final typed = _eqnTyped.map((t) => t.text).join();
+      return DisplayState(
+        upper: name,
+        lower: typed.contains('.') || typed.contains('E') ? typed : '$typed.',
+        indicators: {...indicators, ...arrows},
+      );
+    }
+    final f = formatValue(
+      Value.dec(_eqnCoefficients[kind]![_eqnIndex]),
+      _settings,
+    );
+    return DisplayState(
+      upper: '$name?',
+      lower: f.mantissa,
+      exponent: f.exponent,
+      indicators: {...indicators, ...arrows},
+    );
+  }
+
+  void _pressEqn(CalcKey key, _Modifier modifier) {
+    if (key == CalcKey.mode && modifier == _Modifier.none) {
+      _menu = _modePages.first;
+      return;
+    }
+    if (key == CalcKey.mode && modifier == _Modifier.shift) {
+      _menu = _clrMenu;
+      return;
+    }
+    if (_phase == _Phase.error) {
+      if (key == CalcKey.ac || key == CalcKey.left || key == CalcKey.right) {
+        _phase = _Phase.editing;
+        _error = null;
+        _eqnIndex = 0;
+      }
+      return;
+    }
+    final kind = _eqnKind;
+    if (kind == null) {
+      _menu = _unknownsPage;
+      return;
+    }
+    final names = _eqnNames[kind]!;
+    if (_eqnSolutions != null) {
+      switch ((modifier, key)) {
+        case (_Modifier.none, CalcKey.up):
+          if (_eqnSolution > 0) _eqnSolution--;
+          _complexPart = 0;
+        case (_Modifier.none, CalcKey.down):
+          if (_eqnSolution < _eqnSolutions!.length - 1) _eqnSolution++;
+          _complexPart = 0;
+        case (_Modifier.shift, CalcKey.equals):
+          if (_eqnSolutions![_eqnSolution].isComplex) {
+            _complexPart = 1 - _complexPart;
+          }
+        case (_Modifier.none, CalcKey.ac):
+          _eqnSolutions = null;
+          _eqnIndex = 0;
+        default:
+          break;
+      }
+      return;
+    }
+    if (modifier == _Modifier.none) {
+      final d = key.digit;
+      final tok = d != null
+          ? Tok.digits[d]
+          : switch (key) {
+              CalcKey.dot => Tok.point,
+              CalcKey.exp => Tok.exp,
+              CalcKey.negative => Tok.negative,
+              _ => null,
+            };
+      if (tok != null) {
+        if (_eqnTyped.length < 20) _eqnTyped.add(tok);
+        return;
+      }
+    }
+    switch ((modifier, key)) {
+      case (_Modifier.none, CalcKey.del):
+        if (_eqnTyped.isNotEmpty) _eqnTyped.removeLast();
+      case (_Modifier.none, CalcKey.ac):
+        _eqnTyped = [];
+      case (_Modifier.none, CalcKey.up):
+        _eqnTyped = [];
+        if (_eqnIndex > 0) _eqnIndex--;
+      case (_Modifier.none, CalcKey.down):
+        _eqnTyped = [];
+        if (_eqnIndex < names.length - 1) _eqnIndex++;
+      case (_Modifier.none, CalcKey.equals):
+        if (_eqnTyped.isNotEmpty) {
+          try {
+            final v = evaluateValue(_eqnTyped, EvalContext(ans: _ans));
+            if (v.isComplex) throw const CalcError(CalcErrorKind.math);
+            _eqnCoefficients[kind]![_eqnIndex] = v.dec;
+          } on CalcError catch (e) {
+            _eqnTyped = [];
+            _showError(CalcError(e.kind));
+            return;
+          }
+          _eqnTyped = [];
+        }
+        if (_eqnIndex < names.length - 1) {
+          _eqnIndex++;
+        } else {
+          _solveEqn(kind);
+        }
+      default:
+        break;
+    }
+  }
+
+  void _solveEqn(String kind) {
+    final c = _eqnCoefficients[kind]!;
+    try {
+      if (kind.startsWith('simul')) {
+        final n = kind.endsWith('2') ? 2 : 3;
+        _eqnSolutions = solveLinear([
+          for (var r = 0; r < n; r++) c.sublist(r * (n + 1), (r + 1) * (n + 1)),
+        ]);
+      } else {
+        _eqnSolutions = solvePolynomial(c);
+      }
+      _eqnSolution = 0;
+      _complexPart = 0;
+    } on CalcError catch (e) {
+      _showError(CalcError(e.kind));
+    }
   }
 
   // ------------------------------------------------------------------ BASE
@@ -1808,6 +2040,10 @@ class Calculator {
     'mode': _mode.name,
     'regression': _stats.type.name,
     'base': _base,
+    'eqn': {
+      for (final e in _eqnCoefficients.entries)
+        e.key: [for (final v in e.value) v.toString()],
+    },
     'stats': [for (final i in _stats.items) '${i.x}|${i.y ?? ''}|${i.freq}'],
     'editLimit': _editLimit,
     'improper': _settings.improperFractions,
@@ -1865,6 +2101,20 @@ class Calculator {
       );
       final mode = state['mode'];
       if (mode is String) _mode = CalcMode.values.byName(mode);
+      final eqn = state['eqn'];
+      if (eqn is Map) {
+        for (final MapEntry(:key, :value) in eqn.entries) {
+          final target = _eqnCoefficients[key];
+          if (target == null ||
+              value is! List ||
+              value.length != target.length) {
+            continue;
+          }
+          for (var i = 0; i < target.length; i++) {
+            target[i] = Dec.parse(value[i] as String);
+          }
+        }
+      }
       final base = state['base'];
       if (base is int && const [10, 16, 2, 8].contains(base)) _base = base;
       final regression = state['regression'];
