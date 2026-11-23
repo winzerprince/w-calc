@@ -7,9 +7,11 @@ import '../app/calc_model.dart';
 import 'app_menu.dart';
 import 'finish.dart';
 import 'fullscreen.dart';
+import 'graph/graph_page.dart';
 import 'haptics.dart';
 import 'keyboard_shortcuts.dart';
 import 'keypad.dart';
+import 'keypad_layout.dart' show LabelKind;
 import 'lcd.dart';
 import 'lcd/dot_lcd.dart';
 import 'skin.dart';
@@ -178,6 +180,21 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     setFullscreen(_focusMode);
   }
 
+  VoidCallback? _graphAction() {
+    if (_calc.graphTokens == null) return null;
+    return _openGraph;
+  }
+
+  void _openGraph() {
+    keyVibration();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            GraphPage(tokens: _calc.graphTokens, angle: _calc.angleUnit),
+      ),
+    );
+  }
+
   /// Settings ▸ Reset calculator.
   void _reset() {
     setState(_calc.resetAll);
@@ -271,6 +288,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                         onReset: _reset,
                                         focus: _focusMode,
                                         onFocus: _toggleFocus,
+                                        onGraph: _graphAction(),
                                       ),
                                       const SizedBox(height: 8),
                                       lcd,
@@ -287,6 +305,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                                   onReset: _reset,
                                   focus: _focusMode,
                                   onFocus: _toggleFocus,
+                                  onGraph: _graphAction(),
                                 ),
                                 const SizedBox(height: 8),
                                 lcd,
@@ -311,11 +330,15 @@ class _Header extends StatelessWidget {
     required this.onReset,
     required this.focus,
     required this.onFocus,
+    this.onGraph,
   });
 
   final VoidCallback onReset;
   final bool focus;
   final VoidCallback onFocus;
+
+  /// Shown when the calculation can be graphed (it uses X).
+  final VoidCallback? onGraph;
 
   @override
   Widget build(BuildContext context) {
@@ -332,6 +355,24 @@ class _Header extends StatelessWidget {
                 KeyedSubtree(
                   key: TourKeys.menu,
                   child: _MenuButton(onReset: onReset),
+                ),
+                // Contextual command: graph the expression in X.
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  transitionBuilder: (child, a) =>
+                      ScaleTransition(scale: a, child: child),
+                  child: onGraph == null
+                      ? const SizedBox(key: ValueKey('no-graph'), width: 0)
+                      : IconButton(
+                          key: const Key('graph-button'),
+                          tooltip: 'Graph this',
+                          visualDensity: VisualDensity.compact,
+                          onPressed: onGraph,
+                          icon: Icon(
+                            Icons.show_chart,
+                            color: CalcSkin.of(context).label(LabelKind.shift),
+                          ),
+                        ),
                 ),
                 const SizedBox(width: 8),
                 Text(

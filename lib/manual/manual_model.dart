@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
 import '../app/calc_model.dart';
+import 'reference_data.dart';
 
 /// Which calculators an article is about.
 enum ManualAudience {
@@ -81,6 +82,25 @@ final class Example extends ManualBlock {
 
   @override
   String get searchText => '$title $result ${note ?? ''}';
+}
+
+/// Reference lists drawn from the engine's own tables.
+enum RefKind { constants, conversions }
+
+/// A searchable table (CONST or CONV list).
+final class RefTable extends ManualBlock {
+  const RefTable(this.kind);
+  final RefKind kind;
+
+  @override
+  String get searchText => switch (kind) {
+    RefKind.constants => [
+      for (final c in constantTable) '${c.symbol} ${c.name} ${c.unit}',
+    ].join(' '),
+    RefKind.conversions => [
+      for (final c in conversionTable) '${c.from} ${c.to}',
+    ].join(' '),
+  };
 }
 
 /// Highlighted hint.

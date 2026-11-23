@@ -419,6 +419,7 @@ class Calculator implements CalcEngine {
   List<(int, int)> _statements = const [];
   int _statement = 0;
 
+  @override
   AngleUnit get angleUnit => _angle;
   DisplayFormat get displayFormat => _settings.format;
   DisplaySettings get displaySettings => _settings;
@@ -2460,6 +2461,10 @@ class Calculator implements CalcEngine {
   /// UI can show the cleared "busy" display first, as the device does.
   @override
   String? get copyText => display.copyText;
+
+  @override
+  List<Tok>? get graphTokens =>
+      _mode == CalcMode.comp ? graphableTokens(_tokens) : null;
 
   @override
   bool isSlowKey(CalcKey key) {

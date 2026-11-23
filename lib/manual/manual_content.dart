@@ -423,8 +423,68 @@ const manualChapters = <ManualChapter>[
           ),
           Tip(
             'Useful numbers: 01 proton mass, 23 elementary charge, '
-            '24 Avogadro, 25 Boltzmann, 27 gas constant, 35 g.',
+            '24 Avogadro, 25 Boltzmann, 27 gas constant, 35 g. The full '
+            'lists are in the next two topics.',
           ),
+        ],
+      ),
+      ManualArticle(
+        id: 'constants-list',
+        title: 'List of the 40 constants',
+        summary: 'Number, symbol, meaning and value of every CONST entry.',
+        keywords: ['constant', 'const', 'list', 'value', 'physics', 'codata'],
+        blocks: [
+          Para(
+            'Type CONST (two-line models) or SHIFT 7 (other models), then '
+            'the two-digit number. The constant appears as its symbol and '
+            'can be used like any number.',
+          ),
+          Example(
+            title: 'Elementary charge × Avogadro constant',
+            keys: 'CONST 23 × CONST 24 =',
+            result: '96485.33646  (the Faraday constant)',
+            verify: '96485.33646',
+            only: _two,
+          ),
+          Example(
+            title: 'Elementary charge × Avogadro constant',
+            keys: 'SHIFT 7 23 × SHIFT 7 24 SHIFT =',
+            result: '96485.33646  (the Faraday constant)',
+            verify: '96485.33646',
+            only: _tb,
+          ),
+          RefTable(RefKind.constants),
+          Tip('Values are the internationally recommended (CODATA) values.'),
+        ],
+      ),
+      ManualArticle(
+        id: 'conversions-list',
+        title: 'List of the 40 unit conversions',
+        summary: 'Which CONV number converts which units.',
+        keywords: ['convert', 'conversion', 'conv', 'unit', 'list', 'metric'],
+        blocks: [
+          Para(
+            'Type the value, then CONV (SHIFT CONST on two-line models, '
+            'SHIFT 8 on the others) and the two-digit number. Odd numbers '
+            'convert one way, the next even number the other way.',
+          ),
+          Example(
+            title: '5 cm in inches (CONV 02)',
+            keys: '5 SHIFT CONST 02 =',
+            result: '1.968503937',
+            verify: '1.968503937',
+            only: _two,
+          ),
+          Example(
+            title: '5 cm in inches (CONV 02)',
+            keys: '5 SHIFT 8 02 SHIFT =',
+            result: '1.968503937',
+            verify: '1.968503937',
+            note:
+                'With = alone the exact result 250/127 is shown; S⇔D switches.',
+            only: _tb,
+          ),
+          RefTable(RefKind.conversions),
         ],
       ),
     ],
@@ -610,6 +670,49 @@ const manualChapters = <ManualChapter>[
             'change it and press = again. ▲ and ▼ step through earlier '
             'calculations and their results. History clears when the mode '
             'changes or the calculator is switched off.',
+          ),
+        ],
+      ),
+    ],
+  ),
+  ManualChapter(
+    id: 'graph',
+    title: 'Graphs',
+    icon: Icons.show_chart,
+    articles: [
+      ManualArticle(
+        id: 'graphing',
+        title: 'Drawing graphs',
+        summary: 'Plot y = f(x), move around, read points, find roots.',
+        keywords: [
+          'graph',
+          'plot',
+          'curve',
+          'root',
+          'intersection',
+          'function',
+        ],
+        blocks: [
+          Para(
+            'Type a calculation that uses X (ALPHA ) on most models) and a '
+            'graph button appears next to the W-Calc name: tap it to see the '
+            'curve. Menu ▸ Graph opens the graph on its own.',
+          ),
+          Steps([
+            ManualStep('Drag to move, pinch or double-tap to zoom.'),
+            ManualStep('Tap a curve to show its point (x, y).'),
+            ManualStep(
+              'Grey dots mark roots, turning points, y-intercepts and where curves cross; tap one to read it.',
+            ),
+            ManualStep(
+              'Type more functions below the graph: 2x+1, x^2-4, sin(x), sqrt(x), ln(x), abs(x).',
+            ),
+            ManualStep(
+              'Tap a colour dot to hide or show its curve; Rad / Deg sets the angle unit.',
+            ),
+          ]),
+          Tip(
+            'Typing: ^ for powers, * may be left out (2x, 3sin(x)), pi and e are understood.',
           ),
         ],
       ),
