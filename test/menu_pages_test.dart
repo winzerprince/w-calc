@@ -115,6 +115,8 @@ void main() {
       await tester.pump();
     }
     await openMenuItem(tester, 'Calculator model');
+    await tester.ensureVisible(find.byKey(const Key('model-basic')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('model-basic')));
     await settle(tester);
     expect(settings.modelId, 'basic');
@@ -187,6 +189,8 @@ void main() {
   ) async {
     final settings = await openApp(tester);
     await openMenuItem(tester, 'Calculator model');
+    await tester.ensureVisible(find.byKey(const Key('model-textbook')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('model-textbook')));
     await settle(tester);
     expect(settings.modelId, 'textbook');
