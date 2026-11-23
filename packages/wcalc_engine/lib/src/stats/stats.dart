@@ -4,7 +4,9 @@ library;
 import '../number/dec.dart';
 import '../number/wide.dart';
 
-enum RegressionType { lin, log, exp, pwr, inv, quad }
+/// Regression models. `exp` is y = A·e^(Bx); `abExp` (textbook models) is
+/// y = A·B^x.
+enum RegressionType { lin, log, exp, pwr, inv, quad, abExp }
 
 /// One registered data item (x, optional y for REG) with its frequency.
 class StatItem {
@@ -105,7 +107,9 @@ class StatData {
   };
 
   Wide _ty(StatItem i) => switch (type) {
-    RegressionType.exp || RegressionType.pwr => _ln(i.y ?? Dec.zero),
+    RegressionType.exp ||
+    RegressionType.pwr ||
+    RegressionType.abExp => _ln(i.y ?? Dec.zero),
     _ => _y(i),
   };
 
@@ -148,7 +152,10 @@ class StatData {
     return (a, b, c);
   }
 
-  bool get _expA => type == RegressionType.exp || type == RegressionType.pwr;
+  bool get _expA =>
+      type == RegressionType.exp ||
+      type == RegressionType.pwr ||
+      type == RegressionType.abExp;
 
   Dec get a {
     if (type == RegressionType.quad) return _quadratic.$1.toDec();
@@ -156,8 +163,27 @@ class StatData {
     return (_expA ? WideMath.exp(a) : a).toDec();
   }
 
-  Dec get b =>
-      (type == RegressionType.quad ? _quadratic.$2 : _linear.$2).toDec();
+  Dec get b => switch (type) {
+    RegressionType.quad => _quadratic.$2.toDec(),
+    RegressionType.abExp => WideMath.exp(_linear.$2).toDec(),
+    _ => _linear.$2.toDec(),
+  };
+
+  /// Smallest / largest x and y (minX, maxX, minY, maxY).
+  Dec get minX => _extreme((i) => i.x, min: true);
+  Dec get maxX => _extreme((i) => i.x, min: false);
+  Dec get minY => _extreme((i) => i.y ?? Dec.zero, min: true);
+  Dec get maxY => _extreme((i) => i.y ?? Dec.zero, min: false);
+
+  Dec _extreme(Dec Function(StatItem) f, {required bool min}) {
+    if (items.isEmpty) _mathError();
+    var m = f(items.first);
+    for (final i in items.skip(1)) {
+      final v = f(i);
+      if (min ? v < m : v > m) m = v;
+    }
+    return m;
+  }
 
   Dec get c {
     if (type != RegressionType.quad) _mathError();
@@ -180,7 +206,7 @@ class StatData {
     return switch (type) {
       RegressionType.lin => a + b * wx,
       RegressionType.log => a + b * _ln(x),
-      RegressionType.exp => WideMath.exp(a + b * wx),
+      RegressionType.exp || RegressionType.abExp => WideMath.exp(a + b * wx),
       RegressionType.pwr => WideMath.exp(a + b * _ln(x)),
       RegressionType.inv => x.isZero ? _mathError() : a + b / wx,
       RegressionType.quad => throw StateError('unreachable'),
@@ -196,7 +222,7 @@ class StatData {
     return switch (type) {
       RegressionType.lin => (wy - a) / b,
       RegressionType.log => WideMath.exp((wy - a) / b),
-      RegressionType.exp => (_ln(y) - a) / b,
+      RegressionType.exp || RegressionType.abExp => (_ln(y) - a) / b,
       RegressionType.pwr => WideMath.exp((_ln(y) - a) / b),
       RegressionType.inv => (wy - a).isZero ? _mathError() : b / (wy - a),
       RegressionType.quad => throw StateError('unreachable'),

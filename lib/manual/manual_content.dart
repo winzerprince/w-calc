@@ -658,6 +658,62 @@ const manualChapters = <ManualChapter>[
         ],
       ),
       ManualArticle(
+        id: 'stat-tb',
+        title: 'Statistics and regression (STAT)',
+        summary: 'Stat Editor, mean, standard deviation and regression.',
+        audience: _tb,
+        keywords: [
+          'statistics',
+          'mean',
+          'average',
+          'standard deviation',
+          'regression',
+          'correlation',
+          'frequency',
+        ],
+        blocks: [
+          Steps([
+            ManualStep(
+              'Enter STAT mode and choose a type (1 for one variable).',
+              'MODE 3 1',
+            ),
+            ManualStep(
+              'Type each value and press = (the editor moves down).',
+              '10 = 20 = 30 =',
+            ),
+            ManualStep('Leave the editor for calculations.', 'AC'),
+            ManualStep(
+              'SHIFT 1 opens the STAT menu: Sum, Var, Reg or Distr, MinMax.',
+            ),
+          ]),
+          Example(
+            title: 'Mean of 10, 20, 30',
+            setup: 'MODE 3 1 10 = 20 = 30 = AC',
+            keys: 'SHIFT 1 4 2 =',
+            result: '20',
+            verify: '20',
+          ),
+          Para(
+            'Paired data (types 2-8): type the X column, go back up with ▲, '
+            'move to Y with ▶ and type the Y values. Reg gives A, B, r and the '
+            'estimates x̂ and ŷ: 160 x̂… or 160 ŷ.',
+          ),
+          Example(
+            title: 'Linear regression: y at x = 4 for (1,3), (2,5), (3,7)',
+            setup: 'MODE 3 2 1 = 2 = 3 = up up up > 3 = 5 = 7 = AC',
+            keys: '4 SHIFT 1 5 5 =',
+            result: '9',
+            verify: '9',
+          ),
+          Tip(
+            'SHIFT MODE ▼ 4 turns on the FREQ column for repeated values. '
+            'Changing it, switching between one-variable and paired types, '
+            'or leaving STAT deletes the data. DEL deletes the row under the '
+            'cursor.',
+          ),
+        ],
+      ),
+      ManualArticle(
         id: 'base',
         title: 'Number systems (BASE)',
         summary: 'Decimal, hexadecimal, binary and octal.',
@@ -700,6 +756,102 @@ const manualChapters = <ManualChapter>[
         ],
       ),
       ManualArticle(
+        id: 'eqn-tb',
+        title: 'Equations (EQN)',
+        summary:
+            'Simultaneous, quadratic and cubic equations with exact roots.',
+        audience: _tb,
+        keywords: ['equation', 'quadratic', 'cubic', 'simultaneous', 'roots'],
+        blocks: [
+          Steps([
+            ManualStep(
+              'Enter EQN and pick a type (3 = quadratic).',
+              'MODE 5 3',
+            ),
+            ManualStep(
+              'Type each coefficient and press = (fractions and √ allowed).',
+            ),
+            ManualStep(
+              'Press = on its own to solve; = or ▼ shows the next root.',
+            ),
+            ManualStep('AC resets the coefficients to 0.'),
+          ]),
+          Example(
+            title: 'x² + x + 3/4 = 0',
+            keys: 'MODE 5 3 1 = 1 = 3 frac 4 = =',
+            result: 'X1 = −1/2 + (√2/2) i',
+            note: '▼ shows X2 = −1/2 − (√2/2) i.',
+          ),
+          Example(
+            title: 'x + 2y = 3, 2x + 3y = 4',
+            keys: 'MODE 5 1 1 = 2 = 3 = 2 = 3 = 4 = =',
+            result: 'X = −1, then ▼ Y = 2',
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'base-tb',
+        title: 'Number systems (BASE-N)',
+        summary: 'Decimal, hexadecimal, binary and octal with logic.',
+        audience: _tb,
+        keywords: ['binary', 'hex', 'octal', 'base', 'logic', 'and', 'or'],
+        blocks: [
+          Steps([
+            ManualStep('Enter BASE-N mode.', 'MODE 4'),
+            ManualStep(
+              'x² DEC, x^□ HEX, log BIN, ln OCT choose the number system.',
+            ),
+            ManualStep('Hex digits A–F are on (−) °′″ hyp sin cos tan.'),
+            ManualStep(
+              'SHIFT 3: and, or, xor, xnor, Not, Neg; ▼ for d h b o prefixes.',
+            ),
+          ]),
+          Example(
+            title: '11₂ + 1₂',
+            setup: 'MODE 4',
+            keys: 'log 11 + 1 =',
+            result: '0000000000000100',
+            verify: '0000000000000100 [Bin]',
+          ),
+          Example(
+            title: '15 × 37 shown in hexadecimal',
+            setup: 'MODE 4',
+            keys: 'x2 15 × 37 = ^',
+            result: '0000022B',
+            verify: '0000022B [Hex]',
+          ),
+          Tip(
+            'Binary uses 16 bits, octal and hexadecimal 32 bits (two’s '
+            'complement for negatives). Fractional parts are dropped.',
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'table-tb',
+        title: 'Number tables (TABLE)',
+        summary: 'Values of f(X) for X from Start to End.',
+        audience: _tb,
+        keywords: ['table', 'function', 'values', 'graph', 'f(x)'],
+        blocks: [
+          Steps([
+            ManualStep('Enter TABLE mode.', 'MODE 7'),
+            ManualStep('Type f(X) using ALPHA ) for X, then press =.'),
+            ManualStep(
+              'Answer Start?, End? and Step? with = (defaults 1, 5, 1).',
+            ),
+            ManualStep(
+              '▲ ▼ scroll the table, ◀ ▶ choose the column, AC edits f(X).',
+            ),
+          ]),
+          Example(
+            title: 'X² + 1/2 for X = −1 … 1, step 0.5',
+            keys: 'MODE 7 ALPHA ) x2 + 1 frac 2 = (-) 1 = 1 = 0.5 =',
+            result: 'X: −1, −0.5, 0, 0.5, 1 → F(X): 1.5, 0.75, 0.5, 0.75, 1.5',
+          ),
+          Tip('At most 30 rows; more gives Insufficient MEM. X is changed.'),
+        ],
+      ),
+      ManualArticle(
         id: 'matrix',
         title: 'Matrices (MAT)',
         summary: 'Up to 3 × 3: add, multiply, determinant, inverse.',
@@ -719,18 +871,65 @@ const manualChapters = <ManualChapter>[
         ],
       ),
       ManualArticle(
-        id: 'textbook-modes',
-        title: 'Other modes on textbook models',
-        summary: 'What is available now.',
+        id: 'matrix-tb',
+        title: 'Matrices (MATRIX)',
+        summary: 'Up to 3 × 3: +, −, ×, det, Trn, inverse, powers.',
         audience: _tb,
-        keywords: ['mode', 'stat', 'table', 'matrix', 'vector', 'eqn'],
+        keywords: ['matrix', 'determinant', 'inverse', 'transpose'],
         blocks: [
-          Para(
-            'MODE lists COMP, CMPLX, STAT, BASE-N, EQN, MATRIX, TABLE and '
-            'VECTOR. COMP (with CALC and SOLVE) and CMPLX work today; the '
-            'other modes are being added and will appear here with their own '
-            'instructions.',
+          Steps([
+            ManualStep(
+              'Enter MATRIX mode, pick MatA and a size (5 = 2×2).',
+              'MODE 6 1 5',
+            ),
+            ManualStep(
+              'Type each element and press = (fractions and √ allowed).',
+            ),
+            ManualStep(
+              'AC goes to the calculation screen; SHIFT 4 has Dim, Data, MatA–C, MatAns, det and Trn.',
+            ),
+            ManualStep(
+              'x⁻¹ inverts, x² squares, SHIFT x² cubes, SHIFT hyp is Abs.',
+            ),
+          ]),
+          Example(
+            title: 'det of [[2, 1], [1, 1]]',
+            setup: 'MODE 6 1 5 2 = 1 = 1 = 1 = AC',
+            keys: 'SHIFT 4 7 SHIFT 4 3 ) =',
+            result: '1',
+            verify: '1',
           ),
+          Tip(
+            'A matrix result opens the MatAns screen; pressing +, −, ×, ÷, '
+            'x⁻¹ or x² there continues the calculation from MatAns.',
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'vector-tb',
+        title: 'Vectors (VECTOR)',
+        summary: '2-D and 3-D vectors: dot and cross products, length.',
+        audience: _tb,
+        keywords: ['vector', 'dot product', 'cross product', 'length', 'angle'],
+        blocks: [
+          Steps([
+            ManualStep(
+              'Enter VECTOR mode, pick VctA and its size (2 = 2-D).',
+              'MODE 8 1 2',
+            ),
+            ManualStep('Type the elements with =, then AC.'),
+            ManualStep(
+              'SHIFT 5 has Dim, Data, VctA–C, VctAns and Dot; × is the cross product.',
+            ),
+          ]),
+          Example(
+            title: '(1, 2) • (3, 4)',
+            setup: 'MODE 8 1 2 1 = 2 = SHIFT 5 1 2 2 3 = 4 = AC',
+            keys: 'SHIFT 5 3 SHIFT 5 7 SHIFT 5 4 =',
+            result: '11',
+            verify: '11',
+          ),
+          Tip('Length: Abs (SHIFT hyp). Angle: cos⁻¹(A•B ÷ (|A|·|B|)).'),
         ],
       ),
     ],

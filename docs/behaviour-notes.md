@@ -90,3 +90,5 @@ how to verify on the device, result.
 | 78 | Edition differences | 1st (silver) and 2nd (black) editions behave the same; body, key colours and cursor pad differ | official manual (2nd ed.) + photos | verify on device |
 | 79 | SOLVE L−R | we show the 15-digit residual (e.g. −1×10⁻¹⁴ for X²−2); the guide's example shows 0 | guide example | verify on device |
 | 80 | Function brackets | sin(30)A = sin(30)·A: a bracketed function or template is one unit on textbook models | guide priority table | — |
+| 81 | Cubic root order | textbook models list x³−2x²−x+2 = 0 as −1, 2, 1 (guide); two-line models keep their own order | guide example | verify more cases on device |
+| 82 | EQN double root | a repeated quadratic root is shown once as "X=" | guide example | — |

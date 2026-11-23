@@ -5,6 +5,7 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 
 /// Key names for the textbook keypad (on top of the shared ones).
 const _extra = <String, CalcKey>{
+  'x^': CalcKey.power,
   'sd': CalcKey.sd,
   'S<>D': CalcKey.sd,
   'frac': CalcKey.fraction,
@@ -274,5 +275,235 @@ void main() {
       press('ALPHA (-) + 1 SHIFT CALC');
       expect(calc.screen.text, startsWith('Variable ERROR'));
     });
+  });
+
+  group('STAT', () {
+    test('MODE 3 shows the type menu; 1-VAR opens the editor', () {
+      expect(press('MODE 3'), contains('1:1-VAR  2:A+BX'));
+      expect(press('1'), startsWith('STAT X'));
+      expect(calc.screen.indicators, contains(Indicator.stat));
+      expect(calc.screen.indicators, isNot(contains(Indicator.math)));
+    });
+    test('1-VAR with FREQ: mean 3, σx 1.154700538', () {
+      press('SHIFT MODE down 4 1'); // FREQ column on
+      press('MODE 3 1');
+      press('1 = 2 = 3 = 4 = 5 =');
+      press('up up up up up >');
+      press('1 = 2 = 3 = 2 = 1 =');
+      expect(calc.statItems, hasLength(5));
+      expect(result('AC SHIFT 1 4 2 ='), '3');
+      expect(result('AC SHIFT 1 4 3 ='), '1.154700538');
+    });
+    test('linear and log regression (Fix 3)', () {
+      press('SHIFT MODE 6 3');
+      press('MODE 3 2');
+      press('20 = 110 = 200 = 290 =');
+      press('up up up up >');
+      press('3150 = 7310 = 8800 = 9310 =');
+      expect(result('AC SHIFT 1 5 3 ='), '0.923');
+      press('SHIFT 1 1 4'); // ln X keeps paired data
+      expect(result('AC SHIFT 1 5 3 ='), '0.998');
+      expect(result('AC SHIFT 1 5 1 ='), '-3857.984');
+      expect(result('AC SHIFT 1 5 2 ='), '2357.532');
+      expect(result('AC 160 SHIFT 1 5 5 ='), '8106.898');
+    });
+    test('normal distribution: ▶t of 3 and P(t)', () {
+      press('SHIFT MODE down 4 1');
+      press('SHIFT MODE 6 3');
+      press('MODE 3 1');
+      press('0 = 1 = 2 = 3 = 4 = 5 = 6 = 7 = 9 = 10 =');
+      for (var i = 0; i < 10; i++) {
+        press('up');
+      }
+      press('> 1 = 2 = 1 = 2 = 2 = 2 = 3 = 4 = 2 = 1 =');
+      expect(result('AC 3 SHIFT 1 5 4 ='), '-0.762');
+      expect(result('SHIFT 1 5 1 Ans ) ='), '0.223');
+    });
+    test('DEL deletes a row; Edit ▸ Del-A clears all', () {
+      press('MODE 3 1 1 = 2 = 3 = up DEL');
+      expect(calc.statItems.map((i) => i.x.toString()), ['1', '2']);
+      press('SHIFT 1 3 2');
+      expect(calc.statItems, isEmpty);
+    });
+    test('leaving STAT deletes the data', () {
+      press('MODE 3 1 5 = AC MODE 1 MODE 3 1');
+      expect(calc.statItems, isEmpty);
+    });
+  });
+
+  group('EQN', () {
+    String sol() {
+      final t = calc.screen.text;
+      return t.substring(t.indexOf('= ') + 2);
+    }
+
+    test('x + 2y = 3, 2x + 3y = 4: X = −1, Y = 2', () {
+      expect(press('MODE 5'), contains('1:anX+bnY=cn'));
+      press('1 1 = 2 = 3 = 2 = 3 = 4 = =');
+      expect(calc.screen.text, 'X= -1');
+      press('down');
+      expect(calc.screen.text, 'Y= 2');
+    });
+    test('three unknowns: 1, 2, 3', () {
+      press('MODE 5 2');
+      press('1 = (-) 1 = 1 = 2 = 1 = 1 = (-) 1 = 0 = (-) 1 = 1 = 1 = 4 = =');
+      expect(sol(), '1');
+      press('down');
+      expect(sol(), '2');
+      press('down');
+      expect(sol(), '3');
+    });
+    test('x² + x + 3/4: X1 = −1/2 + √2/2 i', () {
+      press('MODE 5 3 1 = 1 = 3 frac 4 = =');
+      expect(calc.screen.text, 'X1= -fraction{1|2}+fraction{sqrt{2}|2}i');
+      press('down');
+      expect(calc.screen.text, 'X2= -fraction{1|2}-fraction{sqrt{2}|2}i');
+    });
+    test('x² − 2√2 x + 2: single root X = √2', () {
+      press('MODE 5 3 1 = (-) 2 √ 2 > = 2 = =');
+      expect(calc.screen.text, 'X= sqrt{2}');
+    });
+    test('x³ − 2x² − x + 2: −1, 2, 1', () {
+      press('MODE 5 4 1 = (-) 2 = (-) 1 = 2 = =');
+      expect(sol(), '-1');
+      press('=');
+      expect(sol(), '2');
+      press('=');
+      expect(sol(), '1');
+      press('='); // back to the Coefficient Editor
+      expect(calc.screen.text, startsWith('EQN cubic'));
+    });
+    test('AC clears the coefficients', () {
+      press('MODE 5 3 5 = AC');
+      expect(calc.screen.text, contains('| 0 0 0'));
+    });
+  });
+
+  group('TABLE', () {
+    test('f(X) = X² + 1/2 from −1 to 1 step 0.5', () {
+      press('MODE 7 ALPHA ) x2 + 1 frac 2 =');
+      expect(calc.screen.text, startsWith('Start? 1'));
+      press('(-) 1 = 1 = 0.5 =');
+      expect(
+        calc.screen.text,
+        'TABLE | -1 1.5 | -0.5 0.75 | 0 0.5 | 0.5 0.75 | 1 1.5',
+      );
+      press('AC');
+      expect(calc.screen.text, isNot(startsWith('TABLE')));
+    });
+    test('more than 30 rows: Insufficient MEM', () {
+      press('MODE 7 ALPHA ) = 1 = 100 = 1 =');
+      expect(calc.screen.text, startsWith('Insufficient MEM'));
+    });
+    test('defaults 1..5 step 1', () {
+      press('MODE 7 ALPHA ) x2 = = = =');
+      expect(calc.screen.text, 'TABLE | 1 1 | 2 4 | 3 9 | 4 16 | 5 25');
+    });
+  });
+
+  group('BASE-N', () {
+    setUp(() => press('MODE 4'));
+    test('binary 11 + 1 = 100 (16 digits)', () {
+      expect(result('log 11 + 1 ='), '0000000000000100 [Bin]');
+    });
+    test('hex 1F + 1 = 20', () {
+      expect(result('x^ 1 tan + 1 ='), '00000020 [Hex]');
+    });
+    test('octal 7 + 1 = 10', () {
+      expect(result('ln 7 + 1 ='), '00000000010 [Oct]');
+    });
+    test('15 × 37 in DEC, shown in HEX / BIN / OCT', () {
+      expect(result('x2 15 × 37 ='), '555 [Dec]');
+      expect(result('x^'), '0000022B [Hex]');
+      expect(result('log'), '0000001000101011 [Bin]');
+      expect(result('ln'), '00000001053 [Oct]');
+    });
+    test('logic in binary: and, or, xor, xnor, Not, Neg', () {
+      press('log');
+      expect(result('1010 SHIFT 3 1 1100 ='), '0000000000001000 [Bin]');
+      expect(result('1011 SHIFT 3 2 11010 ='), '0000000000011011 [Bin]');
+      expect(result('1010 SHIFT 3 3 1100 ='), '0000000000000110 [Bin]');
+      expect(result('1111 SHIFT 3 4 101 ='), '1111111111110101 [Bin]');
+      expect(result('SHIFT 3 5 1010 ) ='), '1111111111110101 [Bin]');
+      expect(result('SHIFT 3 6 101101 ) ='), '1111111111010011 [Bin]');
+    });
+    test('d h b o prefixes: 10d + 10h + 10b + 10o = 36', () {
+      press('x2');
+      expect(
+        result(
+          'SHIFT 3 down 1 10 + SHIFT 3 down 2 10 + SHIFT 3 down 3 10 + '
+          'SHIFT 3 down 4 10 =',
+        ),
+        '36 [Dec]',
+      );
+    });
+  });
+
+  group('MATRIX', () {
+    const setup =
+        'MODE 6 1 5 2 = 1 = 1 = 1 = '
+        'SHIFT 4 1 2 5 2 = (-) 1 = (-) 1 = 2 = '
+        'SHIFT 4 1 3 4 1 = 0 = (-) 1 = 0 = (-) 1 = 1 = AC';
+    setUp(() => press(setup));
+    test('editor stored MatA', () {
+      expect(calc.linearVariables['MatA'].toString(), contains('2'));
+      expect(calc.screen.indicators, contains(Indicator.mat));
+    });
+    test('MatA × MatB and MatA + MatB', () {
+      expect(press('SHIFT 4 3 × SHIFT 4 4 ='), 'MatAns | 3 0 | 1 1');
+      expect(press('AC SHIFT 4 3 + SHIFT 4 4 ='), 'MatAns | 4 0 | 0 3');
+    });
+    test('3 × MatA, det, Trn, inverse, Abs, square, cube', () {
+      expect(press('3 × SHIFT 4 3 ='), 'MatAns | 6 3 | 3 3');
+      expect(result('AC SHIFT 4 7 SHIFT 4 3 ) ='), '1');
+      expect(press('AC SHIFT 4 8 SHIFT 4 5 ) ='), 'MatAns | 1 0 | 0 -1 | -1 1');
+      expect(press('AC SHIFT 4 3 x-1 ='), 'MatAns | 1 -1 | -1 2');
+      expect(press('AC SHIFT hyp SHIFT 4 4 ) ='), 'MatAns | 2 1 | 1 2');
+      expect(press('AC SHIFT 4 3 x2 ='), 'MatAns | 5 3 | 3 2');
+      expect(press('AC SHIFT 4 3 SHIFT x2 ='), 'MatAns | 13 8 | 8 5');
+    });
+    test('operator on the MatAns screen continues from MatAns', () {
+      press('SHIFT 4 3 + SHIFT 4 4 =');
+      expect(press('× 2 ='), 'MatAns | 8 0 | 0 6');
+    });
+    test('mismatched sizes: Dimension ERROR', () {
+      expect(press('SHIFT 4 3 + SHIFT 4 5 ='), startsWith('Dimension ERROR'));
+    });
+  });
+
+  group('VECTOR', () {
+    const setup =
+        'MODE 8 1 2 1 = 2 = '
+        'SHIFT 5 1 2 2 3 = 4 = '
+        'SHIFT 5 1 3 1 2 = (-) 1 = 2 = AC';
+    setUp(() => press(setup));
+    test('VctA + VctB, 3 × VctA − VctB', () {
+      expect(press('SHIFT 5 3 + SHIFT 5 4 ='), 'VctAns | 4 6');
+      expect(press('AC 3 × SHIFT 5 3 ='), 'VctAns | 3 6');
+      expect(press('- SHIFT 5 4 ='), 'VctAns | 0 2');
+    });
+    test('dot product 11, cross product, |VctC| = 3', () {
+      expect(result('SHIFT 5 3 SHIFT 5 7 SHIFT 5 4 ='), '11');
+      expect(press('AC SHIFT 5 3 × SHIFT 5 4 ='), 'VctAns | 0 0 -2');
+      expect(result('AC SHIFT hyp SHIFT 5 5 ) ='), '3');
+    });
+    test('angle between VctA and VctB (Fix 3) = 10.305', () {
+      press('SHIFT MODE 6 3');
+      press(
+        '( SHIFT 5 3 SHIFT 5 7 SHIFT 5 4 ) ÷ ( SHIFT hyp SHIFT 5 3 ) '
+        'SHIFT hyp SHIFT 5 4 ) ) =',
+      );
+      expect(result('SHIFT cos Ans ) ='), '10.305');
+    });
+  });
+
+  test('mode, STAT data and matrices survive save / restore', () {
+    press('MODE 6 1 5 2 = 1 = 1 = 1 = AC');
+    press('MODE 3 2 1 = 2 = AC');
+    final other = NaturalCalculator()..restoreState(calc.saveState());
+    expect(other.mode, NaturalMode.stat);
+    expect(other.statType, StatType.lin);
+    expect(other.statItems, hasLength(2));
+    expect(other.linearVariables.keys, contains('MatA'));
   });
 }

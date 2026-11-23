@@ -9,11 +9,13 @@ import '../format/number_format.dart';
 import '../format/value_format.dart';
 import '../input/token.dart';
 import '../lcd/dot_bitmap.dart';
+import '../eqn/solvers.dart';
 import '../eval/solve.dart';
 import '../number/dec.dart';
 import '../number/frac.dart';
 import '../number/surd.dart';
 import '../number/value.dart';
+import '../stats/stats.dart';
 import 'dot_screen.dart';
 import 'math_input.dart';
 import 'math_render.dart';
@@ -21,6 +23,12 @@ import 'result_forms.dart';
 
 /// Calculation modes of the textbook-display models (MODE 1-8).
 enum NaturalMode { comp, cmplx, stat, base, eqn, matrix, table, vector }
+
+/// EQN types in MODE 5 menu order.
+enum EqnType { lin2, lin3, quad, cubic }
+
+/// STAT calculation types in MODE 3 menu order.
+enum StatType { oneVar, lin, quad, log, eExp, abExp, pwr, inv }
 
 /// A menu screen: up to four text lines; digit keys pick items.
 final class _Menu {
@@ -84,6 +92,14 @@ class NaturalCalculator implements CalcEngine {
   /// MthIO (true) or LineIO.
   bool mathInput = true;
 
+  /// STAT, BASE-N, MATRIX and VECTOR always use Linear display.
+  bool get _mathIO =>
+      mathInput &&
+      mode != NaturalMode.stat &&
+      mode != NaturalMode.base &&
+      mode != NaturalMode.matrix &&
+      mode != NaturalMode.vector;
+
   /// MthIO-MathO (true) or MthIO-LineO (results in linear form).
   bool mathOutput = true;
 
@@ -141,6 +157,63 @@ class NaturalCalculator implements CalcEngine {
 
   _Equation? _equation;
 
+  // EQN
+  EqnType? _eqnType;
+  List<List<Value>> _coef = [];
+  int _eRow = 0;
+  int _eCol = 0;
+  List<Value>? _solutions;
+  int _solIndex = 0;
+
+  // MATRIX / VECTOR
+  final Map<String, Value> _linear = {};
+
+  /// Variable shown in the grid editor (MatA … VctAns), or null.
+  String? _grid;
+  int _gRow = 0;
+  int _gCol = 0;
+
+  Map<String, Value> get linearVariables => Map.unmodifiable(_linear);
+
+  // BASE-N
+  int _base = 10;
+
+  // TABLE
+  /// Start / End / Step prompt (0-2) while setting up the table.
+  int? _tablePrompt;
+  String _tableTyped = '';
+  final List<Dec> _tableRange = [Dec.one, Dec.fromInt(5), Dec.one];
+  List<(Dec, Value?)>? _table;
+  int _tRow = 0;
+  int _tCol = 0;
+  MathRow? _tableFn;
+
+  // STAT
+  StatType statType = StatType.oneVar;
+  final StatData _stat = StatData();
+  bool _editor = false;
+  int _row = 0;
+  int _col = 0;
+  int _top = 0;
+  String _cell = '';
+
+  bool get _paired => statType != StatType.oneVar;
+  int get _cols => 1 + (_paired ? 1 : 0) + (statFrequency ? 1 : 0);
+  int get _maxRows => switch (_cols) {
+    1 => 80,
+    2 => 40,
+    _ => 26,
+  };
+
+  /// Column names left to right.
+  List<String> get _colNames => [
+    'X',
+    if (_paired) 'Y',
+    if (statFrequency) 'FREQ',
+  ];
+
+  List<StatItem> get statItems => List.unmodifiable(_stat.items);
+
   /// ▶r∠θ / ▶a+bi at the end of the last calculation (null: setup).
   bool? _polarOverride;
 
@@ -193,6 +266,12 @@ class NaturalCalculator implements CalcEngine {
     final shift = _shift, alpha = _alpha;
     _shift = _alpha = false;
     if (_equation != null && _onEquationKey(key, shift: shift)) return;
+    if (_editor && !shift && !alpha && _onEditorKey(key)) return;
+    if (_eqnType != null && !shift && !alpha && _onEqnKey(key)) return;
+    if (_grid != null && !shift && !alpha && _onGridKey(key)) return;
+    if (mode == NaturalMode.table && !shift && !alpha && _onTableKey(key)) {
+      return;
+    }
     if (!shift && !alpha && key == CalcKey.calc) {
       _startEquation(solve: false);
       return;
@@ -257,7 +336,7 @@ class NaturalCalculator implements CalcEngine {
 
   void _tok(Tok t, {bool paren = false}) {
     _beforeInput(continues: _continuation.contains(t.kind));
-    if (_overwrite && !mathInput && _ed.cursor.pos < _ed.row.items.length) {
+    if (_overwrite && !_mathIO && _ed.cursor.pos < _ed.row.items.length) {
       _ed.row.items.removeAt(_ed.cursor.pos);
     }
     _ed.insertTok(t, paren: paren);
@@ -267,7 +346,7 @@ class NaturalCalculator implements CalcEngine {
   void _fn(Tok t) => _tok(t, paren: true);
 
   void _template(MathTemplate t, {Tok? linear}) {
-    if (!mathInput) {
+    if (!_mathIO) {
       // LineIO: the linear equivalent.
       switch (t) {
         case MathTemplate.fraction:
@@ -294,6 +373,7 @@ class NaturalCalculator implements CalcEngine {
   // ------------------------------------------------------------- key maps
 
   void _onPlain(CalcKey key) {
+    if (mode == NaturalMode.base && _onBaseKey(key)) return;
     final d = key.digit;
     if (d != null) {
       _tok(Tok.digits[d]);
@@ -343,13 +423,13 @@ class NaturalCalculator implements CalcEngine {
       case CalcKey.power:
         _template(MathTemplate.power);
       case CalcKey.logBase:
-        if (mathInput) {
+        if (_mathIO) {
           _template(MathTemplate.logBase);
         } else {
           _tok(Tok.logBase);
         }
       case CalcKey.integrate:
-        if (mathInput) {
+        if (_mathIO) {
           _template(MathTemplate.integral);
         } else {
           _tok(Tok.integral);
@@ -410,19 +490,19 @@ class NaturalCalculator implements CalcEngine {
       case CalcKey.fraction:
         _template(MathTemplate.mixed);
       case CalcKey.logBase:
-        if (mathInput) {
+        if (_mathIO) {
           _template(MathTemplate.sum);
         } else {
           _tok(Tok.sigma);
         }
       case CalcKey.integrate:
-        if (mathInput) {
+        if (_mathIO) {
           _template(MathTemplate.derivative);
         } else {
           _tok(Tok.derivative);
         }
       case CalcKey.hyp:
-        if (mathInput) {
+        if (_mathIO) {
           _template(MathTemplate.abs);
         } else {
           _fn(Tok.cAbs);
@@ -455,6 +535,14 @@ class NaturalCalculator implements CalcEngine {
         });
       case CalcKey.d9:
         _menu = _clrMenu();
+      case CalcKey.d4 when mode == NaturalMode.matrix:
+        _menu = _linearMenu(matrix: true);
+      case CalcKey.d5 when mode == NaturalMode.vector:
+        _menu = _linearMenu(matrix: false);
+      case CalcKey.d3 when mode == NaturalMode.base:
+        _menu = _logicMenu();
+      case CalcKey.d1 when mode == NaturalMode.stat:
+        _menu = _statMenu();
       case CalcKey.d2 when mode == NaturalMode.cmplx:
         _menu = _cmplxMenu();
       case CalcKey.negative when mode == NaturalMode.cmplx:
@@ -480,7 +568,7 @@ class NaturalCalculator implements CalcEngine {
       case CalcKey.equals:
         _execute(decimal: true);
       case CalcKey.del:
-        if (!mathInput) _overwrite = !_overwrite;
+        if (!_mathIO) _overwrite = !_overwrite;
       case CalcKey.ac:
         _off = true;
       case CalcKey.mode:
@@ -584,7 +672,7 @@ class NaturalCalculator implements CalcEngine {
       _ed.cursor = MathCursor(const [], _ed.root.items.length);
       return;
     }
-    if (_overwrite && !mathInput) {
+    if (_overwrite && !_mathIO) {
       if (_ed.cursor.pos < _ed.row.items.length) {
         _ed.row.items.removeAt(_ed.cursor.pos);
       } else {
@@ -614,7 +702,7 @@ class NaturalCalculator implements CalcEngine {
 
   void _vertical({required bool up}) {
     if (!_resultShown) {
-      if (mathInput) _ed.vertical(up: up);
+      if (_mathIO) _ed.vertical(up: up);
       return;
     }
     // History: ▲ older, ▼ newer.
@@ -646,6 +734,13 @@ class NaturalCalculator implements CalcEngine {
     }
     try {
       final v = _evalStatements(tokens, ctx);
+      if (v.isLinear) {
+        final name = v.isMatrix ? 'MatAns' : 'VctAns';
+        _linear[name] = v;
+        _history.add(_History(_ed.root.copy(), v));
+        _openGrid(name);
+        return;
+      }
       _setResult(v);
       _decimalFirst = decimal;
     } on CalcError catch (e) {
@@ -689,6 +784,10 @@ class NaturalCalculator implements CalcEngine {
           polRecVars: c.polRecVars,
           exactForms: c.exactForms,
           functionParens: c.functionParens,
+          stats: c.stats,
+          base: c.base,
+          wideBase: c.wideBase,
+          linear: c.linear,
           store: c.store,
         );
 
@@ -702,6 +801,10 @@ class NaturalCalculator implements CalcEngine {
     polRecVars: const ('X', 'Y'),
     exactForms: true,
     functionParens: true,
+    stats: mode == NaturalMode.stat ? _stat : null,
+    base: mode == NaturalMode.base ? _base : null,
+    wideBase: true,
+    linear: _linear,
     store: (n, v) => _vars[n] = v,
   );
 
@@ -907,6 +1010,1063 @@ class NaturalCalculator implements CalcEngine {
     }
   }
 
+  void _setFrequency(bool on) {
+    if (statFrequency != on) _stat.clear();
+    statFrequency = on;
+    _col = 0;
+  }
+
+  // ------------------------------------------------------------- MATRIX / VECTOR
+
+  static const _matDims = [
+    (3, 3),
+    (3, 2),
+    (3, 1),
+    (2, 3),
+    (2, 2),
+    (2, 1),
+    (1, 3),
+    (1, 2),
+  ];
+
+  /// Matrix? / Vector? then (for Dim) the size menu.
+  _Menu _pickVariable({required bool matrix, required bool dim}) {
+    final p = matrix ? 'Mat' : 'Vct';
+    void open(String name) {
+      if (dim) {
+        _menu = matrix ? _matDimMenu(name) : _vctDimMenu(name);
+      } else if (_linear.containsKey(name)) {
+        _openGrid(name);
+      } else {
+        _error = 'Dimension ERROR';
+      }
+    }
+
+    return _Menu(
+      [matrix ? 'Matrix?' : 'Vector?', '1:${p}A  2:${p}B', '3:${p}C'],
+      {1: () => open('${p}A'), 2: () => open('${p}B'), 3: () => open('${p}C')},
+    );
+  }
+
+  _Menu _matDimMenu(String name) => _Menu(
+    ['$name(m×n) m×n?', '1:3×3  2:3×2', '3:3×1  4:2×3', '5:2×2  6:2×1 ▼'],
+    {
+      for (final (i, (r, c)) in _matDims.indexed)
+        i + 1: () => _dimension(name, Value.matrix(_zeros(r, c))),
+    },
+  );
+
+  _Menu _vctDimMenu(String name) => _Menu(
+    ['$name(m) m?', '1:3    2:2'],
+    {
+      1: () => _dimension(name, Value.vector(List.filled(3, Dec.zero))),
+      2: () => _dimension(name, Value.vector(List.filled(2, Dec.zero))),
+    },
+  );
+
+  static List<List<Dec>> _zeros(int r, int c) => [
+    for (var i = 0; i < r; i++) List.filled(c, Dec.zero),
+  ];
+
+  void _dimension(String name, Value v) {
+    _linear[name] = v;
+    _openGrid(name);
+  }
+
+  void _openGrid(String name) {
+    _grid = name;
+    _gRow = _gCol = 0;
+    _clearInput();
+  }
+
+  (int, int) _shapeOf(Value v) => v.isMatrix
+      ? (v.matrix!.length, v.matrix!.first.length)
+      : (1, v.vector!.length);
+
+  Dec _cellOf(Value v, int r, int c) =>
+      v.isMatrix ? v.matrix![r][c] : v.vector![c];
+
+  bool get _gridIsAns => _grid == 'MatAns' || _grid == 'VctAns';
+
+  /// Grid editor / Ans screen keys. False: normal handling (typing an
+  /// element goes into the input line).
+  bool _onGridKey(CalcKey key) {
+    final name = _grid!;
+    final v = _linear[name]!;
+    final (rows, cols) = _shapeOf(v);
+    final typing = !_ed.isEmpty;
+    if (_gridIsAns) {
+      // An operator continues the calculation from MatAns / VctAns.
+      final op = switch (key) {
+        CalcKey.add => Tok.add,
+        CalcKey.subtract => Tok.subtract,
+        CalcKey.multiply => Tok.multiply,
+        CalcKey.divide => Tok.divide,
+        CalcKey.reciprocal when v.isMatrix => Tok.reciprocal,
+        CalcKey.square when v.isMatrix => Tok.square,
+        _ => null,
+      };
+      if (op != null) {
+        _grid = null;
+        _clearInput();
+        _ed
+          ..insertTok(name == 'MatAns' ? Tok.matAns : Tok.vctAns)
+          ..insertTok(op);
+        return true;
+      }
+    }
+    switch (key) {
+      case CalcKey.equals when typing && !_gridIsAns:
+        try {
+          final x = _evalStatements(_ed.linearize().tokens, _context());
+          if (x.isComplex || x.isLinear) {
+            throw const CalcError(CalcErrorKind.math);
+          }
+          _setCell(name, _gRow, _gCol, x.dec);
+        } on CalcError catch (e) {
+          _error = _errorText(e.kind);
+          _errorCursor = _ed.cursor;
+          return true;
+        }
+        _clearInput();
+        if (_gCol < cols - 1) {
+          _gCol++;
+        } else if (_gRow < rows - 1) {
+          _gRow++;
+          _gCol = 0;
+        }
+        return true;
+      case CalcKey.up when !typing:
+        if (_gRow > 0) _gRow--;
+        return true;
+      case CalcKey.down when !typing:
+        if (_gRow < rows - 1) _gRow++;
+        return true;
+      case CalcKey.left when !typing:
+        if (_gCol > 0) _gCol--;
+        return true;
+      case CalcKey.right when !typing:
+        if (_gCol < cols - 1) _gCol++;
+        return true;
+      case CalcKey.ac:
+        _grid = null;
+        _clearInput();
+        return true;
+      default:
+        // Ans screens are read-only; editors accept typing.
+        return _gridIsAns && key != CalcKey.mode;
+    }
+  }
+
+  void _setCell(String name, int r, int c, Dec x) {
+    final v = _linear[name]!;
+    if (v.isMatrix) {
+      final m = [for (final row in v.matrix!) List.of(row)];
+      m[r][c] = x;
+      _linear[name] = Value.matrix(m);
+    } else {
+      final vec = List.of(v.vector!);
+      vec[c] = x;
+      _linear[name] = Value.vector(vec);
+    }
+  }
+
+  _Menu _linearMenu({required bool matrix}) {
+    final p = matrix ? 'Mat' : 'Vct';
+    Tok t(String n) => switch ('$p$n') {
+      'MatA' => Tok.matA,
+      'MatB' => Tok.matB,
+      'MatC' => Tok.matC,
+      'MatAns' => Tok.matAns,
+      'VctA' => Tok.vctA,
+      'VctB' => Tok.vctB,
+      'VctC' => Tok.vctC,
+      _ => Tok.vctAns,
+    };
+    void insert(Tok tok) {
+      if (_grid != null) {
+        _grid = null;
+        _clearInput();
+      }
+      _tok(tok);
+    }
+
+    return _Menu(
+      [
+        '1:Dim    2:Data',
+        '3:${p}A   4:${p}B',
+        '5:${p}C   6:${p}Ans',
+        matrix ? '7:det    8:Trn' : '7:Dot',
+      ],
+      {
+        1: () => _menu = _pickVariable(matrix: matrix, dim: true),
+        2: () => _menu = _pickVariable(matrix: matrix, dim: false),
+        3: () => insert(t('A')),
+        4: () => insert(t('B')),
+        5: () => insert(t('C')),
+        6: () => insert(t('Ans')),
+        if (matrix) ...{
+          7: () {
+            insert(Tok.det);
+            _ed.insertTok(Tok.openParen);
+          },
+          8: () {
+            insert(Tok.trn);
+            _ed.insertTok(Tok.openParen);
+          },
+        } else
+          7: () => insert(Tok.dot),
+      },
+    );
+  }
+
+  void _paintGrid(DotBitmap bmp, StringBuffer text) {
+    final name = _grid!;
+    final v = _linear[name]!;
+    final (rows, cols) = _shapeOf(v);
+    final short = name.replaceFirst(RegExp('^(Mat|Vct)'), '');
+    const rowNumW = 9;
+    final colW = (DotScreen.width - rowNumW) ~/ cols;
+    bmp.smallText(0, 0, short.length > 2 ? 'Ans' : short);
+    for (var c = 0; c < cols; c++) {
+      bmp.smallText(rowNumW + c * colW + colW ~/ 2 - 1, 0, '${c + 1}');
+    }
+    final top = (_gRow - 1).clamp(0, rows);
+    final chars = (colW + 1) ~/ 6;
+    for (var k = 0; k < 2 && top + k < rows; k++) {
+      final r = top + k;
+      final y = 6 + k * 8;
+      if (v.isMatrix) bmp.smallText(4, y + 1, '${r + 1}');
+      for (var c = 0; c < cols; c++) {
+        var t = _plainDecimal(Value.dec(_cellOf(v, r, c)));
+        if (t.length > chars) t = t.substring(0, chars);
+        final x0 = rowNumW + c * colW;
+        bmp.text(x0 + colW - textWidth(t) - 1, y, t);
+        if (r == _gRow && c == _gCol) {
+          bmp.invert(x0, y - 1, x0 + colW - 1, y + 7);
+        }
+      }
+    }
+    if (_ed.isEmpty) {
+      final t = _plainDecimal(Value.dec(_cellOf(v, _gRow, _gCol)));
+      bmp.text(DotScreen.width - textWidth(t) - 1, 24, t);
+    } else {
+      final layout = MathLayout(_ed.root);
+      layout.paint(
+        bmp,
+        DotScreen.width - layout.width - 2,
+        DotScreen.height - layout.height,
+      );
+    }
+    text.write(name);
+    for (var r = 0; r < rows; r++) {
+      text.write(
+        ' | ${[for (var c = 0; c < cols; c++) _plainDecimal(Value.dec(_cellOf(v, r, c)))].join(' ')}',
+      );
+    }
+  }
+
+  // ------------------------------------------------------------- BASE-N
+
+  static const _baseNames = {10: 'Dec', 16: 'Hex', 2: 'Bin', 8: 'Oct'};
+
+  /// DEC / HEX / BIN / OCT and the hex digits A–F on the function keys.
+  bool _onBaseKey(CalcKey key) {
+    final base = switch (key) {
+      CalcKey.square => 10,
+      CalcKey.power => 16,
+      CalcKey.log => 2,
+      CalcKey.ln => 8,
+      _ => null,
+    };
+    if (base != null) {
+      // Switches the number system; a shown result is converted.
+      _base = base;
+      if (_resultShown && _result != null) {
+        try {
+          baseOutput(_result!.dec, base, wide: true);
+        } on CalcError catch (e) {
+          _error = _errorText(e.kind);
+        }
+      }
+      return true;
+    }
+    final hex = switch (key) {
+      CalcKey.negative => Tok.hexA,
+      CalcKey.degMinSec => Tok.hexB,
+      CalcKey.hyp => Tok.hexC,
+      CalcKey.sin => Tok.hexD,
+      CalcKey.cos => Tok.hexE,
+      CalcKey.tan => Tok.hexF,
+      _ => null,
+    };
+    if (hex != null) {
+      _tok(hex);
+      return true;
+    }
+    // No fractions, roots, exponents or decimal results in BASE-N.
+    return const {
+      CalcKey.fraction,
+      CalcKey.sqrt,
+      CalcKey.exp,
+      CalcKey.dot,
+      CalcKey.sd,
+      CalcKey.logBase,
+      CalcKey.integrate,
+      CalcKey.reciprocal,
+      CalcKey.eng,
+      CalcKey.degMinSec,
+    }.contains(key);
+  }
+
+  _Menu _logicMenu() => _Menu(
+    const ['1:and    2:or', '3:xor    4:xnor', '5:Not(   6:Neg('],
+    {
+      1: () => _tok(Tok.logicAnd),
+      2: () => _tok(Tok.logicOr),
+      3: () => _tok(Tok.logicXor),
+      4: () => _tok(Tok.logicXnor),
+      5: () => _fn(Tok.logicNot),
+      6: () => _fn(Tok.logicNeg),
+    },
+    next: _prefixMenu,
+  );
+
+  _Menu _prefixMenu() => _Menu(
+    const ['1:d      2:h', '3:b      4:o'],
+    {
+      1: () => _tok(Tok.baseD),
+      2: () => _tok(Tok.baseH),
+      3: () => _tok(Tok.baseB),
+      4: () => _tok(Tok.baseO),
+    },
+    prev: _logicMenu,
+  );
+
+  /// BASE-N result: padded to the register width (16 binary digits …).
+  MathRow _baseRow(Value v) {
+    var t = baseOutput(v.dec, _base, wide: true);
+    final width = {2: 16, 8: 11, 16: 8}[_base];
+    if (width != null) t = t.toUpperCase().padLeft(width, '0');
+    return MathRow([
+      for (final c in t.split(''))
+        TokItem(switch (c) {
+          '-' => Tok.negative,
+          'A' => Tok.hexA,
+          'B' => Tok.hexB,
+          'C' => Tok.hexC,
+          'D' => Tok.hexD,
+          'E' => Tok.hexE,
+          'F' => Tok.hexF,
+          _ => Tok.digits[int.parse(c)],
+        }),
+    ]);
+  }
+
+  // ------------------------------------------------------------- TABLE
+
+  static const _tableLabels = ['Start?', 'End?', 'Step?'];
+  static const maxTableRows = 30;
+
+  /// TABLE keys: = on f(X) starts the prompts; prompts and the table
+  /// screen take their own keys. False: normal editing of f(X).
+  bool _onTableKey(CalcKey key) {
+    if (_table != null) {
+      switch (key) {
+        case CalcKey.up:
+          if (_tRow > 0) _tRow--;
+        case CalcKey.down:
+          if (_tRow < _table!.length - 1) _tRow++;
+        case CalcKey.left:
+          _tCol = 0;
+        case CalcKey.right:
+          _tCol = 1;
+        case CalcKey.ac:
+          // Back to f(X), kept for editing.
+          _table = null;
+          _ed.load(_tableFn ?? MathRow());
+        default:
+          break;
+      }
+      return true;
+    }
+    final p = _tablePrompt;
+    if (p != null) {
+      final d = key.digit;
+      if (d != null) {
+        _tableTyped += '$d';
+        return true;
+      }
+      switch (key) {
+        case CalcKey.dot:
+          _tableTyped += '.';
+        case CalcKey.negative:
+          _tableTyped += '-';
+        case CalcKey.del:
+          if (_tableTyped.isNotEmpty) {
+            _tableTyped = _tableTyped.substring(0, _tableTyped.length - 1);
+          }
+        case CalcKey.ac:
+          _tablePrompt = null;
+          _tableTyped = '';
+        case CalcKey.equals:
+          if (_tableTyped.isNotEmpty) {
+            try {
+              _tableRange[p] = evaluateValue([
+                for (final c in _tableTyped.split(''))
+                  switch (c) {
+                    '.' => Tok.point,
+                    '-' => Tok.negative,
+                    _ => Tok.digits[int.parse(c)],
+                  },
+              ], _context()).dec;
+            } on CalcError catch (e) {
+              _tablePrompt = null;
+              _error = _errorText(e.kind);
+              return true;
+            }
+          }
+          _tableTyped = '';
+          if (p < 2) {
+            _tablePrompt = p + 1;
+          } else {
+            _tablePrompt = null;
+            _buildTable();
+          }
+        default:
+          break;
+      }
+      return true;
+    }
+    if (key == CalcKey.equals && !_ed.isEmpty) {
+      _tableFn = _ed.root.copy();
+      _tablePrompt = 0;
+      _tableTyped = '';
+      return true;
+    }
+    return false;
+  }
+
+  void _buildTable() {
+    final [start, end, step] = _tableRange;
+    if (end < start || step <= Dec.zero) {
+      _error = 'Math ERROR';
+      return;
+    }
+    final count = ((end - start) / step).roundSignificant(12).toIntFloor() + 1;
+    if (count > maxTableRows) {
+      _error = 'Insufficient MEM';
+      return;
+    }
+    final tokens = MathEditor(_tableFn!.copy()).linearize().tokens;
+    final rows = <(Dec, Value?)>[];
+    for (var k = 0; k < count; k++) {
+      final x = start + step * Dec.fromInt(k);
+      _vars['X'] = Value.dec(x);
+      Value? fx;
+      try {
+        fx = evaluateValue(tokens, _context());
+      } on CalcError {
+        fx = null; // shown as ERROR in that row
+      }
+      rows.add((x, fx));
+    }
+    _table = rows;
+    _tRow = 0;
+    _tCol = 1;
+  }
+
+  void _paintTable(DotBitmap bmp, StringBuffer text) {
+    final p = _tablePrompt;
+    if (p != null) {
+      bmp.text(0, 0, _tableLabels[p]);
+      final shown = _tableTyped.isNotEmpty
+          ? _tableTyped
+          : _plainDecimal(Value.dec(_tableRange[p]));
+      bmp.text(DotScreen.width - textWidth(shown) - 1, 24, shown);
+      text.write('${_tableLabels[p]} $shown');
+      return;
+    }
+    final rows = _table!;
+    const rowNumW = 9;
+    const colW = (DotScreen.width - rowNumW) ~/ 2;
+    bmp
+      ..smallText(rowNumW + colW ~/ 2 - 1, 0, 'X')
+      ..smallText(rowNumW + colW + colW ~/ 2 - 7, 0, 'F(X)');
+    String cell((Dec, Value?) r, int c) {
+      if (c == 0) return _plainDecimal(Value.dec(r.$1));
+      return r.$2 == null ? 'ERROR' : _plainDecimal(r.$2!);
+    }
+
+    final top = (_tRow - 1).clamp(0, rows.length);
+    const chars = (colW + 1) ~/ 6;
+    for (var k = 0; k < 2 && top + k < rows.length; k++) {
+      final r = top + k;
+      final y = 6 + k * 8;
+      bmp.smallText(0, y + 1, '${r + 1}');
+      for (var c = 0; c < 2; c++) {
+        var t = cell(rows[r], c);
+        if (t.length > chars) t = t.substring(0, chars);
+        final x0 = rowNumW + c * colW;
+        bmp.text(x0 + colW - textWidth(t) - 1, y, t);
+        if (r == _tRow && c == _tCol) {
+          bmp.invert(x0, y - 1, x0 + colW - 1, y + 7);
+        }
+      }
+    }
+    final full = cell(rows[_tRow], _tCol);
+    bmp.text(DotScreen.width - textWidth(full) - 1, 24, full);
+    text.write('TABLE');
+    for (final r in rows) {
+      text.write(' | ${cell(r, 0)} ${cell(r, 1)}');
+    }
+  }
+
+  // ------------------------------------------------------------- EQN
+
+  _Menu _eqnTypeMenu() => _Menu(
+    const [
+      '1:anX+bnY=cn',
+      '2:anX+bnY+cnZ=dn',
+      '3:aX²+bX+c=0',
+      '4:aX³+bX²+cX+d=0',
+    ],
+    {for (final t in EqnType.values) t.index + 1: () => _setEqnType(t)},
+  );
+
+  (int, int) get _eqnShape => switch (_eqnType!) {
+    EqnType.lin2 => (2, 3),
+    EqnType.lin3 => (3, 4),
+    EqnType.quad => (1, 3),
+    EqnType.cubic => (1, 4),
+  };
+
+  void _setEqnType(EqnType t) {
+    _eqnType = t;
+    final (rows, cols) = _eqnShape;
+    _coef = [
+      for (var r = 0; r < rows; r++)
+        [for (var c = 0; c < cols; c++) Value.zero],
+    ];
+    _eRow = _eCol = 0;
+    _solutions = null;
+    _clearInput();
+  }
+
+  /// Coefficient Editor and solution screens. False: normal handling
+  /// (typing a coefficient goes into the input line).
+  bool _onEqnKey(CalcKey key) {
+    final sols = _solutions;
+    if (sols != null) {
+      switch (key) {
+        case CalcKey.equals || CalcKey.down:
+          if (_solIndex < sols.length - 1) {
+            _solIndex++;
+          } else if (key == CalcKey.equals) {
+            _solutions = null;
+          }
+        case CalcKey.up:
+          if (_solIndex > 0) _solIndex--;
+        case CalcKey.ac:
+          _solutions = null;
+        case CalcKey.mode:
+          return false;
+        default:
+          break;
+      }
+      return true;
+    }
+    final (rows, cols) = _eqnShape;
+    final typing = !_ed.isEmpty;
+    switch (key) {
+      case CalcKey.equals:
+        if (typing) {
+          _commitCoefficient();
+        } else {
+          _solveEqn();
+        }
+        return true;
+      case CalcKey.ac:
+        for (final row in _coef) {
+          row.fillRange(0, row.length, Value.zero);
+        }
+        _clearInput();
+        return true;
+      case CalcKey.up when !typing:
+        if (_eRow > 0) _eRow--;
+        return true;
+      case CalcKey.down when !typing:
+        if (_eRow < rows - 1) _eRow++;
+        return true;
+      case CalcKey.left when !typing:
+        if (_eCol > 0) _eCol--;
+        return true;
+      case CalcKey.right when !typing:
+        if (_eCol < cols - 1) _eCol++;
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  void _commitCoefficient() {
+    try {
+      final v = _evalStatements(_ed.linearize().tokens, _context());
+      if (v.isComplex || v.isLinear) throw const CalcError(CalcErrorKind.math);
+      _coef[_eRow][_eCol] = v;
+    } on CalcError catch (e) {
+      _error = _errorText(e.kind);
+      _errorCursor = _ed.cursor;
+      return;
+    }
+    _clearInput();
+    final (rows, cols) = _eqnShape;
+    if (_eCol < cols - 1) {
+      _eCol++;
+    } else if (_eRow < rows - 1) {
+      _eRow++;
+      _eCol = 0;
+    }
+  }
+
+  void _solveEqn() {
+    try {
+      final t = _eqnType!;
+      final List<Value> sols;
+      if (t == EqnType.lin2 || t == EqnType.lin3) {
+        sols = solveLinear([
+          for (final row in _coef) [for (final v in row) v.dec],
+        ]).map(_cleanLinear).toList();
+      } else if (t == EqnType.quad) {
+        sols = _exactQuadratic(_coef[0][0], _coef[0][1], _coef[0][2]);
+      } else {
+        final r = solvePolynomial([for (final v in _coef[0]) v.dec]);
+        // Root order of the textbook models (behaviour note #81).
+        sols = r.length == 3 && !r[1].isComplex ? [r[1], r[0], r[2]] : r;
+      }
+      _solutions = sols;
+      _solIndex = 0;
+    } on CalcError catch (e) {
+      _error = _errorText(e.kind);
+      _errorCursor = null;
+    }
+  }
+
+  /// Simultaneous-equation solutions: exact fractions where they are
+  /// simple, never √ forms.
+  Value _cleanLinear(Value v) {
+    final f = Frac.approximate(v.dec);
+    return f != null && !f.isInteger ? Value.frac(f) : v;
+  }
+
+  /// Quadratic roots kept exact when the coefficients are (fractions,
+  /// √ forms): x = (−b ± √D) / 2a.
+  List<Value> _exactQuadratic(Value a, Value b, Value c) {
+    if (a.dec.isZero) throw const CalcError(CalcErrorKind.math);
+    final four = Value.dec(Dec.fromInt(4));
+    final two = Value.dec(Dec.fromInt(2));
+    final d = b * b - four * a * c;
+    final twoA = two * a;
+    final dExact = d.frac ?? (d.dec.isInteger ? Frac.fromDec(d.dec) : null);
+    final nearZero =
+        d.dec.abs() <=
+        (b.dec * b.dec).abs() * Dec.parse('1e-13') + Dec.parse('1e-90');
+    if (dExact != null || nearZero) {
+      final mid = (-b) / twoA;
+      if (nearZero || dExact!.n == BigInt.zero) return [mid];
+      final root = Surd.sqrtOf(dExact.isNegative ? -dExact : dExact);
+      if (root != null) {
+        final r = Value.fromSurd(root) / twoA;
+        if (!dExact.isNegative) return [mid + r, mid - r];
+        return [
+          Value.complex(mid.dec, r.dec.abs()),
+          Value.complex(mid.dec, -r.dec.abs()),
+        ];
+      }
+    }
+    return solvePolynomial([a.dec, b.dec, c.dec]);
+  }
+
+  void _paintEqn(DotBitmap bmp, StringBuffer text) {
+    final sols = _solutions;
+    if (sols != null) {
+      final linear = _eqnType == EqnType.lin2 || _eqnType == EqnType.lin3;
+      final name = linear
+          ? const ['X', 'Y', 'Z'][_solIndex]
+          : (sols.length == 1 ? 'X' : 'X${_solIndex + 1}');
+      bmp.text(0, 0, '$name=');
+      final row = _rowFor(sols[_solIndex], surd: !linear);
+      final layout = MathLayout(row);
+      layout.paint(
+        bmp,
+        DotScreen.width - layout.width - 1,
+        DotScreen.height - layout.height,
+      );
+      text.write('$name= $row');
+      return;
+    }
+    final (rows, cols) = _eqnShape;
+    const letters = ['a', 'b', 'c', 'd'];
+    const rowNumW = 7;
+    final colW = (DotScreen.width - rowNumW) ~/ cols;
+    for (var c = 0; c < cols; c++) {
+      bmp.smallText(rowNumW + c * colW + colW ~/ 2 - 1, 0, letters[c]);
+    }
+    final top = (_eRow - 1).clamp(0, rows);
+    final chars = (colW + 1) ~/ 6;
+    for (var k = 0; k < 2 && top + k < rows; k++) {
+      final r = top + k;
+      final y = 6 + k * 8;
+      if (rows > 1) bmp.smallText(0, y + 1, '${r + 1}');
+      for (var c = 0; c < cols; c++) {
+        var t = _plainDecimal(_coef[r][c]);
+        if (t.length > chars) t = t.substring(0, chars);
+        final x0 = rowNumW + c * colW;
+        bmp.text(x0 + colW - textWidth(t) - 1, y, t);
+        if (r == _eRow && c == _eCol) {
+          bmp.invert(x0, y - 1, x0 + colW - 1, y + 7);
+        }
+      }
+    }
+    if (_ed.isEmpty) {
+      final t = _plainDecimal(_coef[_eRow][_eCol]);
+      bmp.text(DotScreen.width - textWidth(t) - 1, 24, t);
+    } else {
+      final layout = MathLayout(_ed.root);
+      final c = layout.paint(
+        bmp,
+        DotScreen.width - layout.width - 2,
+        DotScreen.height - layout.height,
+        cursor: _ed.cursor,
+      );
+      _eqnCursor = c;
+    }
+    text.write('EQN ${_eqnType!.name}');
+    for (var r = 0; r < rows; r++) {
+      text.write(
+        ' | ${[for (final v in _coef[r]) _plainDecimal(v)].join(' ')}',
+      );
+    }
+    text.write(' | cell ${_eRow + 1},${letters[_eCol]} ${_ed.root}');
+  }
+
+  CursorRect? _eqnCursor;
+
+  /// A value in its display form (results, solutions).
+  MathRow _rowFor(Value v, {bool surd = true}) {
+    if (v.isComplex) return _complexRow(v);
+    final exact = _mathIO && mathOutput;
+    final form = exact ? exactFormOf(v, surd: surd) : null;
+    return switch (form) {
+      FractionForm(:final value) => _fractionRow(
+        value,
+        improper,
+        linear: false,
+      ),
+      SurdForm(:final value) => _surdRow(value),
+      PiForm(:final coefficient) => _piRow(coefficient),
+      null => _decimalRow(
+        formatValue(
+          v,
+          DisplaySettings(format: format, leadingZeroCounts: false),
+          view: ResultView.decimal,
+        ),
+      ),
+    };
+  }
+
+  // ------------------------------------------------------------- STAT
+
+  static const _statTypeLines = [
+    '1:1-VAR  2:A+BX',
+    '3:_+CX²  4:ln X',
+    '5:e^X    6:A·B^X',
+    '7:A·X^B  8:1/X',
+  ];
+
+  _Menu _statTypeMenu() => _Menu(_statTypeLines, {
+    for (final t in StatType.values) t.index + 1: () => _setStatType(t),
+  });
+
+  void _setStatType(StatType t) {
+    final wasPaired = _paired;
+    statType = t;
+    if (wasPaired != _paired) _stat.clear();
+    _stat.type = switch (t) {
+      StatType.oneVar || StatType.lin => RegressionType.lin,
+      StatType.quad => RegressionType.quad,
+      StatType.log => RegressionType.log,
+      StatType.eExp => RegressionType.exp,
+      StatType.abExp => RegressionType.abExp,
+      StatType.pwr => RegressionType.pwr,
+      StatType.inv => RegressionType.inv,
+    };
+    _openEditor();
+  }
+
+  void _openEditor() {
+    _editor = true;
+    _resultShown = false;
+    _row = _stat.items.length.clamp(0, _maxRows - 1);
+    _col = 0;
+    _cell = '';
+    _top = (_row - 1).clamp(0, 1 << 20);
+  }
+
+  /// Keys in the Stat Editor; false lets other handling take the key.
+  bool _onEditorKey(CalcKey key) {
+    final d = key.digit;
+    if (d != null) {
+      _cell += '$d';
+      return true;
+    }
+    switch (key) {
+      case CalcKey.dot:
+        _cell += '.';
+      case CalcKey.negative:
+        _cell += '-';
+      case CalcKey.exp:
+        _cell += 'E';
+      case CalcKey.del:
+        if (_cell.isNotEmpty) {
+          _cell = _cell.substring(0, _cell.length - 1);
+        } else if (_row < _stat.items.length) {
+          _stat.items.removeAt(_row);
+          _row = _row.clamp(0, _stat.items.length);
+        }
+      case CalcKey.equals:
+        _commitCell();
+      case CalcKey.up:
+        _cell = '';
+        if (_row > 0) _row--;
+      case CalcKey.down:
+        _cell = '';
+        if (_row < _stat.items.length && _row < _maxRows - 1) _row++;
+      case CalcKey.left:
+        _cell = '';
+        if (_col > 0) _col--;
+      case CalcKey.right:
+        _cell = '';
+        if (_col < _cols - 1) _col++;
+      case CalcKey.ac:
+        _editor = false;
+        _clearInput();
+      default:
+        return false;
+    }
+    if (_row < _top) _top = _row;
+    if (_row > _top + 2) _top = _row - 2;
+    return true;
+  }
+
+  void _commitCell() {
+    if (_cell.isEmpty) {
+      if (_row < _stat.items.length) _row++;
+      return;
+    }
+    final toks = <Tok>[
+      for (final c in _cell.split(''))
+        switch (c) {
+          '.' => Tok.point,
+          '-' => Tok.negative,
+          'E' => Tok.exp,
+          _ => Tok.digits[int.parse(c)],
+        },
+    ];
+    final Dec v;
+    try {
+      v = evaluateValue(toks, _context()).dec;
+    } on CalcError catch (e) {
+      _cell = '';
+      _error = _errorText(e.kind);
+      _errorCursor = null;
+      return;
+    }
+    _cell = '';
+    if (_row >= _stat.items.length) {
+      if (_stat.items.length >= _maxRows) return;
+      _stat.add(StatItem(Dec.zero, y: _paired ? Dec.zero : null));
+    }
+    final item = _stat.items[_row];
+    final name = _colNames[_col];
+    _stat.items[_row] = switch (name) {
+      'X' => item.copyWith(x: v),
+      'Y' => item.copyWith(y: v),
+      _ => item.copyWith(freq: v),
+    };
+    if (_row < _maxRows - 1) _row++;
+  }
+
+  _Menu _statMenu() {
+    final edit = _editor;
+    final last = _paired ? 'Reg' : 'Distr';
+    final lines = edit
+        ? [
+            '1:Type   2:Data',
+            '3:Edit   4:Sum',
+            '5:Var    6:${last.padRight(6)}',
+            '7:MinMax',
+          ]
+        : [
+            '1:Type   2:Data',
+            '3:Sum    4:Var',
+            '5:${last.padRight(6)} 6:MinMax',
+          ];
+    final o = edit ? 1 : 0;
+    return _Menu(lines, {
+      1: () => _menu = _statTypeMenu(),
+      2: _openEditor,
+      if (edit)
+        3: () => _menu = _Menu(
+          const ['1:Ins    2:Del-A'],
+          {
+            1: () {
+              _stat.items.insert(
+                _row.clamp(0, _stat.items.length),
+                StatItem(Dec.zero, y: _paired ? Dec.zero : null),
+              );
+            },
+            2: () {
+              _stat.clear();
+              _row = _top = 0;
+            },
+          },
+        ),
+      3 + o: () => _menu = _sumMenu(),
+      4 + o: () => _menu = _varMenu(),
+      5 + o: () => _menu = _paired ? _regMenu() : _distrMenu(),
+      6 + o: () => _menu = _minMaxMenu(),
+    });
+  }
+
+  /// Puts a statistics token into the calculation (leaving the editor).
+  void Function() _statTok(Tok t) => () {
+    if (_editor) {
+      _editor = false;
+      _clearInput();
+    }
+    _tok(t);
+  };
+
+  _Menu _pick(List<String> lines, List<Tok> toks) =>
+      _Menu(lines, {for (final (i, t) in toks.indexed) i + 1: _statTok(t)});
+
+  _Menu _sumMenu() => _paired
+      ? _pick(
+          const [
+            '1:Σx²   2:Σx',
+            '3:Σy²   4:Σy',
+            '5:Σxy   6:Σx³',
+            '7:Σx²y  8:Σx⁴',
+          ],
+          const [
+            Tok.statSumX2,
+            Tok.statSumX,
+            Tok.statSumY2,
+            Tok.statSumY,
+            Tok.statSumXY,
+            Tok.statSumX3,
+            Tok.statSumX2Y,
+            Tok.statSumX4,
+          ],
+        )
+      : _pick(const ['1:Σx²   2:Σx'], const [Tok.statSumX2, Tok.statSumX]);
+
+  _Menu _varMenu() => _pick(
+    [
+      '1:n      2:\uE000',
+      '3:xσn    4:xσn-1',
+      if (_paired) ...['5:\uE001      6:yσn', '7:yσn-1'],
+    ],
+    [
+      Tok.statN,
+      Tok.statMeanX,
+      Tok.statSigmaX,
+      Tok.statSampleX,
+      if (_paired) ...[Tok.statMeanY, Tok.statSigmaY, Tok.statSampleY],
+    ],
+  );
+
+  _Menu _regMenu() => statType == StatType.quad
+      ? _pick(
+          const [
+            '1:A      2:B',
+            '3:C      4:\uE0021',
+            '5:\uE0022     6:\uE003',
+          ],
+          const [Tok.regA, Tok.regB, Tok.regC, Tok.estX1, Tok.estX2, Tok.estY],
+        )
+      : _pick(
+          const ['1:A      2:B', '3:r      4:\uE002', '5:\uE003'],
+          const [Tok.regA, Tok.regB, Tok.regR, Tok.estX, Tok.estY],
+        );
+
+  _Menu _distrMenu() => _pick(
+    const ['1:P(     2:Q(', '3:R(     4:▶t'],
+    const [Tok.distP, Tok.distQ, Tok.distR, Tok.toT],
+  );
+
+  _Menu _minMaxMenu() => _paired
+      ? _pick(
+          const ['1:minX   2:maxX', '3:minY   4:maxY'],
+          const [Tok.statMinX, Tok.statMaxX, Tok.statMinY, Tok.statMaxY],
+        )
+      : _pick(const ['1:minX   2:maxX'], const [Tok.statMinX, Tok.statMaxX]);
+
+  /// Stat Editor screen: small header, two data rows, the cell value below.
+  void _paintEditor(DotBitmap bmp, StringBuffer text) {
+    const rowNumW = 9;
+    final colW = (DotScreen.width - rowNumW) ~/ _cols;
+    final names = _colNames;
+    for (var c = 0; c < _cols; c++) {
+      final n = names[c];
+      final x = rowNumW + c * colW + (colW - smallTextWidth(n)) ~/ 2;
+      bmp.smallText(x, 0, n);
+    }
+    final chars = (colW + 1) ~/ 6;
+    String cellText(int r, int c) {
+      if (r >= _stat.items.length) return '';
+      final it = _stat.items[r];
+      final v = switch (names[c]) {
+        'X' => it.x,
+        'Y' => it.y ?? Dec.zero,
+        _ => it.freq,
+      };
+      final t = _plainDecimal(Value.dec(v));
+      return t.length > chars ? t.substring(0, chars) : t;
+    }
+
+    // Two rows fit above the input line; keep the cursor row in view.
+    if (_row < _top) _top = _row;
+    if (_row > _top + 1) _top = _row - 1;
+    for (var k = 0; k < 3; k++) {
+      final r = _top + k;
+      if (r >= _maxRows) break;
+      final y = 6 + k * 8;
+      if (k == 2) break; // third row would overlap the input line
+      bmp.smallText(0, y + 1, '${r + 1}');
+      for (var c = 0; c < _cols; c++) {
+        final t = cellText(r, c);
+        final x0 = rowNumW + c * colW;
+        bmp.text(x0 + colW - textWidth(t) - 1, y, t);
+        if (r == _row && c == _col) bmp.invert(x0, y - 1, x0 + colW - 1, y + 7);
+      }
+    }
+    final current = _cell.isNotEmpty
+        ? _cell.replaceAll('E', '×10^')
+        : (_row < _stat.items.length ? cellText(_row, _col) : '');
+    bmp.text(DotScreen.width - textWidth(current) - 1, 24, current);
+    text.write('STAT ${names.join(' ')}');
+    for (var r = 0; r < _stat.items.length; r++) {
+      text.write(
+        ' | ${r + 1}: ${[for (var c = 0; c < _cols; c++) cellText(r, c)].join(' ')}',
+      );
+    }
+    text.write(
+      ' | cell ${_row + 1},${names[_col]} ${_cell.isEmpty ? '' : _cell}',
+    );
+  }
+
   _Menu _cmplxMenu() => _Menu(
     const ['1:arg    2:Conjg', '3:▶r∠θ   4:▶a+bi'],
     {
@@ -953,9 +2113,9 @@ class NaturalCalculator implements CalcEngine {
   ExactForm? _shownForm() {
     final r = _result;
     if (r == null || _engExponent != null) return null;
-    final mathOut = mathInput && mathOutput;
+    final mathOut = _mathIO && mathOutput;
     // Exact first on MathO / LineO; decimal first on LineIO and after SHIFT =.
-    final exactFirst = mathInput && !_decimalFirst;
+    final exactFirst = _mathIO && !_decimalFirst;
     if (exactFirst == _alternate) return null;
     final form = exactFormOf(r, surd: mathOut && !_decimalFirst, pi: mathOut);
     return form;
@@ -1051,8 +2211,37 @@ class NaturalCalculator implements CalcEngine {
   );
 
   void _setMode(NaturalMode m) {
+    if (mode == NaturalMode.stat && m != NaturalMode.stat) {
+      _stat.clear(); // Leaving STAT deletes its data.
+    }
     mode = m;
     _equation = null;
+    _editor = false;
+    _eqnType = null;
+    _solutions = null;
+    _table = null;
+    _tablePrompt = null;
+    _base = 10;
+    _grid = null;
+    if (m == NaturalMode.stat) {
+      _history.clear();
+      _clearInput();
+      _menu = _statTypeMenu();
+      return;
+    }
+    if (m == NaturalMode.eqn) {
+      _history.clear();
+      _clearInput();
+      _menu = _eqnTypeMenu();
+      return;
+    }
+    if (m == NaturalMode.matrix || m == NaturalMode.vector) {
+      _grid = null;
+      _history.clear();
+      _clearInput();
+      _menu = _pickVariable(matrix: m == NaturalMode.matrix, dim: true);
+      return;
+    }
     _history.clear();
     _clearInput();
   }
@@ -1107,7 +2296,7 @@ class NaturalCalculator implements CalcEngine {
       ),
       4: () => _menu = _Menu(
         const ['Frequency?', '1:ON    2:OFF'],
-        {1: () => statFrequency = true, 2: () => statFrequency = false},
+        {1: () => _setFrequency(true), 2: () => _setFrequency(false)},
       ),
       5: () => _menu = _Menu(
         const ['1:Dot   2:Comma'],
@@ -1170,6 +2359,7 @@ class NaturalCalculator implements CalcEngine {
   }
 
   void _clearMemory() {
+    _linear.clear();
     for (final k in _vars.keys) {
       _vars[k] = Value.zero;
     }
@@ -1259,8 +2449,11 @@ class NaturalCalculator implements CalcEngine {
       },
       if (format.mode == DisplayMode.fix) Indicator.fix,
       if (format.mode == DisplayMode.sci) Indicator.sci,
-      if (mathInput) Indicator.math,
+      if (_mathIO) Indicator.math,
       if (mode == NaturalMode.cmplx) Indicator.cmplx,
+      if (mode == NaturalMode.stat) Indicator.stat,
+      if (mode == NaturalMode.matrix) Indicator.mat,
+      if (mode == NaturalMode.vector) Indicator.vct,
     };
     CursorRect? cursor;
     final text = StringBuffer();
@@ -1295,6 +2488,18 @@ class NaturalCalculator implements CalcEngine {
       bmp.text(0, 24, 'L-R=');
       bmp.text(DotScreen.width - textWidth(lr) - 1, 24, lr);
       text.write('${eq.input} | X= $x | L-R= $lr');
+    } else if (mode == NaturalMode.table &&
+        _menu == null &&
+        (_tablePrompt != null || _table != null)) {
+      _paintTable(bmp, text);
+    } else if (_grid != null && _menu == null) {
+      _paintGrid(bmp, text);
+    } else if (_eqnType != null && _menu == null) {
+      _eqnCursor = null;
+      _paintEqn(bmp, text);
+      cursor = _eqnCursor;
+    } else if (_editor && _menu == null) {
+      _paintEditor(bmp, text);
     } else if (_menu != null) {
       final m = _menu!;
       for (var i = 0; i < m.lines.length && i < 4; i++) {
@@ -1349,6 +2554,17 @@ class NaturalCalculator implements CalcEngine {
       text.write(' = ');
       _paintResult(bmp, text);
     }
+    if (mode == NaturalMode.base) {
+      final name = _baseNames[_base]!;
+      final x = DotScreen.width - smallTextWidth(name);
+      for (var y = 0; y < 6; y++) {
+        for (var i = x - 2; i < DotScreen.width; i++) {
+          bmp.set(i, y, false);
+        }
+      }
+      bmp.smallText(x, 0, name);
+      text.write(' [$name]');
+    }
     return editing ? cursor : null;
   }
 
@@ -1362,14 +2578,20 @@ class NaturalCalculator implements CalcEngine {
     );
     final form = r.isComplex ? null : _shownForm();
     MathRow row;
-    if (r.isComplex) {
+    if (mode == NaturalMode.base) {
+      try {
+        row = _baseRow(r);
+      } on CalcError {
+        row = MathRow([TokItem(Tok.negative)]);
+      }
+    } else if (r.isComplex) {
       row = _complexRow(r);
     } else if (form is FractionForm) {
       final improperView = improper != _flipMixed;
       row = _fractionRow(
         form.value,
         improperView,
-        linear: !(mathInput && mathOutput),
+        linear: !(_mathIO && mathOutput),
       );
     } else if (form is SurdForm) {
       row = _surdRow(form.value);
@@ -1494,7 +2716,7 @@ class NaturalCalculator implements CalcEngine {
   /// a+bi or r∠θ, each part in its exact form when one fits.
   MathRow _complexRow(Value v) {
     final polar = _polarOverride ?? polarComplex;
-    final exact = mathInput && mathOutput && !_alternate && !_decimalFirst;
+    final exact = _mathIO && mathOutput && !_alternate && !_decimalFirst;
     MathRow part(Dec x) {
       if (exact) {
         final f = exactFormOf(Value.dec(x));
@@ -1622,6 +2844,22 @@ class NaturalCalculator implements CalcEngine {
     'contrast': contrast,
     'vars': {for (final e in _vars.entries) e.key: e.value.dec.toString()},
     'ans': _ans.dec.toString(),
+    'mode': mode.name,
+    'base': _base,
+    'statType': statType.name,
+    'stat': [
+      for (final i in _stat.items)
+        [i.x.toString(), i.y?.toString(), i.freq.toString()],
+    ],
+    'linear': {
+      for (final e in _linear.entries)
+        e.key: e.value.isMatrix
+            ? [
+                for (final row in e.value.matrix!)
+                  [for (final x in row) x.toString()],
+              ]
+            : [for (final x in e.value.vector!) x.toString()],
+    },
   };
 
   @override
@@ -1660,5 +2898,59 @@ class NaturalCalculator implements CalcEngine {
     }
     final ans = s['ans'];
     if (ans is String) _ans = Value.dec(Dec.parse(ans));
+    final m = s['mode'];
+    if (m is String) {
+      mode = NaturalMode.values.firstWhere(
+        (x) => x.name == m,
+        orElse: () => NaturalMode.comp,
+      );
+      // Editors and menus are not restored; EQN / STAT open their menus
+      // again when chosen.
+      if (mode == NaturalMode.eqn) mode = NaturalMode.comp;
+    }
+    final b = s['base'];
+    if (b is int && const {2, 8, 10, 16}.contains(b)) _base = b;
+    final t = s['statType'];
+    if (t is String) {
+      final type = StatType.values.firstWhere(
+        (x) => x.name == t,
+        orElse: () => StatType.oneVar,
+      );
+      _setStatType(type);
+      _editor = false;
+    }
+    final stat = s['stat'];
+    if (stat is List) {
+      _stat.clear();
+      for (final row in stat) {
+        if (row is! List || row.length != 3) continue;
+        final [x, y, f] = row;
+        if (x is! String || f is! String) continue;
+        _stat.add(
+          StatItem(
+            Dec.parse(x),
+            y: y is String ? Dec.parse(y) : null,
+            freq: Dec.parse(f),
+          ),
+        );
+      }
+    }
+    final linear = s['linear'];
+    if (linear is Map) {
+      _linear.clear();
+      for (final MapEntry(:key, :value) in linear.entries) {
+        if (key is! String || value is! List || value.isEmpty) continue;
+        if (value.first is List) {
+          _linear[key] = Value.matrix([
+            for (final row in value)
+              [for (final x in row as List) Dec.parse(x as String)],
+          ]);
+        } else {
+          _linear[key] = Value.vector([
+            for (final x in value) Dec.parse(x as String),
+          ]);
+        }
+      }
+    }
   }
 }

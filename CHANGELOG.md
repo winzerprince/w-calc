@@ -2,6 +2,31 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [0.4.0-beta] - 2026-11-23
+
+All eight modes on the textbook-display models, and working key vibration on Android.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
+### Fixed
+- Android: key-press vibration now uses the vibrator directly, so it works even when the phone's
+  touch-feedback setting is off.
+
+### Added
+- Textbook models: STAT mode with the eight regression types (incl. A·B^x), Stat Editor
+  (FREQ column, DEL row, Ins, Del-A), and the Sum / Var / Reg / Distr / MinMax menus.
+- Textbook models: EQN mode (2-3 unknowns, quadratic, cubic) with a Coefficient Editor that
+  accepts fractions and √, exact quadratic roots (−1/2 ± √2/2 i, double root shown once).
+- Textbook models: BASE-N mode (16-bit binary, 32-bit octal / hex, padded results, logic
+  menu with d h b o prefixes).
+- Textbook models: MATRIX and VECTOR modes (Dim / Data menus, grid editor, MatAns / VctAns
+  screens that continue with an operator, det, Trn, inverse, powers, Abs, Dot, cross product).
+  All eight textbook modes now work.
+- Textbook models remember the mode, BASE-N number system, STAT data and matrices / vectors
+  across restarts.
+- Textbook models: TABLE mode (f(X), Start / End / Step, up to 30 rows, Insufficient MEM).
+
 ## [0.3.0-beta] - 2026-11-23
 
 Textbook-display calculators (silver and black bodies), exact results and a searchable manual.
