@@ -225,4 +225,10 @@ void main() {
       '1÷4 = 0.25',
     ]);
   });
+
+  test('INS wraps what follows into the next function: 1+√(7/6)', () {
+    press('1 + 7 frac 6 > < < < < < SHIFT DEL √');
+    expect(c.screen.text, startsWith('1+sqrt{fraction{7|6}}'));
+    expect(result('='), contains('sqrt{42}'));
+  });
 }

@@ -181,6 +181,10 @@ class NaturalCalculator implements CalcEngine {
   bool _rcl = false;
   bool _off = false;
 
+  /// Math display: SHIFT DEL (INS) makes the next template wrap the
+  /// expression right of the cursor.
+  bool _wrapNext = false;
+
   /// LineIO overwrite mode (SHIFT DEL).
   bool _overwrite = false;
 
@@ -429,7 +433,8 @@ class NaturalCalculator implements CalcEngine {
     final continues =
         t == MathTemplate.power || t == MathTemplate.fraction && _resultShown;
     _beforeInput(continues: continues);
-    _ed.insertTemplate(t);
+    _ed.insertTemplate(t, wrap: _wrapNext);
+    _wrapNext = false;
   }
 
   // ------------------------------------------------------------- key maps
@@ -635,7 +640,11 @@ class NaturalCalculator implements CalcEngine {
       case CalcKey.equals:
         _execute(decimal: true);
       case CalcKey.del:
-        if (!_mathIO) _overwrite = !_overwrite;
+        if (_mathIO) {
+          _wrapNext = true; // INS: the next function takes what follows
+        } else {
+          _overwrite = !_overwrite;
+        }
       case CalcKey.ac:
         _off = true;
       case CalcKey.mode:

@@ -134,6 +134,11 @@ const manualChapters = <ManualChapter>[
             ManualStep('Linear display.', 'SHIFT MODE 2'),
           ]),
           Tip(
+            'Forgot a root or a fraction? Put the cursor before the part, press '
+            'SHIFT DEL (INS) and then the function: what follows is wrapped '
+            'inside it.',
+          ),
+          Tip(
             'A function with a bracket such as sin( or log( needs its closing '
             'bracket: sin(30)+15, not sin(30+15). The last brackets before = '
             'may be left out.',
