@@ -51,7 +51,9 @@
     .fine a { color: var(--muted); }
     #frame { flex: none; width: 412px; height: min(880px, calc(100vh - 64px)); padding: 12px; border-radius: 44px;
       background: linear-gradient(145deg, #2A2F45, #11131F); box-shadow: 0 30px 80px rgba(0,0,0,.55), inset 0 0 0 2px rgba(255,255,255,.08); }
-    #app-host { position: relative; width: 100%; height: 100%; border-radius: 34px; overflow: hidden; background: #15171C; }
+    #app-host { position: relative; width: 100%; height: 100%; border-radius: 34px; overflow: hidden; background: #15171C;
+      clip-path: inset(0 round 34px); isolation: isolate; }
+    #app-host flutter-view { border-radius: inherit; }
     #splash { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 18px; background: #15171C; color: var(--muted); transition: opacity .35s; z-index: 2; font-size: 15px; }
     #splash img { width: 88px; height: 88px; border-radius: 22px; animation: pulse 1.4s ease-in-out infinite; }
@@ -62,7 +64,7 @@
       #page { display: block; padding: 0; }
       #info { display: none; }
       #frame { width: 100%; height: 100vh; height: 100dvh; padding: 0; border-radius: 0; background: none; box-shadow: none; }
-      #app-host { border-radius: 0; }
+      #app-host { border-radius: 0; clip-path: none; }
     }
   </style>
 </head>
