@@ -3,6 +3,9 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 
 import '../ui/keypad_layout.dart';
 
+/// Engine families: two-line LCD models and textbook-display models.
+enum CalcFamily { twoLine, textbook }
+
 /// A calculator the user can choose: what it can do and which printed
 /// legends it shows. All models share the engine and the keypad geometry;
 /// future models can bring their own layouts and skins.
@@ -15,7 +18,21 @@ class CalcModel {
     this.hiddenLegends = const {},
     this.hideEngineeringSymbols = false,
     this.layout = twoLineLayout,
+    this.family = CalcFamily.twoLine,
+    this.skinId,
   });
+
+  /// Which engine (and LCD) the model uses.
+  final CalcFamily family;
+
+  /// Skin applied when the user picks this model (they may change it).
+  final String? skinId;
+
+  /// A fresh engine for this model.
+  CalcEngine createEngine() => switch (family) {
+    CalcFamily.twoLine => Calculator(features: features),
+    CalcFamily.textbook => NaturalCalculator(),
+  };
 
   final String id;
   final String name;
@@ -77,7 +94,31 @@ class CalcModel {
     layout: gridLayout,
   );
 
-  static const all = [plus, grid, basic];
+  static const textbook = CalcModel(
+    id: 'textbook',
+    name: 'Textbook Plus',
+    description:
+        'Natural textbook display: fractions, roots and powers as written. '
+        'Silver body with a round cursor disc',
+    features: CalcFeatures.full,
+    layout: textbookDiscLayout,
+    family: CalcFamily.textbook,
+    skinId: 'silver',
+  );
+
+  static const textbook2 = CalcModel(
+    id: 'textbook2',
+    name: 'Textbook Plus II',
+    description:
+        'Same functions as Textbook Plus in the newer black body with four '
+        'arrow keys',
+    features: CalcFeatures.full,
+    layout: textbookCrossLayout,
+    family: CalcFamily.textbook,
+    skinId: 'black',
+  );
+
+  static const all = [plus, grid, basic, textbook, textbook2];
 
   static CalcModel byId(String? id) =>
       all.firstWhere((m) => m.id == id, orElse: () => plus);
@@ -113,7 +154,8 @@ class CalcModel {
   }
 
   /// Key caps without a function on this model are drawn faded.
-  bool keyEnabled(CalcKey key) => features.allows(key, shift: false);
+  bool keyEnabled(CalcKey key) =>
+      family == CalcFamily.textbook || features.allows(key, shift: false);
 }
 
 /// Provides the active [CalcModel] to the widget tree.

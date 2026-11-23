@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_settings.dart';
 import '../../app/calc_model.dart';
 import '../haptics.dart';
+import '../skin.dart';
 import 'page_scaffold.dart';
 
 String modelName(String id) => CalcModel.byId(id).name;
@@ -18,15 +19,22 @@ class ModelPage extends StatelessWidget {
       title: 'Calculator model',
       children: [
         const PageText(
-          'Choose the calculator you know. Memories and data are kept; '
-          'keys a model does not have are shown faded and do nothing.',
+          'Choose the calculator you know. Models of the same family share '
+          'memories and data; keys a model does not have are shown faded.',
         ),
         RadioGroup<String>(
           groupValue: settings.modelId,
           onChanged: (id) {
             if (id == null) return;
             keyVibration();
-            settings.update(modelId: id);
+            final from = CalcModel.byId(settings.modelId);
+            final to = CalcModel.byId(id);
+            // A model brings its own body colours; going back to a two-line
+            // model from a textbook one restores the classic look.
+            final skin =
+                to.skinId ??
+                (from.family != to.family ? CalcSkin.classic.id : null);
+            settings.update(modelId: id, skinId: skin);
           },
           child: Column(
             children: [

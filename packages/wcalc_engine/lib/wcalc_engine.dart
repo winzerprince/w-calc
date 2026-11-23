@@ -2,6 +2,7 @@
 library;
 
 export 'src/angle_unit.dart';
+export 'src/calc_engine.dart';
 export 'src/calc_key.dart';
 export 'src/calculator.dart';
 export 'src/display_state.dart';

@@ -408,6 +408,9 @@ const numberRows = [
   ],
 ];
 
+/// Cursor key cluster: one round disc, or four separate arrow keys.
+enum PadStyle { disc, cross }
+
 /// Arrangement of a calculator's keys. Every layout drives the same engine;
 /// only the physical look differs.
 class KeypadLayout {
@@ -418,6 +421,7 @@ class KeypadLayout {
     required this.topRight,
     required this.functionRows,
     required this.numberRows,
+    this.pad = PadStyle.disc,
   }) : topRows = const [],
        hasDisc = true;
 
@@ -429,10 +433,14 @@ class KeypadLayout {
     required this.numberRows,
   }) : topLeft = const [],
        topRight = const [],
-       hasDisc = false;
+       hasDisc = false,
+       pad = PadStyle.disc;
 
   final String id;
   final bool hasDisc;
+
+  /// Shape of the cursor keys between the top-left and top-right keys.
+  final PadStyle pad;
 
   /// Disc layouts: rows left and right of the disc.
   final List<List<KeySpec>> topLeft;
@@ -526,4 +534,341 @@ const gridLayout = KeypadLayout.grid(
   ],
   functionRows: functionRows,
   numberRows: numberRows,
+);
+
+// ---------------------------------------------------------------------------
+// Textbook-display models (silver / black units). Same keys, different body.
+
+const _tbTopLeft = [
+  [
+    KeySpec(
+      CalcKey.shift,
+      'SHIFT',
+      above: [KeyLabel('SHIFT', _s)],
+      style: KeyStyle.modifier,
+    ),
+    KeySpec(
+      CalcKey.alpha,
+      'ALPHA',
+      above: [KeyLabel('ALPHA', _a)],
+      style: KeyStyle.modifier,
+    ),
+  ],
+  [
+    KeySpec(
+      CalcKey.calc,
+      'CALC',
+      above: [
+        KeyLabel('SOLVE', _s),
+        KeyLabel('=', _a, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.integrate,
+      '∫□',
+      above: [
+        KeyLabel('d/dx', _s),
+        KeyLabel(':', _a, slot: _r),
+      ],
+    ),
+  ],
+];
+
+const _tbTopRight = [
+  [
+    KeySpec(
+      CalcKey.mode,
+      'MODE',
+      above: [
+        KeyLabel('MODE', _p),
+        KeyLabel('SETUP', _s, slot: _r),
+      ],
+      style: KeyStyle.modifier,
+    ),
+    KeySpec(
+      CalcKey.on,
+      'ON',
+      above: [KeyLabel('ON', _p, slot: _m)],
+      style: KeyStyle.modifier,
+    ),
+  ],
+  [
+    KeySpec(
+      CalcKey.reciprocal,
+      'x^{-1}',
+      above: [KeyLabel('x!', _s, slot: _m)],
+    ),
+    KeySpec(CalcKey.logBase, 'log□', above: [KeyLabel('Σ□', _s, slot: _m)]),
+  ],
+];
+
+const _tbFunctionRows = [
+  [
+    KeySpec(CalcKey.fraction, '□/□', above: [KeyLabel('□□/□', _s, slot: _m)]),
+    KeySpec(CalcKey.sqrt, '√□', above: [KeyLabel('∛□', _s, slot: _m)]),
+    KeySpec(
+      CalcKey.square,
+      'x^{2}',
+      above: [
+        KeyLabel('x^{3}', _s),
+        KeyLabel('DEC', _b, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.power,
+      'x^{□}',
+      above: [
+        KeyLabel('^{x}√□', _s),
+        KeyLabel('HEX', _b, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.log,
+      'log',
+      above: [
+        KeyLabel('10^{□}', _s),
+        KeyLabel('BIN', _b, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.ln,
+      'ln',
+      above: [
+        KeyLabel('e^{□}', _s),
+        KeyLabel('OCT', _b, slot: _r),
+      ],
+    ),
+  ],
+  [
+    KeySpec(
+      CalcKey.negative,
+      '(−)',
+      above: [
+        KeyLabel('∠', _s, bracket: _c),
+        KeyLabel('A', _a, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.degMinSec,
+      '°′″',
+      above: [
+        KeyLabel('←', _s),
+        KeyLabel('B', _a, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.hyp,
+      'hyp',
+      above: [
+        KeyLabel('Abs', _s),
+        KeyLabel('C', _a, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.sin,
+      'sin',
+      above: [
+        KeyLabel('sin^{-1}', _s),
+        KeyLabel('D', _a, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.cos,
+      'cos',
+      above: [
+        KeyLabel('cos^{-1}', _s),
+        KeyLabel('E', _a, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.tan,
+      'tan',
+      above: [
+        KeyLabel('tan^{-1}', _s),
+        KeyLabel('F', _a, slot: _r),
+      ],
+    ),
+  ],
+  [
+    KeySpec(CalcKey.rcl, 'RCL', above: [KeyLabel('STO', _s, slot: _m)]),
+    KeySpec(
+      CalcKey.eng,
+      'ENG',
+      above: [
+        KeyLabel('←', _s),
+        KeyLabel('i', _a, slot: _r),
+      ],
+    ),
+    KeySpec(CalcKey.openParen, '(', above: [KeyLabel('%', _s, slot: _m)]),
+    KeySpec(
+      CalcKey.closeParen,
+      ')',
+      above: [
+        KeyLabel(',', _s),
+        KeyLabel('X', _a, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.sd,
+      'S⇔D',
+      above: [
+        KeyLabel('a^{b}/c⇔d/c', _s),
+        KeyLabel('Y', _a, slot: _r),
+      ],
+    ),
+    KeySpec(
+      CalcKey.mPlus,
+      'M+',
+      above: [
+        KeyLabel('M−', _s),
+        KeyLabel('M', _a, slot: _r),
+      ],
+    ),
+  ],
+];
+
+const _tbNumberRows = [
+  [
+    KeySpec(
+      CalcKey.d7,
+      '7',
+      above: [KeyLabel('CONST', _s, slot: _m)],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(
+      CalcKey.d8,
+      '8',
+      above: [KeyLabel('CONV', _s, slot: _m)],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(
+      CalcKey.d9,
+      '9',
+      above: [KeyLabel('CLR', _s, slot: _m)],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(
+      CalcKey.del,
+      'DEL',
+      above: [KeyLabel('INS', _s, slot: _m)],
+      style: KeyStyle.clear,
+    ),
+    KeySpec(
+      CalcKey.ac,
+      'AC',
+      above: [KeyLabel('OFF', _s, slot: _m)],
+      style: KeyStyle.clear,
+    ),
+  ],
+  [
+    KeySpec(
+      CalcKey.d4,
+      '4',
+      above: [KeyLabel('MATRIX', _s, slot: _m, bracket: _s)],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(
+      CalcKey.d5,
+      '5',
+      above: [KeyLabel('VECTOR', _s, slot: _m, bracket: _s)],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(CalcKey.d6, '6', style: KeyStyle.digit),
+    KeySpec(
+      CalcKey.multiply,
+      '×',
+      above: [KeyLabel('nPr', _s, slot: _m)],
+      style: KeyStyle.operator,
+    ),
+    KeySpec(
+      CalcKey.divide,
+      '÷',
+      above: [KeyLabel('nCr', _s, slot: _m)],
+      style: KeyStyle.operator,
+    ),
+  ],
+  [
+    KeySpec(
+      CalcKey.d1,
+      '1',
+      above: [KeyLabel('STAT', _s, slot: _m, bracket: _s)],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(
+      CalcKey.d2,
+      '2',
+      above: [KeyLabel('CMPLX', _s, slot: _m, bracket: _s)],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(
+      CalcKey.d3,
+      '3',
+      above: [KeyLabel('BASE', _s, slot: _m, bracket: _s)],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(
+      CalcKey.add,
+      '+',
+      above: [KeyLabel('Pol', _s, slot: _m)],
+      style: KeyStyle.operator,
+    ),
+    KeySpec(
+      CalcKey.subtract,
+      '−',
+      above: [KeyLabel('Rec', _s, slot: _m)],
+      style: KeyStyle.operator,
+    ),
+  ],
+  [
+    KeySpec(
+      CalcKey.d0,
+      '0',
+      above: [KeyLabel('Rnd', _s, slot: _m)],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(
+      CalcKey.dot,
+      '•',
+      above: [
+        KeyLabel('Ran#', _s),
+        KeyLabel('RanInt', _a, slot: _r),
+      ],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(
+      CalcKey.exp,
+      '×10^{x}',
+      above: [
+        KeyLabel('π', _s),
+        KeyLabel('e', _a, slot: _r),
+      ],
+      style: KeyStyle.digit,
+    ),
+    KeySpec(
+      CalcKey.ans,
+      'Ans',
+      above: [KeyLabel('DRG▸', _s, slot: _m)],
+      style: KeyStyle.operator,
+    ),
+    KeySpec(CalcKey.equals, '=', style: KeyStyle.operator),
+  ],
+];
+
+/// Silver body: round REPLAY disc.
+const textbookDiscLayout = KeypadLayout.disc(
+  id: 'textbook-disc',
+  topLeft: _tbTopLeft,
+  topRight: _tbTopRight,
+  functionRows: _tbFunctionRows,
+  numberRows: _tbNumberRows,
+);
+
+/// Black body: four separate arrow keys.
+const textbookCrossLayout = KeypadLayout.disc(
+  id: 'textbook-cross',
+  topLeft: _tbTopLeft,
+  topRight: _tbTopRight,
+  functionRows: _tbFunctionRows,
+  numberRows: _tbNumberRows,
+  pad: PadStyle.cross,
 );
