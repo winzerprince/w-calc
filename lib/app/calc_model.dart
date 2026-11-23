@@ -25,7 +25,11 @@ class CalcModel {
     this.indicatorLabels = const {},
     this.bigLinear = false,
     this.listNames = false,
+    this.menuCursor = false,
   });
+
+  /// Textbook family: menus as highlighted option rows (◀ ▶, =).
+  final bool menuCursor;
 
   /// Textbook family: statistics editor columns L1, L2, L3.
   final bool listNames;
@@ -56,6 +60,7 @@ class CalcModel {
       modes: naturalModes,
       bigLinear: bigLinear,
       listNames: listNames,
+      menuCursor: menuCursor,
     ),
   };
 
@@ -158,6 +163,7 @@ class CalcModel {
     naturalModes: {NaturalMode.comp, NaturalMode.stat, NaturalMode.table},
     indicatorLabels: {Indicator.shift: '2nd'},
     listNames: true,
+    menuCursor: true,
   );
 
   /// Four-line textbook display, 2ndF key, round cursor pad.
@@ -196,6 +202,7 @@ class CalcModel {
     profile: NaturalProfile.twoLine,
     naturalModes: {NaturalMode.comp, NaturalMode.stat},
     indicatorLabels: {Indicator.shift: '2nd'},
+    menuCursor: true,
   );
 
   /// Textbook display with bigger linear algebra (four 4 × 4 matrices,
