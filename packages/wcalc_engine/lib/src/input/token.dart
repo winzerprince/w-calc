@@ -42,6 +42,9 @@ enum TokKind {
 
   /// CMPLX result-format commands at the end of an expression (▶r∠θ, ▶a+bi).
   formatCommand,
+
+  /// `;` before a data frequency (SD/REG data input).
+  dataSep,
 }
 
 /// One input step on the upper line. Each key press inserts one token, so
@@ -138,6 +141,36 @@ enum Tok {
   conjg('Conjg ', TokKind.prefix),
   toPolar('▶r∠θ', TokKind.formatCommand),
   toRect('▶a+bi', TokKind.formatCommand),
+  freqSep(';', TokKind.dataSep),
+  // SD/REG statistics values (S-SUM / S-VAR) and estimates; x̄ ȳ x̂ ŷ use
+  // private-use characters drawn by the LCD font.
+  statSumX2('Σx²', TokKind.operand),
+  statSumX('Σx', TokKind.operand),
+  statN('n', TokKind.operand),
+  statSumY2('Σy²', TokKind.operand),
+  statSumY('Σy', TokKind.operand),
+  statSumXY('Σxy', TokKind.operand),
+  statSumX3('Σx³', TokKind.operand),
+  statSumX2Y('Σx²y', TokKind.operand),
+  statSumX4('Σx⁴', TokKind.operand),
+  statMeanX('\uE000', TokKind.operand),
+  statSigmaX('xσn', TokKind.operand),
+  statSampleX('xσn-1', TokKind.operand),
+  statMeanY('\uE001', TokKind.operand),
+  statSigmaY('yσn', TokKind.operand),
+  statSampleY('yσn-1', TokKind.operand),
+  regA('A', TokKind.operand),
+  regB('B', TokKind.operand),
+  regC('C', TokKind.operand),
+  regR('r', TokKind.operand),
+  estX('\uE002', TokKind.postfix),
+  estX1('\uE0021', TokKind.postfix),
+  estX2('\uE0022', TokKind.postfix),
+  estY('\uE003', TokKind.postfix),
+  toT('▶t', TokKind.postfix),
+  distP('P(', TokKind.function),
+  distQ('Q(', TokKind.function),
+  distR('R(', TokKind.function),
   derivative('d/dx(', TokKind.function),
   // Scientific constants (CONST 01-40) and metric conversions (CONV 01-40).
   const01('mₚ', TokKind.constant),

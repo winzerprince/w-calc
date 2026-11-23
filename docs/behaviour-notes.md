@@ -58,3 +58,10 @@ how to verify on the device, result.
 | 51 | CMPLX functions | only + − × ÷, integer powers, x², x³, x⁻¹, Abs, arg, Conjg, ∠ accept complex values; other functions of a complex value → Math ERROR | `sin(1+i)` | to verify |
 | 52 | Mode change | MODE 1 / MODE 2 clears input, result and history; memories kept | | to verify |
 | 53 | CMPLX restrictions | ∫dx, d/dx, SOLVE keys do nothing in CMPLX; SHIFT + / − are ▶r∠θ / ▶a+bi instead of Pol( / Rec( | | to verify |
+| 54 | Statistics last digit | W-Calc gives correctly rounded exact values; the manual shows `x▶t = -0.284747398` and `r = 0.982607368` where exact rounding gives `…399` / `…369` — the device's statistics routine loses ~1e-10 | manual SD/REG examples | to verify on device |
+| 55 | Data capacity | SD 80 items, REG 40 pairs, then `EditOFF ESC` (EditOFF keeps sums but later items cannot be shown/edited) | enter many values | to verify capacities |
+| 56 | Changing mode | leaving SD/REG (or switching between them) clears statistical data | | to verify |
+| 57 | DISTR results | P(, Q(, R( rounded to 5 decimals (manual shows `0.38974`) | `DISTR 1 (−)0.28 ) =` | to verify |
+| 58 | Data screens | `x1=`, `y1=`, `Freq1=` (Freq only when ≠ 1); typing + `=` replaces, typing + DT adds | ▲ in SD | to verify labels |
+| 59 | DT after `n=` | repeats the last item (DT DT = same value twice) | `53 DT DT` | — |
+| 60 | CL | deletes the last item (or the shown item in data view) | `SHIFT M+` | to verify |

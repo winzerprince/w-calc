@@ -2,6 +2,19 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [0.0.8-alpha] - 2026-11-23
+
+Statistics (M8), ×10 mark and menu.
+
+### Added
+- SD mode: DT data entry with frequencies (`;`), DT DT repeat, CL, Scl; S-SUM (Σx², Σx, n) and
+  S-VAR (x̄, xσn, xσn−1); ▲▼ data screens with edit / add / delete; Data Full (EditOFF / ESC).
+- REG mode: Lin, Log, Exp, Pwr, Inv, Quad regression; Σy², Σy, Σxy, Σx³, Σx²y, Σx⁴, ȳ, yσn,
+  yσn−1, A, B, C, r, x̂, ŷ, x̂1, x̂2 usable in expressions.
+- Normal distribution (SD): P(, Q(, R(, ▶t.
+- Result line: printed ×10 between mantissa and exponent.
+- W-Calc menu (tap the name): Settings, Theme, User guide, Keyboard shortcuts, About (coming soon).
+
 ## [0.0.7-alpha] - 2026-11-23
 
 Complex numbers (M7).

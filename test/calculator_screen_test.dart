@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:w_calc/main.dart';
@@ -85,6 +86,43 @@ void main() {
     await tapKey(tester, 'rcl');
     await tapKey(tester, 'negative');
     expect(lcdText(tester, 'lower'), '42.');
+  });
+
+  testWidgets('W-Calc opens the menu; ✕ closes it', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const WCalcApp());
+    await tester.tap(find.byKey(const Key('app-menu-button')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const Key('app-menu')), findsOneWidget);
+    for (final title in ['Settings', 'Theme', 'User guide', 'About W-Calc']) {
+      expect(find.text(title), findsOneWidget);
+    }
+
+    await tester.tap(find.text('Theme'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Theme is coming in a later update.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('app-menu-close')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const Key('app-menu')), findsNothing);
+  });
+
+  testWidgets('Escape closes the menu', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(const WCalcApp());
+    await tester.tap(find.byKey(const Key('app-menu-button')));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const Key('app-menu')), findsNothing);
   });
 
   testWidgets('SHIFT lights the S indicator', (tester) async {
