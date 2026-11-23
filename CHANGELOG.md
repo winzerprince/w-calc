@@ -4,6 +4,11 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Changed
+- Header: W-Calc sits top left above the menu icon; history and graph buttons have fixed slots,
+  so nothing shifts when they appear; solar panel and model name top right.
+- New app icon: indigo tile, bright display, white keys with an orange accent.
+
 ### Added
 - Graph: mouse wheel / trackpad scroll zooms around the pointer (web).
 
