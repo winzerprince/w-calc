@@ -4,12 +4,16 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Removed
+- Keyboard shortcuts page (physical keyboards still work).
+
 ### Added
 - Model picker shows a miniature of each calculator (its real keypad and colours).
 - Focus mode: tap the solar panel to show the calculator full screen (system bars hidden, or
   browser full screen); tap again to return.
 
 ### Changed
+- About page shortened to version, purpose, notice and legal information.
 - Licence: W-Calc is now proprietary (all rights reserved). Versions up to v0.4.0-beta remain
   GPL-3.0-or-later for anyone who received them.
 
