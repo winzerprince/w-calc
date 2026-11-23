@@ -1306,6 +1306,39 @@ const manualChapters = <ManualChapter>[
         ],
       ),
       ManualArticle(
+        id: 'look',
+        title: 'Themes, finishes and app settings',
+        summary: 'Colours, key surfaces, full screen, vibration and help.',
+        keywords: [
+          'theme',
+          'finish',
+          'colour',
+          'dark',
+          'vibration',
+          'tour',
+          'full screen',
+        ],
+        blocks: [
+          Steps([
+            ManualStep('Menu ▸ Theme: colours for the body, keys and display.'),
+            ManualStep(
+              'Menu ▸ Theme ▸ Finish: Classic, Glossy, Matte, Rubber, Metallic, Flat, Raised or Soft keys.',
+            ),
+            ManualStep(
+              'Tap the solar panel for full screen; tap it again to return.',
+            ),
+            ManualStep('Menu ▸ Settings: key vibration and click sound.'),
+            ManualStep(
+              'Menu ▸ Settings ▸ Help: replay the tours for the calculator, models, theme and manual.',
+            ),
+            ManualStep('Long-press any key to see everything it does.'),
+          ]),
+          Tip(
+            'Choosing a model switches to its own theme; you can change it afterwards.',
+          ),
+        ],
+      ),
+      ManualArticle(
         id: 'errors',
         title: 'Error messages',
         summary: 'Math, Syntax, Stack, Dimension and other errors.',
