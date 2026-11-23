@@ -5,6 +5,7 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 
 /// Key names for the textbook keypad (on top of the shared ones).
 const _extra = <String, CalcKey>{
+  'x^': CalcKey.power,
   'sd': CalcKey.sd,
   'S<>D': CalcKey.sd,
   'frac': CalcKey.fraction,
@@ -397,6 +398,44 @@ void main() {
     test('defaults 1..5 step 1', () {
       press('MODE 7 ALPHA ) x2 = = = =');
       expect(calc.screen.text, 'TABLE | 1 1 | 2 4 | 3 9 | 4 16 | 5 25');
+    });
+  });
+
+  group('BASE-N', () {
+    setUp(() => press('MODE 4'));
+    test('binary 11 + 1 = 100 (16 digits)', () {
+      expect(result('log 11 + 1 ='), '0000000000000100 [Bin]');
+    });
+    test('hex 1F + 1 = 20', () {
+      expect(result('x^ 1 tan + 1 ='), '00000020 [Hex]');
+    });
+    test('octal 7 + 1 = 10', () {
+      expect(result('ln 7 + 1 ='), '00000000010 [Oct]');
+    });
+    test('15 × 37 in DEC, shown in HEX / BIN / OCT', () {
+      expect(result('x2 15 × 37 ='), '555 [Dec]');
+      expect(result('x^'), '0000022B [Hex]');
+      expect(result('log'), '0000001000101011 [Bin]');
+      expect(result('ln'), '00000001053 [Oct]');
+    });
+    test('logic in binary: and, or, xor, xnor, Not, Neg', () {
+      press('log');
+      expect(result('1010 SHIFT 3 1 1100 ='), '0000000000001000 [Bin]');
+      expect(result('1011 SHIFT 3 2 11010 ='), '0000000000011011 [Bin]');
+      expect(result('1010 SHIFT 3 3 1100 ='), '0000000000000110 [Bin]');
+      expect(result('1111 SHIFT 3 4 101 ='), '1111111111110101 [Bin]');
+      expect(result('SHIFT 3 5 1010 ) ='), '1111111111110101 [Bin]');
+      expect(result('SHIFT 3 6 101101 ) ='), '1111111111010011 [Bin]');
+    });
+    test('d h b o prefixes: 10d + 10h + 10b + 10o = 36', () {
+      press('x2');
+      expect(
+        result(
+          'SHIFT 3 down 1 10 + SHIFT 3 down 2 10 + SHIFT 3 down 3 10 + '
+          'SHIFT 3 down 4 10 =',
+        ),
+        '36 [Dec]',
+      );
     });
   });
 }
