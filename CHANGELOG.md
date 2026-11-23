@@ -11,6 +11,10 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 - Keyboard shortcuts page (physical keyboards still work).
 
 ### Added
+- Manual: Advanced functions chapter (hyperbolic, Pol/Rec, ENG, DRG▸, °′″, multi-statements,
+  Abs/Rnd, replay and history).
+- Textbook models: multi-statements stop at each result (Disp); °′″ on a result switches to the
+  decimal.
 - Finishes (Menu ▸ Theme ▸ Finish): glossy plastic, soft-touch matte, rubber keys or metallic,
   for keys, cursor pad and body; the body is now a shaded shell with a rim and curved lower edge.
 - Model picker shows a miniature of each calculator (its real keypad and colours); tap it for a

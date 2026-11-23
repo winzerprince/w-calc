@@ -406,6 +406,192 @@ const manualChapters = <ManualChapter>[
     ],
   ),
   ManualChapter(
+    id: 'advanced',
+    title: 'Advanced functions',
+    icon: Icons.science_outlined,
+    articles: [
+      ManualArticle(
+        id: 'hyperbolic',
+        title: 'Hyperbolic functions',
+        summary: 'sinh, cosh, tanh and their inverses with the hyp key.',
+        keywords: ['sinh', 'cosh', 'tanh', 'hyperbolic', 'hyp'],
+        blocks: [
+          Para(
+            'Two-line models: press hyp before sin, cos or tan (SHIFT for the '
+            'inverse). Textbook models: hyp opens a menu: 1 sinh, 2 cosh, '
+            '3 tanh, 4-6 the inverses. The angle unit does not matter.',
+          ),
+          Example(
+            title: 'sinh 1',
+            keys: 'hyp sin 1 =',
+            result: '1.175201194',
+            verify: '1.175201194',
+            only: _two,
+          ),
+          Example(
+            title: 'sinh 1',
+            keys: 'hyp 1 1 ) =',
+            result: '1.175201194',
+            verify: '1.175201194',
+            only: _tb,
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'polar',
+        title: 'Polar and rectangular coordinates',
+        summary: 'Pol(x, y) gives r and θ; Rec(r, θ) gives x and y.',
+        keywords: ['pol', 'rec', 'polar', 'rectangular', 'coordinates'],
+        blocks: [
+          Para(
+            'Pol is SHIFT +, Rec is SHIFT −; separate the two values with a '
+            'comma. The first result is shown; both are stored: in E and F on '
+            'two-line models, in X and Y on textbook models. Set the angle '
+            'unit first.',
+          ),
+          Example(
+            title: 'Pol(1, 1): r = √2 (θ = 45° in Deg)',
+            keys: 'SHIFT + 1 , 1 ) =',
+            result: '1.414213562',
+            verify: '1.414213562',
+            only: _two,
+          ),
+          Example(
+            title: 'Pol(1, 1): r = √2 (θ = 45° in Deg)',
+            keys: 'SHIFT + 1 SHIFT ) 1 ) =',
+            result: '√2',
+            verify: 'sqrt{2}',
+            only: _tb,
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'engineering',
+        title: 'Engineering notation',
+        summary: 'ENG moves the decimal point in steps of three.',
+        keywords: ['eng', 'engineering', 'exponent', 'notation'],
+        blocks: [
+          Para(
+            'After a result, ENG shows it with an exponent that is a multiple '
+            'of 3; SHIFT ENG (←) moves the other way.',
+          ),
+          Example(
+            title: '1234 in engineering notation',
+            keys: '1234 = ENG',
+            result: '1.234 × 10³',
+            verify: '1.234E03',
+            only: _two,
+          ),
+          Example(
+            title: '1234 in engineering notation',
+            keys: '1234 = ENG',
+            result: '1.234 × 10³',
+            verify: '1.234×tenPow{3}',
+            only: _tb,
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'drg',
+        title: 'Converting angle units (DRG▸)',
+        summary: 'Mark a value as degrees, radians or grads.',
+        keywords: ['drg', 'radian', 'degree', 'grad', 'convert angle'],
+        blocks: [
+          Para(
+            'SHIFT Ans (DRG▸) then 1 °, 2 r or 3 g marks the value before it; '
+            'it is converted to the angle unit in use.',
+          ),
+          Example(
+            title: 'π/2 radians in degrees',
+            keys: '( SHIFT EXP ÷ 2 ) SHIFT Ans 2 =',
+            result: '90',
+            verify: '90',
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'sexagesimal',
+        title: 'Degrees, minutes and seconds',
+        summary: 'Enter °′″ values and convert to decimals.',
+        keywords: ['dms', 'minutes', 'seconds', 'sexagesimal', 'time'],
+        blocks: [
+          Para(
+            'Press °′″ after the degrees, the minutes and the seconds. On a '
+            'result, °′″ switches between degrees-minutes-seconds and the '
+            'decimal (two-line models use SHIFT °′″ to show a decimal result '
+            'in °′″).',
+          ),
+          Example(
+            title: '2°15′18″ as a decimal',
+            keys: '2 °′″ 15 °′″ 18 °′″ = °′″',
+            result: '2.255',
+            verify: '2.255',
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'multistatement',
+        title: 'Several calculations in one line',
+        summary: 'Join calculations with : (ALPHA ∫dx).',
+        keywords: ['multi-statement', 'colon', 'disp', 'chain'],
+        blocks: [
+          Para(
+            'Type : with ALPHA ∫dx between calculations. = shows the first '
+            'result (Disp on the display); each further = shows the next.',
+          ),
+          Example(
+            title: '3 + 3 : 3 × 3',
+            keys: '3 + 3 ALPHA ∫dx 3 × 3 =',
+            result: '6, then = gives 9',
+            verify: '6',
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'abs-rnd',
+        title: 'Absolute value and rounding (Abs, Rnd)',
+        summary: '|x| and rounding to the display format.',
+        keywords: ['abs', 'absolute', 'rnd', 'round', 'rounding'],
+        blocks: [
+          Para(
+            'Abs gives the distance from zero. Rnd (SHIFT 0) rounds a value '
+            'to the digits shown by Fix, Sci or Norm, so later steps use the '
+            'rounded number.',
+          ),
+          Example(
+            title: '|2 − 7| × 2',
+            keys: 'SHIFT hyp 2 - 7 > × 2 =',
+            result: '10',
+            verify: '10',
+            only: _tb,
+          ),
+          Example(
+            title: 'Rnd(10 ÷ 3) × 3 with Fix 3 (Linear display)',
+            setup: 'SHIFT MODE 2 SHIFT MODE 6 3',
+            keys: 'SHIFT 0 10 ÷ 3 ) × 3 =',
+            result: '9.999',
+            verify: '9.999',
+            only: _tb,
+          ),
+        ],
+      ),
+      ManualArticle(
+        id: 'history',
+        title: 'Replay and history',
+        summary: 'Edit the last calculation or step back through earlier ones.',
+        keywords: ['replay', 'history', 'edit', 'previous', 'up'],
+        blocks: [
+          Para(
+            'Right after a result, ◀ or ▶ opens the calculation for editing; '
+            'change it and press = again. ▲ and ▼ step through earlier '
+            'calculations and their results. History clears when the mode '
+            'changes or the calculator is switched off.',
+          ),
+        ],
+      ),
+    ],
+  ),
+  ManualChapter(
     id: 'memory',
     title: 'Memories',
     icon: Icons.save_outlined,
