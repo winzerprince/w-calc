@@ -58,4 +58,12 @@ void main() {
   test('odd roots of negatives stay real', () {
     expect(g('cbrt(x)').at(-8), closeTo(-2, 1e-12));
   });
+
+  test('intersections of x² and 2x + 3: (−1, 1) and (3, 9)', () {
+    final pts = intersections(g('x^2'), g('2x+3'), -10, 10);
+    expect(
+      pts.map((p) => '${p.x.toStringAsFixed(4)},${p.y.toStringAsFixed(4)}'),
+      ['-1.0000,1.0000', '3.0000,9.0000'],
+    );
+  });
 }

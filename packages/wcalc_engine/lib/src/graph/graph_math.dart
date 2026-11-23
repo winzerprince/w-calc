@@ -231,6 +231,36 @@ class GraphFunction {
   }
 }
 
+/// Points where [f] and [g] cross in [a, b].
+List<Offset2> intersections(
+  GraphFunction f,
+  GraphFunction g,
+  double a,
+  double b,
+) {
+  final diff = _Diff(f, g);
+  return [
+    for (final x in diff.roots(a, b, n: 300))
+      if (f.at(x) case final y?) (x: x, y: y),
+  ];
+}
+
+/// A plain (x, y) pair (the engine has no Flutter types).
+typedef Offset2 = ({double x, double y});
+
+class _Diff extends GraphFunction {
+  _Diff(this.f, this.g) : super(const []);
+
+  final GraphFunction f;
+  final GraphFunction g;
+
+  @override
+  double? at(double x) {
+    final a = f.at(x), b = g.at(x);
+    return a == null || b == null ? null : a - b;
+  }
+}
+
 /// Compiles calculator tokens to a double function (common functions only).
 class _Compiler {
   _Compiler(this.t, this.angle);
