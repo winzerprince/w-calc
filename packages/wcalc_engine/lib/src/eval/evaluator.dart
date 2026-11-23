@@ -9,6 +9,7 @@ import '../number/frac.dart';
 import '../number/functions.dart';
 import '../number/value.dart';
 import '../number/wide.dart';
+import '../stats/stats.dart';
 
 /// Priority levels from the device's "calculation priority sequence".
 /// Lower number = binds tighter. Equal levels evaluate left to right.
@@ -48,6 +49,7 @@ class EvalContext {
     this.variables = const {},
     this.improperFractions = false,
     this.store,
+    this.stats,
     math.Random? random,
   }) : ans = ans ?? Value.zero,
        random = random ?? math.Random();
@@ -63,6 +65,9 @@ class EvalContext {
 
   /// d/c display setting: mixed-fraction input is a Syntax ERROR.
   final bool improperFractions;
+
+  /// Statistical memory in SD/REG mode (null elsewhere).
+  final StatData? stats;
 
   /// Receives values functions write to variables (Pol/Rec → E, F).
   final void Function(String name, Value value)? store;
@@ -290,7 +295,8 @@ class _Evaluator {
             TokKind.literalMark ||
             TokKind.percent ||
             TokKind.equation ||
-            TokKind.formatCommand:
+            TokKind.formatCommand ||
+            TokKind.dataSep:
           _syntax(i); // Handled by literal parsing / the calculator.
         case TokKind.closeParen:
           if (expectOperand) _syntax(i);
@@ -411,6 +417,15 @@ class _Evaluator {
         ctx.store?.call('E', Value.dec(a));
         ctx.store?.call('F', Value.dec(b));
         return Value.dec(a);
+      case Tok.distP || Tok.distQ || Tok.distR:
+        if (args.length != 1) _syntax(pos);
+        if (args.single.isComplex) throw const CalcError(CalcErrorKind.math);
+        final t = args.single.dec;
+        return Value.dec(switch (f) {
+          Tok.distP => normalP(t),
+          Tok.distQ => normalQ(t),
+          _ => normalR(t),
+        });
       default:
         throw ArgumentError('not a function: $f');
     }
@@ -421,6 +436,8 @@ class _Evaluator {
     Tok.pi => Value.dec(piConstant),
     Tok.e => Value.dec(eConstant),
     Tok.imagUnit => Value.imaginaryUnit,
+    _ when tok.name.startsWith('stat') || tok.name.startsWith('reg') =>
+      Value.dec(_statValue(tok)),
     Tok.ran => Value.dec(Dec(BigInt.from(ctx.random.nextInt(1000)), -3)),
     _ when tok.name.startsWith('const') => Value.dec(
       constantValues[Tok.constants.indexOf(tok)],
@@ -429,6 +446,32 @@ class _Evaluator {
       ctx.variables[tok.text] ?? Value.zero,
     _ => throw ArgumentError('not an operand: $tok'),
   };
+
+  Dec _statValue(Tok tok) {
+    final s = ctx.stats ?? (throw const CalcError(CalcErrorKind.math));
+    return switch (tok) {
+      Tok.statSumX2 => s.sumX2,
+      Tok.statSumX => s.sumX,
+      Tok.statN => s.n,
+      Tok.statSumY2 => s.sumY2,
+      Tok.statSumY => s.sumY,
+      Tok.statSumXY => s.sumXY,
+      Tok.statSumX3 => s.sumX3,
+      Tok.statSumX2Y => s.sumX2Y,
+      Tok.statSumX4 => s.sumX4,
+      Tok.statMeanX => s.meanX,
+      Tok.statSigmaX => s.sigmaX,
+      Tok.statSampleX => s.sampleX,
+      Tok.statMeanY => s.meanY,
+      Tok.statSigmaY => s.sigmaY,
+      Tok.statSampleY => s.sampleY,
+      Tok.regA => s.a,
+      Tok.regB => s.b,
+      Tok.regC => s.c,
+      Tok.regR => s.r,
+      _ => throw ArgumentError('not a statistic: $tok'),
+    };
+  }
 
   /// Parses one plain number at [start]: (value, next index, integer digits only).
   (Dec, int, bool) _number(int start) {
@@ -602,6 +645,18 @@ class _Evaluator {
     final u = ctx.angle;
     final eng = _engExponents[tok];
     if (eng != null) return _d1((a) => a * Dec(BigInt.one, eng));
+    if (tok.name.startsWith('est') || tok == Tok.toT) {
+      return _d1((a) {
+        final s = ctx.stats ?? (throw const CalcError(CalcErrorKind.math));
+        return switch (tok) {
+          Tok.estX => s.estimateX(a),
+          Tok.estX1 => s.estimateX1(a),
+          Tok.estX2 => s.estimateX2(a),
+          Tok.estY => s.estimateY(a),
+          _ => s.toT(a),
+        };
+      });
+    }
     if (tok.name.startsWith('conv')) {
       return _d1((a) => _convert(Tok.conversions.indexOf(tok) + 1, a));
     }

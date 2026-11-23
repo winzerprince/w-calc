@@ -11,6 +11,7 @@ import 'input/token.dart';
 import 'number/dec.dart';
 import 'number/frac.dart';
 import 'number/value.dart';
+import 'stats/stats.dart';
 
 enum _Modifier { none, shift, alpha }
 
@@ -49,6 +50,45 @@ const _fixPrompt = _Menu('Fix 0~9?', {});
 const _sciPrompt = _Menu('Sci 0~9?', {});
 const _normPrompt = _Menu('Norm 1~2?', {});
 const _clrMenu = _Menu('Mcl Mode All', {1: '1', 5: '2', 10: '3'});
+const _sclMenu = _Menu('Scl Mode All', {1: '1', 5: '2', 10: '3'});
+const _clrScl = _Menu('Scl', {});
+
+/// REG type selection (MODE MODE 2), paged with ◀ ▶.
+const _regPages = [
+  _Menu('Lin Log Exp→', {1: '1', 5: '2', 9: '3'}),
+  _Menu('←Pwr Inv Quad', {2: '1', 6: '2', 10: '3'}),
+];
+
+/// Data memory is full (manual p.49).
+const _dataFullMenu = _Menu('EditOFF ESC', {1: '1', 8: '2'});
+
+const _sdSumPage = _Menu('Σx² Σx n', {1: '1', 4: '2', 7: '3'});
+const _sdVarPage = _Menu('\uE000 xσn xσn-1', {0: '1', 3: '2', 8: '3'});
+const _distrPage = _Menu('P( Q( R( →t', {0: '1', 3: '2', 6: '3', 9: '4'});
+const _regSumPages = [
+  _Menu('Σx² Σx n→', {1: '1', 4: '2', 7: '3'}),
+  _Menu('←Σy² Σy Σxy→', {2: '1', 5: '2', 9: '3'}),
+  _Menu('←Σx³ Σx²y Σx⁴', {2: '1', 6: '2', 10: '3'}),
+];
+const _regVarPages = [
+  _Menu('\uE000 xσn xσn-1→', {0: '1', 3: '2', 8: '3'}),
+  _Menu('←\uE001 yσn yσn-1→', {1: '1', 4: '2', 9: '3'}),
+  _Menu('←A B r→', {1: '1', 3: '2', 5: '3'}),
+  _Menu('←\uE002 \uE003', {1: '1', 3: '2'}),
+];
+const _quadVarPages = [
+  _Menu('\uE000 xσn xσn-1→', {0: '1', 3: '2', 8: '3'}),
+  _Menu('←\uE001 yσn yσn-1→', {1: '1', 4: '2', 9: '3'}),
+  _Menu('←A B C→', {1: '1', 3: '2', 5: '3'}),
+  _Menu('←\uE0021 \uE0022 \uE003', {1: '1', 4: '2', 7: '3'}),
+];
+
+/// Tokens inserted by each statistics menu page (index = digit − 1).
+const _statMenuTokens = <_Menu, List<Tok>>{
+  _sdSumPage: [Tok.statSumX2, Tok.statSumX, Tok.statN],
+  _sdVarPage: [Tok.statMeanX, Tok.statSigmaX, Tok.statSampleX],
+  _distrPage: [Tok.distP, Tok.distQ, Tok.distR, Tok.toT],
+};
 
 /// Disp setup screens (MODE … 1), paged with ◀ ▶.
 const _engPage = _Menu('EngON EngOFF', {1: '1', 7: '2'});
@@ -57,7 +97,7 @@ const _fractionPage = _Menu('ab/c d/c', {1: '1', 6: '2'});
 const _commaPage = _Menu('Dot Comma', {1: '1', 5: '2'});
 
 /// Calculation modes implemented so far.
-enum CalcMode { comp, cmplx }
+enum CalcMode { comp, cmplx, sd, reg }
 
 /// CLR confirmations (press = to execute, AC to cancel).
 const _clrMcl = _Menu('Mcl', {});
@@ -161,6 +201,27 @@ class Calculator {
 
   CalcMode _mode = CalcMode.comp;
 
+  /// SD/REG statistical memory.
+  final StatData _stats = StatData();
+
+  /// Items at or after this index were registered with EditOFF (not browsable).
+  int? _editLimit;
+
+  /// Item waiting while the Data Full screen is shown.
+  StatItem? _pendingItem;
+
+  /// Last registered item (DT pressed again repeats it).
+  StatItem? _lastItem;
+
+  /// Data display (▲ ▼ in SD/REG): item index and field (0 x, 1 y, 2 freq).
+  (int, int)? _dataView;
+  List<Tok> _dataTyped = [];
+
+  bool get _statMode => _mode == CalcMode.sd || _mode == CalcMode.reg;
+
+  /// Data items that can still be shown and edited.
+  int get _editableItems => _editLimit ?? _stats.items.length;
+
   /// CMPLX: which part of a complex result is shown (0 = re or r, 1 = im or θ).
   int _complexPart = 0;
 
@@ -244,6 +305,8 @@ class Calculator {
       if (showScroll && browse < _history.length - 1) Indicator.scrollDown,
       if (_midMulti) Indicator.disp,
       if (_mode == CalcMode.cmplx) Indicator.cmplx,
+      if (_mode == CalcMode.sd) Indicator.sd,
+      if (_mode == CalcMode.reg) Indicator.reg,
       if (_mode == CalcMode.cmplx && _settings.polarComplex) Indicator.polar,
       if (_phase == _Phase.result && _hasSecondPart && !_midMulti) ...[
         Indicator.reIm,
@@ -251,6 +314,33 @@ class Calculator {
           _polarShown ? Indicator.angleMark : Indicator.imaginary,
       ],
     };
+    final view = _dataView;
+    if (view != null) {
+      final (index, field) = view;
+      final item = _stats.items[index];
+      final label = ['x', 'y', 'Freq'][field];
+      final upper = '$label${index + 1}=';
+      if (_dataTyped.isNotEmpty) {
+        final typed = _dataTyped.map((t) => t.text).join();
+        return DisplayState(
+          upper: upper,
+          lower: typed.contains('.') || typed.contains('E') ? typed : '$typed.',
+          indicators: indicators,
+        );
+      }
+      final value = switch (field) {
+        0 => item.x,
+        1 => item.y ?? Dec.zero,
+        _ => item.freq,
+      };
+      final f = formatValue(Value.dec(value), _settings);
+      return DisplayState(
+        upper: upper,
+        lower: f.mantissa,
+        exponent: f.exponent,
+        indicators: indicators,
+      );
+    }
     final eq = _equation;
     if (eq != null && eq.prompting) {
       final name = eq.variables[eq.index].text;
@@ -335,6 +425,7 @@ class Calculator {
       return;
     }
     if (_equation != null && _pressEquation(key)) return;
+    if (_dataView != null && _pressDataView(key)) return;
     if (_menu != null) {
       _pressInMenu(key);
       return;
@@ -372,6 +463,29 @@ class Calculator {
     }
 
     switch ((modifier, key)) {
+      case (_Modifier.none, CalcKey.mPlus) when _statMode:
+        _registerData();
+      case (_Modifier.shift, CalcKey.mPlus) when _statMode:
+        _deleteLastData();
+      case (_Modifier.shift, CalcKey.comma) when _statMode:
+        _enter(Tok.freqSep);
+      case (_Modifier.shift, CalcKey.d1) when _statMode:
+        _menu = _mode == CalcMode.sd ? _sdSumPage : _regSumPages.first;
+      case (_Modifier.shift, CalcKey.d2) when _statMode:
+        _menu = _mode == CalcMode.sd
+            ? _sdVarPage
+            : (_stats.type == RegressionType.quad
+                      ? _quadVarPages
+                      : _regVarPages)
+                  .first;
+      case (_Modifier.shift, CalcKey.d3) when _statMode:
+        if (_mode == CalcMode.sd) _menu = _distrPage;
+      case (_Modifier.none, CalcKey.up || CalcKey.down) when _statMode:
+        _openDataView(key == CalcKey.up);
+      case (_Modifier.shift, CalcKey.mode) when _statMode:
+        _menu = _sclMenu;
+      case (_Modifier.shift, CalcKey.equals) when _statMode:
+        break; // % is not available in SD/REG.
       case (_Modifier.shift, CalcKey.equals) when _mode == CalcMode.cmplx:
         if (_phase == _Phase.result && _hasSecondPart) {
           _complexPart = 1 - _complexPart;
@@ -710,6 +824,7 @@ class Calculator {
     variables: _vars,
     improperFractions: _settings.improperFractions,
     store: (name, value) => _vars[name] = value,
+    stats: _statMode ? _stats : null,
     random: _random,
   );
 
@@ -850,17 +965,57 @@ class Calculator {
       _menu = next < _modePages.length ? _modePages[next] : null;
       return;
     }
+    if (_regPages.contains(menu)) {
+      final i = _regPages.indexOf(menu);
+      if (key == CalcKey.right && i == 0) _menu = _regPages[1];
+      if (key == CalcKey.left && i == 1) _menu = _regPages[0];
+      final d = key.digit;
+      if (d != null && d >= 1 && d <= 3) {
+        _selectRegression(RegressionType.values[i * 3 + d - 1]);
+      }
+      return;
+    }
+    if (identical(menu, _dataFullMenu)) {
+      final d = key.digit;
+      final item = _pendingItem;
+      if ((d == 1 || d == 2) && item != null) {
+        _menu = null;
+        _pendingItem = null;
+        if (d == 1) {
+          _editLimit ??= _stats.items.length;
+          _addItem(item);
+        }
+      }
+      return;
+    }
+    final statPages = _statMenuPages(menu);
+    if (statPages != null) {
+      final i = statPages.indexOf(menu);
+      if (key == CalcKey.right && i < statPages.length - 1) {
+        _menu = statPages[i + 1];
+      }
+      if (key == CalcKey.left && i > 0) _menu = statPages[i - 1];
+      final d = key.digit;
+      final tokens = _statTokens(menu);
+      if (d != null && d >= 1 && d <= tokens.length) {
+        _menu = null;
+        _enter(tokens[d - 1]);
+      }
+      return;
+    }
     if (identical(menu, _clrMcl) ||
         identical(menu, _clrMode) ||
-        identical(menu, _clrAll)) {
+        identical(menu, _clrAll) ||
+        identical(menu, _clrScl)) {
       if (key == CalcKey.equals) _clear(menu);
       return;
     }
     final d = key.digit;
     if (d == null) return;
 
-    if (identical(menu, _clrMenu)) {
-      if (d >= 1 && d <= 3) _menu = [_clrMcl, _clrMode, _clrAll][d - 1];
+    if (identical(menu, _clrMenu) || identical(menu, _sclMenu)) {
+      final first = identical(menu, _sclMenu) ? _clrScl : _clrMcl;
+      if (d >= 1 && d <= 3) _menu = [first, _clrMode, _clrAll][d - 1];
       return;
     }
     if (identical(menu, _drgMenu)) {
@@ -893,6 +1048,10 @@ class Calculator {
     switch ((_modePages.indexOf(menu), d)) {
       case (0, 1 || 2): // COMP, CMPLX
         _setMode(d == 1 ? CalcMode.comp : CalcMode.cmplx);
+      case (1, 1): // SD
+        _setMode(CalcMode.sd);
+      case (1, 2): // REG → regression type
+        _menu = _regPages.first;
       case (3, 1 || 2 || 3):
         _angle = AngleUnit.values[d - 1];
         _menu = null;
@@ -912,6 +1071,17 @@ class Calculator {
 
   /// Executes a confirmed CLR choice.
   void _clear(_Menu which) {
+    if (identical(which, _clrScl)) {
+      _clearStats();
+      _menu = null;
+      _clearInput();
+      _resultValue = null;
+      return;
+    }
+    if (identical(which, _clrAll)) _clearStats();
+    if (identical(which, _clrMode)) {
+      _setMode(CalcMode.comp);
+    }
     if (!identical(which, _clrMode)) _vars.clear();
     if (!identical(which, _clrMcl)) {
       _angle = AngleUnit.deg;
@@ -1019,6 +1189,272 @@ class Calculator {
     _clearInput();
     _resultValue = null;
     _history.clear();
+    _clearStats();
+  }
+
+  // ------------------------------------------------------------------ SD / REG
+
+  void _clearStats() {
+    _stats.clear();
+    _editLimit = null;
+    _lastItem = null;
+    _dataView = null;
+  }
+
+  void _selectRegression(RegressionType type) {
+    _menu = null;
+    if (_mode != CalcMode.reg) _setMode(CalcMode.reg);
+    _stats.type = type;
+    // Manual p.55: choosing a regression type clears A-F, X and Y.
+    for (final name in ['A', 'B', 'C', 'D', 'E', 'F', 'X', 'Y']) {
+      _vars.remove(name);
+    }
+  }
+
+  List<_Menu>? _statMenuPages(_Menu menu) {
+    if (_statMenuTokens.containsKey(menu)) return [menu];
+    final varPages = _stats.type == RegressionType.quad
+        ? _quadVarPages
+        : _regVarPages;
+    for (final pages in [_regSumPages, varPages]) {
+      if (pages.contains(menu)) return pages;
+    }
+    return null;
+  }
+
+  List<Tok> _statTokens(_Menu menu) {
+    final direct = _statMenuTokens[menu];
+    if (direct != null) return direct;
+    final quad = _stats.type == RegressionType.quad;
+    return switch ((
+      _regSumPages.indexOf(menu),
+      _regVarPages.indexOf(menu),
+      _quadVarPages.indexOf(menu),
+    )) {
+      (0, _, _) => [Tok.statSumX2, Tok.statSumX, Tok.statN],
+      (1, _, _) => [Tok.statSumY2, Tok.statSumY, Tok.statSumXY],
+      (2, _, _) =>
+        quad ? [Tok.statSumX3, Tok.statSumX2Y, Tok.statSumX4] : const [],
+      (_, 0, _) ||
+      (_, _, 0) => [Tok.statMeanX, Tok.statSigmaX, Tok.statSampleX],
+      (_, 1, _) ||
+      (_, _, 1) => [Tok.statMeanY, Tok.statSigmaY, Tok.statSampleY],
+      (_, 2, _) => [Tok.regA, Tok.regB, Tok.regR],
+      (_, _, 2) => [Tok.regA, Tok.regB, Tok.regC],
+      (_, 3, _) => [Tok.estX, Tok.estY],
+      (_, _, 3) => [Tok.estX1, Tok.estX2, Tok.estY],
+      _ => const [],
+    };
+  }
+
+  /// Maximum stored data items (then "Data Full").
+  int get _capacity => _mode == CalcMode.sd ? 80 : 40;
+
+  /// DT: registers x[;f] (SD) or x,y[;f] (REG); DT again repeats the last item.
+  void _registerData() {
+    if (_phase == _Phase.result && _tokens.isEmpty && _lastItem != null) {
+      _addItem(_lastItem!);
+      return;
+    }
+    if (_phase == _Phase.result &&
+        _upperOverride == 'n=' &&
+        _lastItem != null) {
+      _addItem(_lastItem!);
+      return;
+    }
+    if (_tokens.isEmpty) return;
+    final StatItem item;
+    try {
+      item = _parseItem(_tokens);
+    } on CalcError catch (e) {
+      _showError(e);
+      return;
+    }
+    if (_stats.items.length >= _capacity && _editLimit == null) {
+      _pendingItem = item;
+      _menu = _dataFullMenu;
+      return;
+    }
+    _addItem(item);
+  }
+
+  StatItem _parseItem(List<Tok> tokens) {
+    var depth = 0;
+    int? comma, semi;
+    for (var i = 0; i < tokens.length; i++) {
+      final t = tokens[i];
+      if (t == Tok.openParen || t.kind == TokKind.function) depth++;
+      if (t == Tok.closeParen) depth--;
+      if (depth > 0) continue;
+      if (t == Tok.comma && comma == null && semi == null) comma = i;
+      if (t == Tok.freqSep) semi = i;
+    }
+    final reg = _mode == CalcMode.reg;
+    if (reg != (comma != null)) {
+      throw CalcError(CalcErrorKind.syntax, comma ?? tokens.length);
+    }
+    Dec part(int from, int to) {
+      if (from >= to) throw CalcError(CalcErrorKind.syntax, from);
+      try {
+        final v = evaluateValue(tokens.sublist(from, to), _context());
+        if (v.isComplex) throw const CalcError(CalcErrorKind.math);
+        return v.dec;
+      } on CalcError catch (e) {
+        throw CalcError(e.kind, from + (e.position ?? 0));
+      }
+    }
+
+    final end = semi ?? tokens.length;
+    final x = part(0, comma ?? end);
+    final y = comma == null ? null : part(comma + 1, end);
+    final freq = semi == null ? Dec.one : part(semi + 1, tokens.length);
+    if (freq <= Dec.zero) throw CalcError(CalcErrorKind.math, semi);
+    return StatItem(x, y: y, freq: freq);
+  }
+
+  void _addItem(StatItem item) {
+    _stats.add(item);
+    _lastItem = item;
+    _clearInput();
+    _setResult(Value.dec(_stats.n));
+    _upperOverride = 'n=';
+    _phase = _Phase.result;
+  }
+
+  /// CL: deletes the item just entered (or the one shown in data view).
+  void _deleteLastData() {
+    if (_stats.isEmpty) return;
+    _stats.items.removeLast();
+    if (_editLimit != null && _editLimit! > _stats.items.length) {
+      _editLimit = _stats.items.length;
+    }
+    _lastItem = null;
+    _clearInput();
+    _setResult(Value.dec(_stats.n));
+    _upperOverride = 'n=';
+    _phase = _Phase.result;
+  }
+
+  List<int> _fieldsOf(StatItem item) => [
+    0,
+    if (_mode == CalcMode.reg) 1,
+    if (item.freq != Dec.one) 2,
+  ];
+
+  void _openDataView(bool up) {
+    if (_editableItems == 0) return;
+    if (_phase == _Phase.editing && _tokens.isNotEmpty) return;
+    final last = _editableItems - 1;
+    _dataView = up ? (last, 0) : (0, 0);
+    _dataTyped = [];
+  }
+
+  /// Keys while a data item is shown. False: leave data view, handle normally.
+  bool _pressDataView(CalcKey key) {
+    final (index, field) = _dataView!;
+    final modifier = _modifier;
+    if (key == CalcKey.shift || key == CalcKey.alpha) return false;
+    _modifier = _Modifier.none;
+    if (key == CalcKey.ac) {
+      _dataView = null;
+      _clearInput();
+      return true;
+    }
+    if (modifier == _Modifier.none) {
+      final d = key.digit;
+      final tok = d != null
+          ? Tok.digits[d]
+          : switch (key) {
+              CalcKey.dot => Tok.point,
+              CalcKey.exp => Tok.exp,
+              CalcKey.negative => Tok.negative,
+              _ => null,
+            };
+      if (tok != null) {
+        if (_dataTyped.length < 20) _dataTyped.add(tok);
+        return true;
+      }
+    }
+    final item = _stats.items[index];
+    switch ((modifier, key)) {
+      case (_Modifier.none, CalcKey.del):
+        if (_dataTyped.isNotEmpty) _dataTyped.removeLast();
+      case (_Modifier.none, CalcKey.up || CalcKey.down):
+        _dataTyped = [];
+        _stepDataView(key == CalcKey.up ? -1 : 1);
+      case (_Modifier.none, CalcKey.equals):
+        if (_dataTyped.isEmpty) {
+          _stepDataView(1);
+          return true;
+        }
+        final v = _typedValue();
+        if (v == null) return true;
+        _stats.items[index] = switch (field) {
+          0 => item.copyWith(x: v),
+          1 => item.copyWith(y: v),
+          _ => item.copyWith(freq: v),
+        };
+        _dataTyped = [];
+        _stepDataView(1);
+      case (_Modifier.none, CalcKey.mPlus):
+        // DT: register the typed value as a new item, keep the old one.
+        final v = _typedValue();
+        if (v == null) return true;
+        _dataView = null;
+        _dataTyped = [];
+        _addItem(switch (field) {
+          0 => StatItem(v, y: item.y),
+          1 => StatItem(item.x, y: v),
+          _ => item.copyWith(freq: v),
+        });
+      case (_Modifier.shift, CalcKey.mPlus):
+        _stats.items.removeAt(index);
+        if (_editLimit != null) _editLimit = _editLimit! - 1;
+        _dataTyped = [];
+        if (_editableItems == 0) {
+          _dataView = null;
+          _clearInput();
+        } else {
+          _dataView = (index.clamp(0, _editableItems - 1), 0);
+        }
+      default:
+        _dataView = null;
+        _dataTyped = [];
+        return false;
+    }
+    return true;
+  }
+
+  Dec? _typedValue() {
+    if (_dataTyped.isEmpty) return null;
+    try {
+      final v = evaluateValue(_dataTyped, EvalContext(ans: _ans));
+      if (v.isComplex) throw const CalcError(CalcErrorKind.math);
+      if (_dataView!.$2 == 2 && v.dec <= Dec.zero) {
+        throw const CalcError(CalcErrorKind.math);
+      }
+      return v.dec;
+    } on CalcError catch (e) {
+      _dataView = null;
+      _dataTyped = [];
+      _showError(CalcError(e.kind));
+      return null;
+    }
+  }
+
+  /// Moves through x, y, Freq fields and items (stops at both ends).
+  void _stepDataView(int step) {
+    final (index, field) = _dataView!;
+    final fields = _fieldsOf(_stats.items[index]);
+    final pos = fields.indexOf(field) + step;
+    if (pos >= 0 && pos < fields.length) {
+      _dataView = (index, fields[pos]);
+      return;
+    }
+    final next = index + step;
+    if (next < 0 || next >= _editableItems) return;
+    final nextFields = _fieldsOf(_stats.items[next]);
+    _dataView = (next, step > 0 ? nextFields.first : nextFields.last);
   }
 
   void _runStatement(int index) {
@@ -1030,18 +1466,7 @@ class Calculator {
       end--;
     }
     try {
-      final value = evaluateValue(
-        _tokens.sublist(start, end),
-        EvalContext(
-          ans: _ans,
-          angle: _angle,
-          format: _format,
-          variables: _vars,
-          improperFractions: _settings.improperFractions,
-          store: (name, value) => _vars[name] = value,
-          random: _random,
-        ),
-      );
+      final value = evaluateValue(_tokens.sublist(start, end), _context());
       _ans = value;
       _setResult(value);
       _polarCommand = polar;
@@ -1212,6 +1637,7 @@ class Calculator {
   /// ON: clears the screen and calculation history; memories stay.
   void _powerOn() {
     _equation = null;
+    _dataView = null;
     _menu = null;
     _codePrompt = null;
     _modifier = _Modifier.none;
@@ -1257,6 +1683,9 @@ class Calculator {
     'engOn': _settings.engOn,
     'polar': _settings.polarComplex,
     'mode': _mode.name,
+    'regression': _stats.type.name,
+    'stats': [for (final i in _stats.items) '${i.x}|${i.y ?? ''}|${i.freq}'],
+    'editLimit': _editLimit,
     'improper': _settings.improperFractions,
     'comma': _settings.decimalComma,
   };
@@ -1312,6 +1741,27 @@ class Calculator {
       );
       final mode = state['mode'];
       if (mode is String) _mode = CalcMode.values.byName(mode);
+      final regression = state['regression'];
+      if (regression is String) {
+        _stats.type = RegressionType.values.byName(regression);
+      }
+      final stats = state['stats'];
+      if (stats is List) {
+        _stats.clear();
+        for (final row in stats) {
+          if (row is! String) continue;
+          final [x, y, f] = row.split('|');
+          _stats.add(
+            StatItem(
+              Dec.parse(x),
+              y: y.isEmpty ? null : Dec.parse(y),
+              freq: Dec.parse(f),
+            ),
+          );
+        }
+      }
+      final limit = state['editLimit'];
+      _editLimit = limit is int ? limit : null;
     } on Object {
       // Corrupt or foreign snapshot: keep defaults.
     }
