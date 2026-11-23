@@ -2,6 +2,25 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [0.1.0-beta] - 2026-11-23
+
+All calculation modes of the reference calculator, plus app settings and themes.
+
+### Added
+- BASE mode: DEC/HEX/BIN/OCT, 32-bit integer arithmetic, two's complement, And/Or/Xor/Xnor/Not/Neg,
+  d/h/b/o prefixes.
+- EQN mode: 2–3 simultaneous linear equations, quadratic and cubic equations (complex roots).
+- MAT mode: matrices up to 3×3 — Dim, Edit, +, −, ×, scalar ×, Det, Trn, Abs, x⁻¹, x², x³, MatAns.
+- VCT mode: 2-D/3-D vectors — Dim, Edit, +, −, scalar ×, dot and cross products, Abs, VctAns.
+- OFF (SHIFT AC) and LCD contrast (Disp ◀CONT▶).
+- Settings: vibration and click sound on key press, theme, factory reset.
+- Themes: Classic, Midnight (backlit LCD), High contrast, Ivory.
+- In-app user guide, keyboard shortcut list, About page with version and licences.
+
+### Changed
+- CI: dev pull requests use a placeholder check (full gates run locally); builds and releases only
+  after 6–10 merges, on main.
+
 ## [0.0.8-alpha] - 2026-11-23
 
 Statistics (M8), ×10 mark and menu.
