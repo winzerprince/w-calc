@@ -43,11 +43,24 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     }
   }
 
-  void _press(CalcKey key) {
+  /// A long computation (∫dx, d/dx, SOLVE) is running.
+  bool _busy = false;
+
+  Future<void> _press(CalcKey key) async {
+    if (_busy) return;
     final settings = SettingsScope.maybeOf(context);
     if (settings?.vibration ?? true) keyVibration();
     if (settings?.keySound ?? false) SystemSound.play(SystemSoundType.click);
-    setState(() => _calc.press(key));
+    if (_calc.isSlowKey(key)) {
+      // Like the device: clear the display while calculating. Paint that
+      // frame before the (synchronous) computation starts.
+      setState(() => _busy = true);
+      await WidgetsBinding.instance.endOfFrame;
+      _calc.press(key);
+      if (mounted) setState(() => _busy = false);
+    } else {
+      setState(() => _calc.press(key));
+    }
     StateStore.save(_calc);
   }
 
@@ -63,8 +76,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     }
     final keys = keysForKeyboard(event);
     if (keys == null) return KeyEventResult.ignored;
-    setState(() => keys.forEach(_calc.press));
-    StateStore.save(_calc);
+    keys.forEach(_press);
     return KeyEventResult.handled;
   }
 
@@ -84,38 +96,67 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         autofocus: true,
         onKeyEvent: _onKey,
         child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Container(
-                margin: const EdgeInsets.all(8),
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [skin.bodyTop, skin.body],
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black54,
-                      blurRadius: 18,
-                      offset: Offset(0, 8),
+          child: LayoutBuilder(
+            builder: (context, box) {
+              // Landscape: LCD beside the keypad instead of a squashed keypad.
+              final landscape = box.maxWidth > box.maxHeight * 1.15;
+              final lcd = _Bezel(
+                child: Lcd(display: _busy ? DisplayState.busy : _calc.display),
+              );
+              final keypad = Keypad(onPress: _press);
+              return Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: landscape ? 980 : 460),
+                  child: Container(
+                    margin: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [skin.bodyTop, skin.body],
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black54,
+                          blurRadius: 18,
+                          offset: Offset(0, 8),
+                        ),
+                      ],
                     ),
-                  ],
+                    child: landscape
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _Header(onReset: _reset),
+                                    const SizedBox(height: 8),
+                                    lcd,
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(flex: 5, child: keypad),
+                            ],
+                          )
+                        : Column(
+                            children: [
+                              _Header(onReset: _reset),
+                              const SizedBox(height: 8),
+                              lcd,
+                              const SizedBox(height: 12),
+                              Expanded(child: keypad),
+                            ],
+                          ),
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    _Header(onReset: _reset),
-                    const SizedBox(height: 8),
-                    _Bezel(child: Lcd(display: _calc.display)),
-                    const SizedBox(height: 12),
-                    Expanded(child: Keypad(onPress: _press)),
-                  ],
-                ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),

@@ -100,6 +100,9 @@ class DisplayState {
     isOff: true,
   );
 
+  /// Shown while a long calculation runs (the device clears its display).
+  static const DisplayState busy = DisplayState(upper: '', lower: '');
+
   static const int upperColumns = 12;
 
   @override

@@ -140,4 +140,27 @@ void main() {
     await tapKey(tester, 'shift');
     expect(lcdText(tester, 'indicators'), contains('shift'));
   });
+
+  testWidgets('landscape layout fits without overflow and works', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(2340, 1080);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(WCalcApp());
+    await tapKey(tester, 'd4');
+    await tapKey(tester, 'equals');
+    expect(lcdText(tester, 'lower'), '4.');
+  });
+
+  testWidgets('small phone portrait fits without overflow', (tester) async {
+    tester.view.physicalSize = const Size(720, 1280);
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(WCalcApp());
+    await tapKey(tester, 'd9');
+    expect(lcdText(tester, 'upper'), '9');
+  });
 }
