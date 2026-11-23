@@ -756,6 +756,40 @@ const manualChapters = <ManualChapter>[
         ],
       ),
       ManualArticle(
+        id: 'eqn-tb',
+        title: 'Equations (EQN)',
+        summary:
+            'Simultaneous, quadratic and cubic equations with exact roots.',
+        audience: _tb,
+        keywords: ['equation', 'quadratic', 'cubic', 'simultaneous', 'roots'],
+        blocks: [
+          Steps([
+            ManualStep(
+              'Enter EQN and pick a type (3 = quadratic).',
+              'MODE 5 3',
+            ),
+            ManualStep(
+              'Type each coefficient and press = (fractions and √ allowed).',
+            ),
+            ManualStep(
+              'Press = on its own to solve; = or ▼ shows the next root.',
+            ),
+            ManualStep('AC resets the coefficients to 0.'),
+          ]),
+          Example(
+            title: 'x² + x + 3/4 = 0',
+            keys: 'MODE 5 3 1 = 1 = 3 frac 4 = =',
+            result: 'X1 = −1/2 + (√2/2) i',
+            note: '▼ shows X2 = −1/2 − (√2/2) i.',
+          ),
+          Example(
+            title: 'x + 2y = 3, 2x + 3y = 4',
+            keys: 'MODE 5 1 1 = 2 = 3 = 2 = 3 = 4 = =',
+            result: 'X = −1, then ▼ Y = 2',
+          ),
+        ],
+      ),
+      ManualArticle(
         id: 'matrix',
         title: 'Matrices (MAT)',
         summary: 'Up to 3 × 3: add, multiply, determinant, inverse.',
@@ -783,7 +817,7 @@ const manualChapters = <ManualChapter>[
         blocks: [
           Para(
             'MODE lists COMP, CMPLX, STAT, BASE-N, EQN, MATRIX, TABLE and '
-            'VECTOR. COMP (with CALC and SOLVE), CMPLX and STAT work today; the '
+            'VECTOR. COMP (with CALC and SOLVE), CMPLX, STAT and EQN work today; the '
             'other modes are being added and will appear here with their own '
             'instructions.',
           ),

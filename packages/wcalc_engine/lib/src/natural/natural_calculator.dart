@@ -9,6 +9,7 @@ import '../format/number_format.dart';
 import '../format/value_format.dart';
 import '../input/token.dart';
 import '../lcd/dot_bitmap.dart';
+import '../eqn/solvers.dart';
 import '../eval/solve.dart';
 import '../number/dec.dart';
 import '../number/frac.dart';
@@ -22,6 +23,9 @@ import 'result_forms.dart';
 
 /// Calculation modes of the textbook-display models (MODE 1-8).
 enum NaturalMode { comp, cmplx, stat, base, eqn, matrix, table, vector }
+
+/// EQN types in MODE 5 menu order.
+enum EqnType { lin2, lin3, quad, cubic }
 
 /// STAT calculation types in MODE 3 menu order.
 enum StatType { oneVar, lin, quad, log, eExp, abExp, pwr, inv }
@@ -153,6 +157,14 @@ class NaturalCalculator implements CalcEngine {
 
   _Equation? _equation;
 
+  // EQN
+  EqnType? _eqnType;
+  List<List<Value>> _coef = [];
+  int _eRow = 0;
+  int _eCol = 0;
+  List<Value>? _solutions;
+  int _solIndex = 0;
+
   // STAT
   StatType statType = StatType.oneVar;
   final StatData _stat = StatData();
@@ -232,6 +244,7 @@ class NaturalCalculator implements CalcEngine {
     _shift = _alpha = false;
     if (_equation != null && _onEquationKey(key, shift: shift)) return;
     if (_editor && !shift && !alpha && _onEditorKey(key)) return;
+    if (_eqnType != null && !shift && !alpha && _onEqnKey(key)) return;
     if (!shift && !alpha && key == CalcKey.calc) {
       _startEquation(solve: false);
       return;
@@ -956,6 +969,259 @@ class NaturalCalculator implements CalcEngine {
     _col = 0;
   }
 
+  // ------------------------------------------------------------- EQN
+
+  _Menu _eqnTypeMenu() => _Menu(
+    const [
+      '1:anX+bnY=cn',
+      '2:anX+bnY+cnZ=dn',
+      '3:aX²+bX+c=0',
+      '4:aX³+bX²+cX+d=0',
+    ],
+    {for (final t in EqnType.values) t.index + 1: () => _setEqnType(t)},
+  );
+
+  (int, int) get _eqnShape => switch (_eqnType!) {
+    EqnType.lin2 => (2, 3),
+    EqnType.lin3 => (3, 4),
+    EqnType.quad => (1, 3),
+    EqnType.cubic => (1, 4),
+  };
+
+  void _setEqnType(EqnType t) {
+    _eqnType = t;
+    final (rows, cols) = _eqnShape;
+    _coef = [
+      for (var r = 0; r < rows; r++)
+        [for (var c = 0; c < cols; c++) Value.zero],
+    ];
+    _eRow = _eCol = 0;
+    _solutions = null;
+    _clearInput();
+  }
+
+  /// Coefficient Editor and solution screens. False: normal handling
+  /// (typing a coefficient goes into the input line).
+  bool _onEqnKey(CalcKey key) {
+    final sols = _solutions;
+    if (sols != null) {
+      switch (key) {
+        case CalcKey.equals || CalcKey.down:
+          if (_solIndex < sols.length - 1) {
+            _solIndex++;
+          } else if (key == CalcKey.equals) {
+            _solutions = null;
+          }
+        case CalcKey.up:
+          if (_solIndex > 0) _solIndex--;
+        case CalcKey.ac:
+          _solutions = null;
+        case CalcKey.mode:
+          return false;
+        default:
+          break;
+      }
+      return true;
+    }
+    final (rows, cols) = _eqnShape;
+    final typing = !_ed.isEmpty;
+    switch (key) {
+      case CalcKey.equals:
+        if (typing) {
+          _commitCoefficient();
+        } else {
+          _solveEqn();
+        }
+        return true;
+      case CalcKey.ac:
+        for (final row in _coef) {
+          row.fillRange(0, row.length, Value.zero);
+        }
+        _clearInput();
+        return true;
+      case CalcKey.up when !typing:
+        if (_eRow > 0) _eRow--;
+        return true;
+      case CalcKey.down when !typing:
+        if (_eRow < rows - 1) _eRow++;
+        return true;
+      case CalcKey.left when !typing:
+        if (_eCol > 0) _eCol--;
+        return true;
+      case CalcKey.right when !typing:
+        if (_eCol < cols - 1) _eCol++;
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  void _commitCoefficient() {
+    try {
+      final v = _evalStatements(_ed.linearize().tokens, _context());
+      if (v.isComplex || v.isLinear) throw const CalcError(CalcErrorKind.math);
+      _coef[_eRow][_eCol] = v;
+    } on CalcError catch (e) {
+      _error = _errorText(e.kind);
+      _errorCursor = _ed.cursor;
+      return;
+    }
+    _clearInput();
+    final (rows, cols) = _eqnShape;
+    if (_eCol < cols - 1) {
+      _eCol++;
+    } else if (_eRow < rows - 1) {
+      _eRow++;
+      _eCol = 0;
+    }
+  }
+
+  void _solveEqn() {
+    try {
+      final t = _eqnType!;
+      final List<Value> sols;
+      if (t == EqnType.lin2 || t == EqnType.lin3) {
+        sols = solveLinear([
+          for (final row in _coef) [for (final v in row) v.dec],
+        ]).map(_cleanLinear).toList();
+      } else if (t == EqnType.quad) {
+        sols = _exactQuadratic(_coef[0][0], _coef[0][1], _coef[0][2]);
+      } else {
+        final r = solvePolynomial([for (final v in _coef[0]) v.dec]);
+        // Root order of the textbook models (behaviour note #81).
+        sols = r.length == 3 && !r[1].isComplex ? [r[1], r[0], r[2]] : r;
+      }
+      _solutions = sols;
+      _solIndex = 0;
+    } on CalcError catch (e) {
+      _error = _errorText(e.kind);
+      _errorCursor = null;
+    }
+  }
+
+  /// Simultaneous-equation solutions: exact fractions where they are
+  /// simple, never √ forms.
+  Value _cleanLinear(Value v) {
+    final f = Frac.approximate(v.dec);
+    return f != null && !f.isInteger ? Value.frac(f) : v;
+  }
+
+  /// Quadratic roots kept exact when the coefficients are (fractions,
+  /// √ forms): x = (−b ± √D) / 2a.
+  List<Value> _exactQuadratic(Value a, Value b, Value c) {
+    if (a.dec.isZero) throw const CalcError(CalcErrorKind.math);
+    final four = Value.dec(Dec.fromInt(4));
+    final two = Value.dec(Dec.fromInt(2));
+    final d = b * b - four * a * c;
+    final twoA = two * a;
+    final dExact = d.frac ?? (d.dec.isInteger ? Frac.fromDec(d.dec) : null);
+    final nearZero =
+        d.dec.abs() <=
+        (b.dec * b.dec).abs() * Dec.parse('1e-13') + Dec.parse('1e-90');
+    if (dExact != null || nearZero) {
+      final mid = (-b) / twoA;
+      if (nearZero || dExact!.n == BigInt.zero) return [mid];
+      final root = Surd.sqrtOf(dExact.isNegative ? -dExact : dExact);
+      if (root != null) {
+        final r = Value.fromSurd(root) / twoA;
+        if (!dExact.isNegative) return [mid + r, mid - r];
+        return [
+          Value.complex(mid.dec, r.dec.abs()),
+          Value.complex(mid.dec, -r.dec.abs()),
+        ];
+      }
+    }
+    return solvePolynomial([a.dec, b.dec, c.dec]);
+  }
+
+  void _paintEqn(DotBitmap bmp, StringBuffer text) {
+    final sols = _solutions;
+    if (sols != null) {
+      final linear = _eqnType == EqnType.lin2 || _eqnType == EqnType.lin3;
+      final name = linear
+          ? const ['X', 'Y', 'Z'][_solIndex]
+          : (sols.length == 1 ? 'X' : 'X${_solIndex + 1}');
+      bmp.text(0, 0, '$name=');
+      final row = _rowFor(sols[_solIndex], surd: !linear);
+      final layout = MathLayout(row);
+      layout.paint(
+        bmp,
+        DotScreen.width - layout.width - 1,
+        DotScreen.height - layout.height,
+      );
+      text.write('$name= $row');
+      return;
+    }
+    final (rows, cols) = _eqnShape;
+    const letters = ['a', 'b', 'c', 'd'];
+    const rowNumW = 7;
+    final colW = (DotScreen.width - rowNumW) ~/ cols;
+    for (var c = 0; c < cols; c++) {
+      bmp.smallText(rowNumW + c * colW + colW ~/ 2 - 1, 0, letters[c]);
+    }
+    final top = (_eRow - 1).clamp(0, rows);
+    final chars = (colW + 1) ~/ 6;
+    for (var k = 0; k < 2 && top + k < rows; k++) {
+      final r = top + k;
+      final y = 6 + k * 8;
+      if (rows > 1) bmp.smallText(0, y + 1, '${r + 1}');
+      for (var c = 0; c < cols; c++) {
+        var t = _plainDecimal(_coef[r][c]);
+        if (t.length > chars) t = t.substring(0, chars);
+        final x0 = rowNumW + c * colW;
+        bmp.text(x0 + colW - textWidth(t) - 1, y, t);
+        if (r == _eRow && c == _eCol) {
+          bmp.invert(x0, y - 1, x0 + colW - 1, y + 7);
+        }
+      }
+    }
+    if (_ed.isEmpty) {
+      final t = _plainDecimal(_coef[_eRow][_eCol]);
+      bmp.text(DotScreen.width - textWidth(t) - 1, 24, t);
+    } else {
+      final layout = MathLayout(_ed.root);
+      final c = layout.paint(
+        bmp,
+        DotScreen.width - layout.width - 2,
+        DotScreen.height - layout.height,
+        cursor: _ed.cursor,
+      );
+      _eqnCursor = c;
+    }
+    text.write('EQN ${_eqnType!.name}');
+    for (var r = 0; r < rows; r++) {
+      text.write(
+        ' | ${[for (final v in _coef[r]) _plainDecimal(v)].join(' ')}',
+      );
+    }
+    text.write(' | cell ${_eRow + 1},${letters[_eCol]} ${_ed.root}');
+  }
+
+  CursorRect? _eqnCursor;
+
+  /// A value in its display form (results, solutions).
+  MathRow _rowFor(Value v, {bool surd = true}) {
+    if (v.isComplex) return _complexRow(v);
+    final exact = _mathIO && mathOutput;
+    final form = exact ? exactFormOf(v, surd: surd) : null;
+    return switch (form) {
+      FractionForm(:final value) => _fractionRow(
+        value,
+        improper,
+        linear: false,
+      ),
+      SurdForm(:final value) => _surdRow(value),
+      PiForm(:final coefficient) => _piRow(coefficient),
+      null => _decimalRow(
+        formatValue(
+          v,
+          DisplaySettings(format: format, leadingZeroCounts: false),
+          view: ResultView.decimal,
+        ),
+      ),
+    };
+  }
+
   // ------------------------------------------------------------- STAT
 
   static const _statTypeLines = [
@@ -1395,10 +1661,18 @@ class NaturalCalculator implements CalcEngine {
     mode = m;
     _equation = null;
     _editor = false;
+    _eqnType = null;
+    _solutions = null;
     if (m == NaturalMode.stat) {
       _history.clear();
       _clearInput();
       _menu = _statTypeMenu();
+      return;
+    }
+    if (m == NaturalMode.eqn) {
+      _history.clear();
+      _clearInput();
+      _menu = _eqnTypeMenu();
       return;
     }
     _history.clear();
@@ -1644,6 +1918,10 @@ class NaturalCalculator implements CalcEngine {
       bmp.text(0, 24, 'L-R=');
       bmp.text(DotScreen.width - textWidth(lr) - 1, 24, lr);
       text.write('${eq.input} | X= $x | L-R= $lr');
+    } else if (_eqnType != null && _menu == null) {
+      _eqnCursor = null;
+      _paintEqn(bmp, text);
+      cursor = _eqnCursor;
     } else if (_editor && _menu == null) {
       _paintEditor(bmp, text);
     } else if (_menu != null) {
