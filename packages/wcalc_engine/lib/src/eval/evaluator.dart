@@ -70,6 +70,7 @@ class EvalContext {
     this.polRecVars = const ('E', 'F'),
     this.exactForms = false,
     this.functionParens = false,
+    this.wideBase = false,
     math.Random? random,
   }) : ans = ans ?? Value.zero,
        random = random ?? math.Random();
@@ -102,6 +103,9 @@ class EvalContext {
   /// Textbook models: a function's bracket group (sin(…), √(…)) is applied
   /// as soon as it closes.
   final bool functionParens;
+
+  /// Textbook models: 16-bit binary, 32-bit octal (see [wideBaseBits]).
+  final bool wideBase;
 
   /// Variables Pol/Rec write their two results to (E, F on two-line models;
   /// X, Y on textbook-display models).
@@ -910,7 +914,10 @@ class _Evaluator {
     if (digits.isEmpty) _syntax(i);
     _guard(
       start,
-      () => _pushValue(baseInputValue(digits.toString(), base), start),
+      () => _pushValue(
+        baseInputValue(digits.toString(), base, wide: ctx.wideBase),
+        start,
+      ),
     );
     return i;
   }
@@ -1035,16 +1042,20 @@ Value _int(int v) {
 const baseDigits = {2: 10, 8: 10, 16: 8, 10: 10};
 const _baseBits = {2: 10, 8: 30, 16: 32};
 
+/// Textbook models: 16-bit binary, 32-bit octal and hexadecimal.
+const wideBaseDigits = {2: 16, 8: 11, 16: 8, 10: 10};
+const wideBaseBits = {2: 16, 8: 32, 16: 32};
+
 /// Value of a typed BASE literal ([digits] in hex notation of each digit).
-Value baseInputValue(String digits, int base) {
+Value baseInputValue(String digits, int base, {bool wide = false}) {
   final trimmed = digits.replaceFirst(RegExp('^0+(?=.)'), '');
-  if (trimmed.length > baseDigits[base]!) {
+  if (trimmed.length > (wide ? wideBaseDigits : baseDigits)[base]!) {
     throw const CalcError(CalcErrorKind.math);
   }
   // Each character is one digit (0-9, a-f), valid in [base].
   var v = int.parse(trimmed, radix: base);
   if (base != 10) {
-    final bits = _baseBits[base]!;
+    final bits = (wide ? wideBaseBits : _baseBits)[base]!;
     if (v >= 1 << (bits - 1)) v -= 1 << bits;
   }
   return _int(v);
@@ -1052,10 +1063,10 @@ Value baseInputValue(String digits, int base) {
 
 /// Shows [v] in [base] (two's complement for 2/8/16), or throws Math ERROR
 /// when it does not fit that base's range.
-String baseOutput(Dec v, int base) {
+String baseOutput(Dec v, int base, {bool wide = false}) {
   final x = v.toInt();
   if (base == 10) return '$x';
-  final bits = _baseBits[base]!;
+  final bits = (wide ? wideBaseBits : _baseBits)[base]!;
   if (x < -(1 << (bits - 1)) || x >= 1 << (bits - 1)) {
     throw const CalcError(CalcErrorKind.math);
   }

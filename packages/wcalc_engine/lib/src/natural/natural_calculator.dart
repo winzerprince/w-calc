@@ -165,6 +165,9 @@ class NaturalCalculator implements CalcEngine {
   List<Value>? _solutions;
   int _solIndex = 0;
 
+  // BASE-N
+  int _base = 10;
+
   // TABLE
   /// Start / End / Step prompt (0-2) while setting up the table.
   int? _tablePrompt;
@@ -359,6 +362,7 @@ class NaturalCalculator implements CalcEngine {
   // ------------------------------------------------------------- key maps
 
   void _onPlain(CalcKey key) {
+    if (mode == NaturalMode.base && _onBaseKey(key)) return;
     final d = key.digit;
     if (d != null) {
       _tok(Tok.digits[d]);
@@ -520,6 +524,8 @@ class NaturalCalculator implements CalcEngine {
         });
       case CalcKey.d9:
         _menu = _clrMenu();
+      case CalcKey.d3 when mode == NaturalMode.base:
+        _menu = _logicMenu();
       case CalcKey.d1 when mode == NaturalMode.stat:
         _menu = _statMenu();
       case CalcKey.d2 when mode == NaturalMode.cmplx:
@@ -757,6 +763,8 @@ class NaturalCalculator implements CalcEngine {
           exactForms: c.exactForms,
           functionParens: c.functionParens,
           stats: c.stats,
+          base: c.base,
+          wideBase: c.wideBase,
           store: c.store,
         );
 
@@ -771,6 +779,8 @@ class NaturalCalculator implements CalcEngine {
     exactForms: true,
     functionParens: true,
     stats: mode == NaturalMode.stat ? _stat : null,
+    base: mode == NaturalMode.base ? _base : null,
+    wideBase: true,
     store: (n, v) => _vars[n] = v,
   );
 
@@ -980,6 +990,103 @@ class NaturalCalculator implements CalcEngine {
     if (statFrequency != on) _stat.clear();
     statFrequency = on;
     _col = 0;
+  }
+
+  // ------------------------------------------------------------- BASE-N
+
+  static const _baseNames = {10: 'Dec', 16: 'Hex', 2: 'Bin', 8: 'Oct'};
+
+  /// DEC / HEX / BIN / OCT and the hex digits A–F on the function keys.
+  bool _onBaseKey(CalcKey key) {
+    final base = switch (key) {
+      CalcKey.square => 10,
+      CalcKey.power => 16,
+      CalcKey.log => 2,
+      CalcKey.ln => 8,
+      _ => null,
+    };
+    if (base != null) {
+      // Switches the number system; a shown result is converted.
+      _base = base;
+      if (_resultShown && _result != null) {
+        try {
+          baseOutput(_result!.dec, base, wide: true);
+        } on CalcError catch (e) {
+          _error = _errorText(e.kind);
+        }
+      }
+      return true;
+    }
+    final hex = switch (key) {
+      CalcKey.negative => Tok.hexA,
+      CalcKey.degMinSec => Tok.hexB,
+      CalcKey.hyp => Tok.hexC,
+      CalcKey.sin => Tok.hexD,
+      CalcKey.cos => Tok.hexE,
+      CalcKey.tan => Tok.hexF,
+      _ => null,
+    };
+    if (hex != null) {
+      _tok(hex);
+      return true;
+    }
+    // No fractions, roots, exponents or decimal results in BASE-N.
+    return const {
+      CalcKey.fraction,
+      CalcKey.sqrt,
+      CalcKey.exp,
+      CalcKey.dot,
+      CalcKey.sd,
+      CalcKey.logBase,
+      CalcKey.integrate,
+      CalcKey.reciprocal,
+      CalcKey.eng,
+      CalcKey.degMinSec,
+    }.contains(key);
+  }
+
+  _Menu _logicMenu() => _Menu(
+    const ['1:and    2:or', '3:xor    4:xnor', '5:Not(   6:Neg('],
+    {
+      1: () => _tok(Tok.logicAnd),
+      2: () => _tok(Tok.logicOr),
+      3: () => _tok(Tok.logicXor),
+      4: () => _tok(Tok.logicXnor),
+      5: () => _fn(Tok.logicNot),
+      6: () => _fn(Tok.logicNeg),
+    },
+    next: _prefixMenu,
+  );
+
+  _Menu _prefixMenu() => _Menu(
+    const ['1:d      2:h', '3:b      4:o'],
+    {
+      1: () => _tok(Tok.baseD),
+      2: () => _tok(Tok.baseH),
+      3: () => _tok(Tok.baseB),
+      4: () => _tok(Tok.baseO),
+    },
+    prev: _logicMenu,
+  );
+
+  /// BASE-N result: padded to the register width (16 binary digits …).
+  MathRow _baseRow(Value v) {
+    var t = baseOutput(v.dec, _base, wide: true);
+    final width = {2: 16, 8: 11, 16: 8}[_base];
+    if (width != null) t = t.toUpperCase().padLeft(width, '0');
+    return MathRow([
+      for (final c in t.split(''))
+        TokItem(switch (c) {
+          '-' => Tok.negative,
+          'A' => Tok.hexA,
+          'B' => Tok.hexB,
+          'C' => Tok.hexC,
+          'D' => Tok.hexD,
+          'E' => Tok.hexE,
+          'F' => Tok.hexF,
+          _ => Tok.digits[int.parse(c)],
+        }),
+    ]);
   }
 
   // ------------------------------------------------------------- TABLE
@@ -1837,6 +1944,7 @@ class NaturalCalculator implements CalcEngine {
     _solutions = null;
     _table = null;
     _tablePrompt = null;
+    _base = 10;
     if (m == NaturalMode.stat) {
       _history.clear();
       _clearInput();
@@ -2156,6 +2264,17 @@ class NaturalCalculator implements CalcEngine {
       text.write(' = ');
       _paintResult(bmp, text);
     }
+    if (mode == NaturalMode.base) {
+      final name = _baseNames[_base]!;
+      final x = DotScreen.width - smallTextWidth(name);
+      for (var y = 0; y < 6; y++) {
+        for (var i = x - 2; i < DotScreen.width; i++) {
+          bmp.set(i, y, false);
+        }
+      }
+      bmp.smallText(x, 0, name);
+      text.write(' [$name]');
+    }
     return editing ? cursor : null;
   }
 
@@ -2169,7 +2288,13 @@ class NaturalCalculator implements CalcEngine {
     );
     final form = r.isComplex ? null : _shownForm();
     MathRow row;
-    if (r.isComplex) {
+    if (mode == NaturalMode.base) {
+      try {
+        row = _baseRow(r);
+      } on CalcError {
+        row = MathRow([TokItem(Tok.negative)]);
+      }
+    } else if (r.isComplex) {
       row = _complexRow(r);
     } else if (form is FractionForm) {
       final improperView = improper != _flipMixed;

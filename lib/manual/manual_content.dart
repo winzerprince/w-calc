@@ -790,6 +790,43 @@ const manualChapters = <ManualChapter>[
         ],
       ),
       ManualArticle(
+        id: 'base-tb',
+        title: 'Number systems (BASE-N)',
+        summary: 'Decimal, hexadecimal, binary and octal with logic.',
+        audience: _tb,
+        keywords: ['binary', 'hex', 'octal', 'base', 'logic', 'and', 'or'],
+        blocks: [
+          Steps([
+            ManualStep('Enter BASE-N mode.', 'MODE 4'),
+            ManualStep(
+              'x² DEC, x^□ HEX, log BIN, ln OCT choose the number system.',
+            ),
+            ManualStep('Hex digits A–F are on (−) °′″ hyp sin cos tan.'),
+            ManualStep(
+              'SHIFT 3: and, or, xor, xnor, Not, Neg; ▼ for d h b o prefixes.',
+            ),
+          ]),
+          Example(
+            title: '11₂ + 1₂',
+            setup: 'MODE 4',
+            keys: 'log 11 + 1 =',
+            result: '0000000000000100',
+            verify: '0000000000000100 [Bin]',
+          ),
+          Example(
+            title: '15 × 37 shown in hexadecimal',
+            setup: 'MODE 4',
+            keys: 'x2 15 × 37 = ^',
+            result: '0000022B',
+            verify: '0000022B [Hex]',
+          ),
+          Tip(
+            'Binary uses 16 bits, octal and hexadecimal 32 bits (two’s '
+            'complement for negatives). Fractional parts are dropped.',
+          ),
+        ],
+      ),
+      ManualArticle(
         id: 'table-tb',
         title: 'Number tables (TABLE)',
         summary: 'Values of f(X) for X from Start to End.',
@@ -842,7 +879,7 @@ const manualChapters = <ManualChapter>[
         blocks: [
           Para(
             'MODE lists COMP, CMPLX, STAT, BASE-N, EQN, MATRIX, TABLE and '
-            'VECTOR. COMP (with CALC and SOLVE), CMPLX, STAT, EQN and TABLE work today; the '
+            'VECTOR. COMP (with CALC and SOLVE), CMPLX, STAT, BASE-N, EQN and TABLE work today; the '
             'other modes are being added and will appear here with their own '
             'instructions.',
           ),
