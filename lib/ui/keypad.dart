@@ -147,9 +147,20 @@ class _KeyButtonState extends State<KeyButton> {
   }
 
   Widget _cap(KeySpec spec, Color cap, Color fg) {
+    final model = ModelScope.of(context);
+    final enabled = model.keyEnabled(spec.key);
+    final extras = [
+      for (final l in [...spec.above, ...spec.below])
+        if (model.showsLegend(spec.key, l)) legendText(l.text),
+    ];
     return Semantics(
       button: true,
+      enabled: enabled,
       label: legendText(spec.main),
+      hint: extras.isEmpty ? null : 'also ${extras.join(', ')}',
+      // Screen readers activate through a semantic tap, not pointer events.
+      onTap: () => widget.onPress(spec.key),
+      excludeSemantics: true,
       child: Listener(
         key: Key('key-${spec.key.name}'),
         onPointerDown: (_) {
@@ -389,6 +400,7 @@ class CursorDisc extends StatelessWidget {
         child: Semantics(
           button: true,
           label: 'cursor ${dir.name}',
+          onTap: () => onPress(key),
           child: Listener(
             key: Key('key-${key.name}'),
             behavior: HitTestBehavior.opaque,
