@@ -2,6 +2,11 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [Unreleased]
+
+### Added
+- Graph: mouse wheel / trackpad scroll zooms around the pointer (web).
+
 ## [0.10.0-beta] - 2026-11-23
 
 Ten models, history at a tap, INS wrapping, smoother pages.
