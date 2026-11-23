@@ -2,10 +2,9 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
-## [Unreleased]
+## [0.2.0-beta] - 2026-11-23
 
-### Fixed
-- MAT/VCT: at most two matrices or vectors may be pending in a calculation (Stack ERROR otherwise).
+Calculator models, accessibility and tablet layout.
 
 ### Added
 - Calculator models: choose *Scientific Plus* (all modes) or *Scientific Basic* (COMP, SD, REG) in
@@ -16,6 +15,9 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 - Long-press the LCD to copy the result (plain text, `E` notation).
 - Screen readers: keys can be activated by TalkBack/VoiceOver and announce their second functions.
 - Busy display during long calculations, landscape layout and app icon.
+
+### Fixed
+- MAT/VCT: at most two matrices or vectors may be pending in a calculation (Stack ERROR otherwise).
 
 ## [0.1.0-beta] - 2026-11-23
 
