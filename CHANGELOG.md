@@ -4,6 +4,13 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+## [0.12.0-beta] - 2026-11-23
+
+Open source (MIT), a new graph screen with typeset maths and sliders, and a Ko-fi button.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`. The web version is on itch.io.
+
 ### Changed
 - W-Calc is now free and open source under the MIT licence; source link in About.
 
