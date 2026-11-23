@@ -14,6 +14,7 @@ import 'pages/history_page.dart';
 import 'keyboard_shortcuts.dart';
 import 'keypad.dart';
 import 'keypad_layout.dart' show LabelKind;
+import 'neon.dart';
 import 'lcd.dart';
 import 'lcd/dot_lcd.dart';
 import 'skin.dart';
@@ -28,7 +29,14 @@ class CalculatorScreen extends StatefulWidget {
   State<CalculatorScreen> createState() => _CalculatorScreenState();
 }
 
-class _CalculatorScreenState extends State<CalculatorScreen> {
+class _CalculatorScreenState extends State<CalculatorScreen>
+    with SingleTickerProviderStateMixin {
+  /// Neon themes: the display ring after a key press.
+  late final AnimationController _ring = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+
   CalcEngine _calc = Calculator();
   CalcModel? _model;
 
@@ -142,6 +150,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   Future<void> _press(CalcKey key) async {
     if (_busy) return;
+    if (CalcSkin.of(context).isNeon) {
+      // After the key's own light, a lap round the display.
+      Future<void>.delayed(const Duration(milliseconds: 140), () {
+        if (mounted) _ring.forward(from: 0);
+      });
+    }
     final historyBefore = _calc.historyEntries;
     final settings = SettingsScope.maybeOf(context);
     if (settings?.vibration ?? true) keyVibration();
@@ -262,6 +276,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   @override
   void dispose() {
     calculatorTourRequest.removeListener(replayTour);
+    _ring.dispose();
     if (_focusMode) setFullscreen(false);
     _focus.dispose();
     super.dispose();
@@ -286,6 +301,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               final landscape = box.maxWidth > box.maxHeight * 1.15;
               final lcd = _Bezel(
                 key: TourKeys.lcd,
+                ring: _ring,
                 child: GestureDetector(
                   key: const Key('lcd-copy'),
                   onLongPress: _copyResult,
@@ -549,20 +565,47 @@ class _ContextSlot extends StatelessWidget {
 }
 
 class _Bezel extends StatelessWidget {
-  const _Bezel({super.key, required this.child});
+  const _Bezel({super.key, required this.child, this.ring});
 
   final Widget child;
 
+  /// Neon themes: light travelling once round the display after a press.
+  final Animation<double>? ring;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final skin = CalcSkin.of(context);
+    final neon = skin.isNeon ? neonColor(context) : null;
+    final box = Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: CalcSkin.of(context).bezel,
+        color: skin.bezel,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black45, width: 1.5),
+        border: Border.all(
+          color: neon?.withValues(alpha: 0.55) ?? Colors.black45,
+          width: 1.5,
+        ),
+        boxShadow: neon == null
+            ? null
+            : [BoxShadow(color: neon.withValues(alpha: 0.28), blurRadius: 12)],
       ),
       child: child,
+    );
+    final r = ring;
+    if (neon == null || r == null) return box;
+    return AnimatedBuilder(
+      animation: r,
+      builder: (context, child) => CustomPaint(
+        foregroundPainter: NeonSnakePainter(
+          progress: r.value,
+          color: neon,
+          radius: 14,
+          length: 0.22,
+          width: 3,
+        ),
+        child: child,
+      ),
+      child: box,
     );
   }
 }

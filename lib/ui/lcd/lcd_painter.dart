@@ -7,14 +7,33 @@ import 'seven_segment.dart';
 
 /// Colours of the LCD glass.
 class LcdPalette {
-  const LcdPalette({required this.glass, required this.ink});
+  const LcdPalette({required this.glass, required this.ink, this.glow = false});
 
   final Color glass;
   final Color ink;
 
+  /// Neon themes: the ink glows.
+  final bool glow;
+
   static const classic = LcdPalette(
     glass: Color(0xFFC3CDB2),
     ink: Color(0xFF1C2117),
+  );
+}
+
+/// Neon themes: the painted display plus a blurred copy underneath, so the
+/// ink glows. Other palettes get the painted display alone.
+Widget glowingLcd(LcdPalette palette, Widget paint) {
+  if (!palette.glow) return paint;
+  return Stack(
+    fit: StackFit.passthrough,
+    children: [
+      ImageFiltered(
+        imageFilter: ui.ImageFilter.blur(sigmaX: 2.2, sigmaY: 2.2),
+        child: paint,
+      ),
+      paint,
+    ],
   );
 }
 

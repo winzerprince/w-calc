@@ -5,6 +5,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Added
+- Neon themes: Neon Blue, Green, Red and Rainbow. Glowing outlines and display; a light runs
+  round each key you press and then round the display; Rainbow's colours drift slowly.
 - Settings ▸ App appearance: System, Light or Dark for menus and pages (separate from calculator
   themes) and a text-size slider (85–150 %).
 - History (Menu ▸ History or the clock button): every calculation with its time and answer,
