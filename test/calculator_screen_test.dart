@@ -202,4 +202,13 @@ void main() {
     await tester.pump();
     expect(calls.last, contains('edgeToEdge'));
   });
+
+  testWidgets('long press on a key explains its other functions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(WCalcApp());
+    await tester.longPress(find.byKey(const Key('key-sin')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.textContaining('SHIFT ▸ sin⁻¹'), findsOneWidget);
+  });
 }
