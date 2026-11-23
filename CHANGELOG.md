@@ -2,7 +2,12 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
-## [Unreleased]
+## [0.6.0-beta] - 2026-11-23
+
+Nine calculator models: new two-line dot, four-line and big-matrix models; first-start tours.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
 
 ### Fixed
 - Textbook models: the matrix size menu now shows its second page (1×3, 1×2).
