@@ -2464,7 +2464,31 @@ class Calculator implements CalcEngine {
   String? get copyText => display.copyText;
 
   @override
-  GraphSpec? get graphSpec => functionSpec(graphTokens, _angle);
+  GraphSpec? get graphSpec {
+    if (_mode == CalcMode.reg && _stats.items.length >= 2) {
+      double d(Dec x) => double.parse(x.toString());
+      return GraphSpec(
+        curves: [
+          (
+            'regression',
+            GraphFunction.of((x) {
+              try {
+                return d(
+                  _stats.estimateY(Dec.parse(x.toStringAsPrecision(15))),
+                );
+              } on Object {
+                return double.nan;
+              }
+            }),
+          ),
+        ],
+        points: [
+          for (final i in _stats.items) (x: d(i.x), y: d(i.y ?? Dec.zero)),
+        ],
+      );
+    }
+    return functionSpec(graphTokens, _angle);
+  }
 
   @override
   List<Tok>? get graphTokens =>

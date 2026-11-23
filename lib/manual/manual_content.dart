@@ -696,7 +696,10 @@ const manualChapters = <ManualChapter>[
           Para(
             'Type a calculation that uses X (ALPHA ) on most models) and a '
             'graph button appears next to the W-Calc name: tap it to see the '
-            'curve. Menu ▸ Graph opens the graph on its own.',
+            'curve. The button also appears for quadratic and cubic equations '
+            '(their curve, roots visible) and for paired statistics data '
+            '(the points with the regression line). Menu ▸ Graph opens the '
+            'graph on its own.',
           ),
           Steps([
             ManualStep('Drag to move, pinch or double-tap to zoom.'),
