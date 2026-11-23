@@ -66,4 +66,13 @@ void main() {
       ['-1.0000,1.0000', '3.0000,9.0000'],
     );
   });
+
+  test('more syntax: pi, ×, ², ., roots of degrees', () {
+    expect(g('pi×x²').at(1), closeTo(3.14159265, 1e-8));
+    expect(g('0.5x').at(4), 2);
+    expect(g('asin(x)', angle: AngleUnit.deg).at(1), closeTo(90, 1e-9));
+    expect(g('x^(1/3)').at(-8), closeTo(-2, 1e-9));
+    final xr = GraphFunction([Tok.d3, Tok.xRoot, Tok.varX]);
+    expect(xr.at(-27), closeTo(-3, 1e-9));
+  });
 }

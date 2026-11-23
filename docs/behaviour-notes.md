@@ -92,3 +92,4 @@ how to verify on the device, result.
 | 80 | Function brackets | sin(30)A = sin(30)·A: a bracketed function or template is one unit on textbook models | guide priority table | — |
 | 81 | Cubic root order | textbook models list x³−2x²−x+2 = 0 as −1, 2, 1 (guide); two-line models keep their own order | guide example | verify more cases on device |
 | 82 | EQN double root | a repeated quadratic root is shown once as "X=" | guide example | — |
+| 83 | Mixed input in d/c | textbook models treat a typed mixed fraction as Syntax ERROR while d/c is set (as on the two-line models) | assumption | verify on device |
