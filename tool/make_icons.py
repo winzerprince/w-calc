@@ -12,43 +12,54 @@ def lerp(a, b, t):
 
 
 def icon(size=S, padding=0.0, rounded=True, body_layer=True):
+    """W-Calc icon: indigo tile, bright display with a pixel W, white keys
+    with one orange accent. High contrast, few shapes."""
     img = Image.new('RGBA', (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
     p = int(S * padding)
-    # Body with vertical gradient.
-    body = Image.new('RGBA', (S, S))
-    bd = ImageDraw.Draw(body)
-    for y in range(S):
-        bd.line([(0, y), (S, y)], fill=lerp((0x3B, 0x41, 0x53), (0x1F, 0x23, 0x2D), y / S) + (255,))
-    mask = Image.new('L', (S, S), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([p, p, S - p, S - p], radius=int(S * 0.22) if rounded else 0, fill=255)
     if body_layer:
+        body = Image.new('RGBA', (S, S))
+        bd = ImageDraw.Draw(body)
+        for y in range(S):
+            bd.line([(0, y), (S, y)], fill=lerp((0x2B, 0x3C, 0xB0), (0x0D, 0x12, 0x3A), y / S) + (255,))
+        # Soft highlight across the top third.
+        hl = Image.new('RGBA', (S, S), (0, 0, 0, 0))
+        hd = ImageDraw.Draw(hl)
+        for y in range(int(S * 0.35)):
+            a = int(38 * (1 - y / (S * 0.35)))
+            hd.line([(0, y), (S, y)], fill=(255, 255, 255, a))
+        body = Image.alpha_composite(body, hl)
+        mask = Image.new('L', (S, S), 0)
+        ImageDraw.Draw(mask).rounded_rectangle(
+            [p, p, S - p, S - p], radius=int(S * 0.23) if rounded else 0, fill=255)
         img.paste(body, (0, 0), mask)
     inner = S - 2 * p
     def X(f): return p + int(inner * f)
-    # LCD.
-    d.rounded_rectangle([X(0.12), X(0.12), X(0.88), X(0.43)], radius=int(inner * 0.04), fill=(0x1B, 0x1E, 0x26))
-    d.rounded_rectangle([X(0.15), X(0.15), X(0.85), X(0.40)], radius=int(inner * 0.03), fill=(0xC3, 0xCD, 0xB2))
-    # Dot-matrix "W" on the LCD.
-    w = ['#...#', '#...#', '#...#', '#.#.#', '#.#.#', '##.##', '#...#']
-    dot = inner * 0.022
-    pitch = inner * 0.028
-    ox, oy = X(0.20), X(0.18)
+    ink = (0x0C, 0x18, 0x10)
+    # Display: bright mint glass with a dark bezel line.
+    d.rounded_rectangle([X(0.14), X(0.15), X(0.86), X(0.47)], radius=int(inner * 0.06), fill=(0x08, 0x0C, 0x24))
+    d.rounded_rectangle([X(0.165), X(0.175), X(0.835), X(0.445)], radius=int(inner * 0.045), fill=(0xD4, 0xF5, 0xC4))
+    # Bold pixel W.
+    w = ['#...#', '#...#', '#.#.#', '#.#.#', '#.#.#', '##.##', '#...#']
+    pitch = inner * 0.034
+    dot = pitch * 0.86
+    ox, oy = X(0.21), X(0.195)
     for r, row in enumerate(w):
         for c, ch in enumerate(row):
             if ch == '#':
                 x, y = ox + c * pitch, oy + r * pitch
-                d.rectangle([x, y, x + dot, y + dot], fill=(0x1C, 0x21, 0x17))
-    # Seven-segment style "=" bars at the right of the LCD.
-    d.rectangle([X(0.55), X(0.24), X(0.79), X(0.265)], fill=(0x1C, 0x21, 0x17))
-    d.rectangle([X(0.55), X(0.31), X(0.79), X(0.335)], fill=(0x1C, 0x21, 0x17))
-    # Keys: 3 × 3 grid, bottom-right key red.
-    for r in range(3):
+                d.rectangle([x, y, x + dot, y + dot], fill=ink)
+    # "=" bars.
+    d.rounded_rectangle([X(0.54), X(0.25), X(0.78), X(0.285)], radius=int(inner * 0.01), fill=ink)
+    d.rounded_rectangle([X(0.54), X(0.335), X(0.78), X(0.37)], radius=int(inner * 0.01), fill=ink)
+    # Keys: 2 rows × 3, white, last one orange.
+    for r in range(2):
         for c in range(3):
             x0 = X(0.14 + c * 0.25)
-            y0 = X(0.52 + r * 0.14)
-            color = (0xB4, 0x50, 0x5A) if (r, c) == (2, 2) else ((0xD9, 0xD6, 0xCF) if r == 0 else (0x9D, 0xA2, 0xAA))
-            d.rounded_rectangle([x0, y0, x0 + int(inner * 0.21), y0 + int(inner * 0.10)], radius=int(inner * 0.03), fill=color)
+            y0 = X(0.56 + r * 0.17)
+            color = (0xFF, 0x7A, 0x1A) if (r, c) == (1, 2) else (0xF4, 0xF6, 0xFF)
+            d.rounded_rectangle([x0, y0, x0 + int(inner * 0.22), y0 + int(inner * 0.13)],
+                                radius=int(inner * 0.04), fill=color)
     return img.resize((size, size), Image.LANCZOS)
 
 

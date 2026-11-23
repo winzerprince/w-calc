@@ -393,108 +393,111 @@ class _Header extends StatelessWidget {
   final bool focus;
   final VoidCallback onFocus;
 
-  /// Shown when the calculation can be graphed (it uses X).
+  /// Shown when the calculation can be graphed.
   final VoidCallback? onGraph;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
+    final skin = CalcSkin.of(context);
+    // Fixed height and fixed slots: nothing moves when contextual
+    // commands appear or disappear.
+    return SizedBox(
+      height: 52,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // W-Calc above the menu icon, top left.
+          Align(
+            alignment: Alignment.topLeft,
+            child: KeyedSubtree(
+              key: TourKeys.menu,
+              child: _MenuButton(onReset: onReset),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Align(
             alignment: Alignment.bottomLeft,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                KeyedSubtree(
-                  key: TourKeys.menu,
-                  child: _MenuButton(onReset: onReset),
+                _ContextSlot(
+                  buttonKey: const Key('history-button'),
+                  icon: Icons.history,
+                  tooltip: 'Earlier calculations',
+                  color: skin.brandText,
+                  onTap: onHistory,
                 ),
-                // Contextual command: earlier calculations.
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, a) =>
-                      ScaleTransition(scale: a, child: child),
-                  child: onHistory == null
-                      ? const SizedBox(key: ValueKey('no-history'), width: 0)
-                      : IconButton(
-                          key: const Key('history-button'),
-                          tooltip: 'Earlier calculations',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: onHistory,
-                          icon: Icon(
-                            Icons.history,
-                            color: CalcSkin.of(context).brandText
-                                .withValues(alpha: 0.8),
-                          ),
-                        ),
-                ),
-                // Contextual command: graph the expression in X.
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, a) =>
-                      ScaleTransition(scale: a, child: child),
-                  child: onGraph == null
-                      ? const SizedBox(key: ValueKey('no-graph'), width: 0)
-                      : IconButton(
-                          key: const Key('graph-button'),
-                          tooltip: 'Graph this',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: onGraph,
-                          icon: Icon(
-                            Icons.show_chart,
-                            color: CalcSkin.of(context).label(LabelKind.shift),
-                          ),
-                        ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  ModelScope.of(context).name.toUpperCase(),
-                  style: TextStyle(
-                    color: CalcSkin.of(context).brandText
-                        .withValues(alpha: 0.55),
-                    fontSize: 9,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w600,
-                  ),
+                const SizedBox(width: 4),
+                _ContextSlot(
+                  buttonKey: const Key('graph-button'),
+                  icon: Icons.show_chart,
+                  tooltip: 'Graph this',
+                  color: skin.label(LabelKind.shift),
+                  onTap: onGraph,
                 ),
               ],
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        // The solar panel toggles focus (full-screen) mode.
-        Tooltip(
-          message: focus ? 'Exit full screen' : 'Full screen',
-          child: Semantics(
-            button: true,
-            toggled: focus,
-            label: 'Full screen',
-            excludeSemantics: true,
-            child: GestureDetector(
-              key: const Key('solar-panel'),
-              behavior: HitTestBehavior.opaque,
-              onTap: onFocus,
-              child: Padding(
-                key: TourKeys.solar,
-                padding: const EdgeInsets.all(4),
-                child: _solar(context),
+          Expanded(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.topRight,
+                child: SizedBox(
+                  height: 52,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // The solar panel toggles focus (full-screen) mode.
+                      Tooltip(
+                        message: focus ? 'Exit full screen' : 'Full screen',
+                        child: Semantics(
+                          button: true,
+                          toggled: focus,
+                          label: 'Full screen',
+                          excludeSemantics: true,
+                          child: GestureDetector(
+                            key: const Key('solar-panel'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: onFocus,
+                            child: Padding(
+                              key: TourKeys.solar,
+                              padding: const EdgeInsets.fromLTRB(4, 2, 0, 2),
+                              child: _solar(context),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        ModelScope.of(context).name.toUpperCase(),
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: skin.brandText.withValues(alpha: 0.6),
+                          fontSize: 9,
+                          letterSpacing: 1.2,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _solar(BuildContext context) {
+    final skin = CalcSkin.of(context);
     return Container(
-      width: 92,
-      height: 22,
+      width: 84,
+      height: 20,
       decoration: BoxDecoration(
-        color: CalcSkin.of(context).solarStrip,
+        color: skin.solarStrip,
         borderRadius: BorderRadius.circular(3),
         border: Border.all(color: Colors.black54),
       ),
@@ -504,14 +507,58 @@ class _Header extends StatelessWidget {
             Expanded(
               child: Container(
                 margin: const EdgeInsets.all(1.5),
-                color: Color.lerp(
-                  CalcSkin.of(context).solarStrip,
-                  Colors.white,
-                  0.08,
-                ),
+                color: Color.lerp(skin.solarStrip, Colors.white, 0.08),
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// A contextual command in a fixed slot: always takes its space, fades and
+/// scales in when available, ignores taps when not.
+class _ContextSlot extends StatelessWidget {
+  const _ContextSlot({
+    required this.buttonKey,
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.onTap,
+  });
+
+  final Key buttonKey;
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final on = onTap != null;
+    return SizedBox.square(
+      dimension: 32,
+      child: AnimatedOpacity(
+        opacity: on ? 1 : 0,
+        duration: const Duration(milliseconds: 200),
+        child: AnimatedScale(
+          scale: on ? 1 : 0.6,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutBack,
+          child: IgnorePointer(
+            ignoring: !on,
+            child: on
+                ? IconButton(
+                    key: buttonKey,
+                    tooltip: tooltip,
+                    padding: EdgeInsets.zero,
+                    iconSize: 22,
+                    onPressed: onTap,
+                    icon: Icon(icon, color: color),
+                  )
+                : Icon(icon, color: color, size: 22),
+          ),
+        ),
       ),
     );
   }
@@ -559,24 +606,25 @@ class _MenuButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             onTap: () => showAppMenu(context, onReset: onReset),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(4, 2, 8, 2),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(2, 0, 8, 2),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.menu,
-                    color: brand.withValues(alpha: 0.75),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 6),
                   Text(
                     'W-Calc',
                     style: TextStyle(
                       color: brand,
-                      fontSize: 20,
+                      fontSize: 18,
+                      height: 1.1,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,
                     ),
+                  ),
+                  Icon(
+                    Icons.menu,
+                    color: brand.withValues(alpha: 0.8),
+                    size: 22,
                   ),
                 ],
               ),
