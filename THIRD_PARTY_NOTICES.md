@@ -2,9 +2,9 @@
 
 | Component | License | Location |
 |---|---|---|
-| Barlow Semi Condensed (Medium, Bold) — The Barlow Project Authors | SIL Open Font License 1.1 | `assets/fonts/`, `assets/fonts/OFL.txt` |
+| Barlow Semi Condensed (Medium, Bold; Latin/Greek/symbol subset) — The Barlow Project Authors | SIL Open Font License 1.1 | `assets/fonts/`, `assets/fonts/OFL.txt` |
 | WCalcSymbols — subset of Noto Sans Math, Google LLC | SIL Open Font License 1.1 | `assets/fonts/WCalcSymbols.ttf` |
-| Patrick Hand — Patrick Wagesreiter | SIL Open Font License 1.1 | `assets/fonts/PatrickHand-Regular.ttf`, `assets/fonts/OFL-PatrickHand.txt` |
+| Patrick Hand (Latin subset) — Patrick Wagesreiter | SIL Open Font License 1.1 | `assets/fonts/PatrickHand-Regular.ttf`, `assets/fonts/OFL-PatrickHand.txt` |
 | Flutter SDK and Dart packages | BSD-3-Clause (see each package) | build dependencies |
 
 The 5×7 and 3×5 dot-matrix glyphs (`packages/wcalc_engine/lib/src/lcd/`) and the seven-segment
