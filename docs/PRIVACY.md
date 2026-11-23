@@ -15,4 +15,11 @@ W-Calc does not collect, store on any server, share or sell personal data.
   storage access.
 - **Children:** W-Calc is suitable for students of all ages and collects nothing from anyone.
 
-Questions: contact the developer through the store listing.
+## Website (w-calc.0xwinzer.com)
+
+The website may show ads served by Google AdSense, which uses cookies to serve ads; visitors in
+the EEA, UK and Switzerland are asked for consent first. Opt out of personalised ads at
+https://adssettings.google.com. The site is hosted by Cloudflare. The Android app and the itch.io
+version have no ads. Web version of this policy: https://w-calc.0xwinzer.com/privacy.html
+
+Questions: open an issue at https://github.com/winzerprince/w-calc/issues.

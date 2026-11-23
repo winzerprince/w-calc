@@ -39,3 +39,4 @@ android/app/release
 
 # Personal Claude Code settings
 .claude/settings.local.json
+tool/.web.env
