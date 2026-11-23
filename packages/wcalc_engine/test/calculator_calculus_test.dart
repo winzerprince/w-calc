@@ -64,4 +64,19 @@ void main() {
       expect(press('d/dx X ) =').upper, 'Syntax ERROR');
     });
   });
+
+  group('slow-key detection for the busy display', () {
+    test('= on an integral is slow, plain arithmetic is not', () {
+      press('1 + 1');
+      expect(calc.isSlowKey(CalcKey.equals), isFalse);
+      press('AC ∫dx X , 0 , 1 )');
+      expect(calc.isSlowKey(CalcKey.equals), isTrue);
+      expect(calc.isSlowKey(CalcKey.d1), isFalse);
+    });
+    test('SOLVE is slow', () {
+      press('X x2 - 4 SOLVE');
+      press('SHIFT');
+      expect(calc.isSlowKey(CalcKey.calc), isTrue);
+    });
+  });
 }

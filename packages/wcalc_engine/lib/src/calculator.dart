@@ -2377,6 +2377,25 @@ class Calculator {
     _browse = null;
   }
 
+  /// True when [key] will start a long computation (∫dx, d/dx, SOLVE), so a
+  /// UI can show the cleared "busy" display first, as the device does.
+  bool isSlowKey(CalcKey key) {
+    bool heavy(Iterable<Tok> tokens) =>
+        tokens.any((t) => t == Tok.integral || t == Tok.derivative);
+    final eq = _equation;
+    if (eq != null && eq.prompting) {
+      final solving =
+          eq.solve && _modifier == _Modifier.shift && key == CalcKey.calc;
+      final lastCalc =
+          !eq.solve &&
+          key == CalcKey.equals &&
+          eq.index == eq.variables.length - 1;
+      return solving || (lastCalc && heavy(eq.tokens));
+    }
+    if (_modifier != _Modifier.none || _menu != null) return false;
+    return (key == CalcKey.equals || key == CalcKey.calc) && heavy(_tokens);
+  }
+
   /// Factory reset (app Settings ▸ Reset): like CLR All, plus COMP mode,
   /// contrast and every mode's data.
   void resetAll() {
