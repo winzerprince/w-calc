@@ -20,6 +20,10 @@ enum Indicator {
   reIm,
   scrollUp,
   scrollDown,
+
+  /// MAT / VCT editors: more elements to the left / right.
+  scrollLeft,
+  scrollRight,
   disp,
 
   /// CMPLX: the shown part is the imaginary part (i) / the angle (∠).
@@ -54,6 +58,8 @@ class DisplayState {
     this.cursor,
     this.cursorStyle = CursorStyle.underscore,
     this.menuMarks,
+    this.isOff = false,
+    this.contrast = 0,
   });
 
   /// Visible part of the dot-matrix line (at most [upperColumns] characters).
@@ -81,6 +87,18 @@ class DisplayState {
   /// Menu screens: digits shown on the result line, keyed by the upper-line
   /// column they sit under (e.g. `Deg Rad Gra` → {1: '1', 5: '2', 9: '3'}).
   final Map<int, String>? menuMarks;
+
+  /// Switched off (SHIFT AC): the LCD shows nothing until ON.
+  final bool isOff;
+
+  /// LCD contrast setting, −5 (light) … +5 (dark).
+  final int contrast;
+
+  static const DisplayState off = DisplayState(
+    upper: '',
+    lower: '',
+    isOff: true,
+  );
 
   static const int upperColumns = 12;
 

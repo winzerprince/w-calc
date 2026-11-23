@@ -4,7 +4,7 @@ Goal: a fast, lightweight, offline, accurate phone app that behaves like a class
 "MS-series" scientific calculator (reference model: CASIO fx-991MS), so students can practise
 on their phones with the same keystrokes, menus, display behaviour and results as the physical unit.
 
-Status: M0 (scaffold + CI). Last updated 2026-11-22.
+Status: v0.1.0-beta — all calculation modes done; polish and more calculator models next. Last updated 2026-11-23.
 
 ---
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
 import 'lcd/lcd_painter.dart';
+import 'skin.dart';
 
 /// Two-line LCD: indicator row, 12-column dot-matrix line, seven-segment result line.
 class Lcd extends StatefulWidget {
@@ -89,7 +90,11 @@ class _LcdState extends State<Lcd> {
           AspectRatio(
             aspectRatio: LcdPainter.aspectRatio,
             child: CustomPaint(
-              painter: LcdPainter(display: d, cursorVisible: _cursorOn),
+              painter: LcdPainter(
+                display: d,
+                cursorVisible: _cursorOn,
+                palette: CalcSkin.of(context).lcd,
+              ),
             ),
           ),
         ],

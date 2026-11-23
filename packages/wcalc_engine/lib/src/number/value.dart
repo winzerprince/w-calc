@@ -2,6 +2,7 @@ import '../angle_unit.dart';
 import 'dec.dart';
 import 'frac.dart';
 import 'functions.dart';
+import 'linalg.dart';
 import 'wide.dart';
 
 /// A calculation value: always a 15-digit [dec]; additionally exact [frac]
@@ -10,21 +11,52 @@ import 'wide.dart';
 /// shown and how fractions combine (manual: mixing fractions with decimals
 /// gives decimals).
 final class Value {
-  Value.dec(this.dec) : frac = null, isSexagesimal = false, imag = Dec.zero;
+  Value.dec(this.dec)
+    : frac = null,
+      isSexagesimal = false,
+      imag = Dec.zero,
+      matrix = null,
+      vector = null;
+
+  /// MAT mode matrix (1-3 × 1-3).
+  Value.matrix(Mat m)
+    : matrix = m,
+      vector = null,
+      dec = Dec.zero,
+      frac = null,
+      isSexagesimal = false,
+      imag = Dec.zero;
+
+  /// VCT mode vector (2 or 3 elements).
+  Value.vector(Vec v)
+    : vector = v,
+      matrix = null,
+      dec = Dec.zero,
+      frac = null,
+      isSexagesimal = false,
+      imag = Dec.zero;
 
   Value.frac(Frac f)
     : frac = f,
       dec = f.toDec(),
       isSexagesimal = false,
-      imag = Dec.zero;
+      imag = Dec.zero,
+      matrix = null,
+      vector = null;
 
   Value.sexagesimal(this.dec)
     : frac = null,
       isSexagesimal = true,
-      imag = Dec.zero;
+      imag = Dec.zero,
+      matrix = null,
+      vector = null;
 
   /// re + im·i (CMPLX mode). [dec] is the real part.
-  Value.complex(this.dec, this.imag) : frac = null, isSexagesimal = false;
+  Value.complex(this.dec, this.imag)
+    : frac = null,
+      isSexagesimal = false,
+      matrix = null,
+      vector = null;
 
   /// r∠θ with θ in [unit].
   factory Value.polar(Dec r, Dec theta, AngleUnit unit) {
@@ -42,6 +74,52 @@ final class Value {
 
   /// Imaginary part (zero for real values).
   final Dec imag;
+
+  final Mat? matrix;
+  final Vec? vector;
+
+  bool get isMatrix => matrix != null;
+  bool get isVector => vector != null;
+
+  /// Matrix or vector (MAT / VCT values).
+  bool get isLinear => matrix != null || vector != null;
+
+  /// +, −, ×, ÷ when a matrix or vector is involved (op 0-3).
+  Value _linearOp(Value o, int op) {
+    Never bad() => throw const CalcError(CalcErrorKind.math);
+    final (a, b) = (this, o);
+    if (a.isMatrix && b.isMatrix) {
+      return Value.matrix(switch (op) {
+        0 => matAdd(a.matrix!, b.matrix!),
+        1 => matSub(a.matrix!, b.matrix!),
+        2 => matMul(a.matrix!, b.matrix!),
+        _ => bad(),
+      });
+    }
+    if (a.isVector && b.isVector) {
+      return Value.vector(switch (op) {
+        0 => vecAdd(a.vector!, b.vector!),
+        1 => vecSub(a.vector!, b.vector!),
+        2 => vecCross(a.vector!, b.vector!),
+        _ => bad(),
+      });
+    }
+    if (a.isLinear && b.isLinear) throw const CalcError(CalcErrorKind.dim);
+    final linear = a.isLinear ? a : b;
+    final scalar = a.isLinear ? b : a;
+    if (scalar.isComplex) bad();
+    final Dec k;
+    if (op == 2) {
+      k = scalar.dec;
+    } else if (op == 3 && a.isLinear) {
+      k = Dec.one / scalar.dec;
+    } else {
+      bad();
+    }
+    return linear.isMatrix
+        ? Value.matrix(matScale(linear.matrix!, k))
+        : Value.vector(vecScale(linear.vector!, k));
+  }
 
   bool get isComplex => !imag.isZero;
 
@@ -92,7 +170,9 @@ final class Value {
     return sexagesimal ? Value.sexagesimal(r) : Value.dec(r);
   }
 
-  Value operator +(Value o) => isComplex || o.isComplex
+  Value operator +(Value o) => isLinear || o.isLinear
+      ? _linearOp(o, 0)
+      : isComplex || o.isComplex
       ? _complexOp(o, 0)
       : _combine(
           o,
@@ -101,7 +181,9 @@ final class Value {
           sexagesimal: isSexagesimal && o.isSexagesimal,
         );
 
-  Value operator -(Value o) => isComplex || o.isComplex
+  Value operator -(Value o) => isLinear || o.isLinear
+      ? _linearOp(o, 1)
+      : isComplex || o.isComplex
       ? _complexOp(o, 1)
       : _combine(
           o,
@@ -110,7 +192,9 @@ final class Value {
           sexagesimal: isSexagesimal && o.isSexagesimal,
         );
 
-  Value operator *(Value o) => isComplex || o.isComplex
+  Value operator *(Value o) => isLinear || o.isLinear
+      ? _linearOp(o, 2)
+      : isComplex || o.isComplex
       ? _complexOp(o, 2)
       : _combine(
           o,
@@ -119,7 +203,9 @@ final class Value {
           sexagesimal: isSexagesimal != o.isSexagesimal,
         );
 
-  Value operator /(Value o) => isComplex || o.isComplex
+  Value operator /(Value o) => isLinear || o.isLinear
+      ? _linearOp(o, 3)
+      : isComplex || o.isComplex
       ? _complexOp(o, 3)
       : _combine(
           o,
@@ -128,7 +214,11 @@ final class Value {
           sexagesimal: isSexagesimal && !o.isSexagesimal,
         );
 
-  Value operator -() => isComplex
+  Value operator -() => isMatrix
+      ? Value.matrix(matNeg(matrix!))
+      : isVector
+      ? Value.vector(vecNeg(vector!))
+      : isComplex
       ? Value.complex(-dec, -imag)
       : frac != null
       ? Value.frac(-frac!)
@@ -136,6 +226,16 @@ final class Value {
 
   /// Exact integer power of a fraction or complex value, else null.
   Value? powInt(int e) {
+    if (isVector) throw const CalcError(CalcErrorKind.math);
+    if (isMatrix) {
+      if (e == -1) return Value.matrix(matInverse(matrix!));
+      if (e < 1) throw const CalcError(CalcErrorKind.math);
+      var r = matrix!;
+      for (var i = 1; i < e; i++) {
+        r = matMul(r, matrix!);
+      }
+      return Value.matrix(r);
+    }
     if (frac != null) return Value.frac(frac!.pow(e));
     if (!isComplex) return null;
     var result = Value.complex(Dec.one, Dec.zero);
@@ -146,7 +246,9 @@ final class Value {
   }
 
   @override
-  String toString() => isComplex
+  String toString() => isLinear
+      ? 'Value(${matrix ?? vector})'
+      : isComplex
       ? 'Value($dec + ${imag}i)'
       : frac != null
       ? 'Value($frac)'

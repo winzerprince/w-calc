@@ -27,6 +27,11 @@ Clean-room Flutter app that behaves like the user's physical two-line MS-series 
   Judge analyze/format by exit code, never through a pipe (`cmd | tail` hides failures; it let an
   unformatted file reach CI once). Use `set -o pipefail` or run the command bare.
 - CI builds Android only, and only on `main`. Web is local only (`tool/web.sh`).
+- PRs into dev only get a placeholder CI check: the local gates (format, both analyzers, engine + app
+  tests) are mandatory before every PR. Release dev → main only after 6–10 significant merges.
+- Product vision: after the fx-991MS-style model is complete, add more calculator models (looks of
+  classics used in Africa, India, Asia, America) reusing the engine through shared interfaces; users
+  pick the one they know.
 - Number type: own decimal, never `double`, for anything that reaches the display.
 
 ## Communication preferences

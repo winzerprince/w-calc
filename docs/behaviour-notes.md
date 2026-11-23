@@ -65,3 +65,15 @@ how to verify on the device, result.
 | 58 | Data screens | `x1=`, `y1=`, `Freq1=` (Freq only when ≠ 1); typing + `=` replaces, typing + DT adds | ▲ in SD | to verify labels |
 | 59 | DT after `n=` | repeats the last item (DT DT = same value twice) | `53 DT DT` | — |
 | 60 | CL | deletes the last item (or the shown item in data view) | `SHIFT M+` | to verify |
+| 61 | LOGIC pages | `And Or Xnor` / `Xor Not Neg` / `d h b o` (order taken from manual key sequences: Xnor = LOGIC 3, Xor = LOGIC LOGIC 1) | x⁻¹ in BASE | to verify |
+| 62 | Logic operator text | shown as ` and `, ` or `, ` xor `, ` xnor ` with spaces; `Not `, `Neg ` | | to verify |
+| 63 | Digits outside the base | accepted while typing, Syntax ERROR on `=` (e.g. `2` in BIN) | `BIN 12 =` | to verify |
+| 64 | BASE keys | (−) °′″ hyp sin cos tan type A-F; scientific keys do nothing; decimals are cut off | | to verify |
+| 65 | EQN screens | `Unknowns?→` (2 3) and `←Degree?` (2 3); prompts `a1?`… / `a?`…; typing shows the name without `?`; answers `x= y= z=` / `x1= x2= x3=`; ▲▼ indicators | MODE ×3 1 | to verify |
+| 66 | EQN coefficient input | numbers only (digits, ., (−), EXP) | | to verify whether expressions are allowed |
+| 67 | Cubic root order | three real roots in trigonometric order k = 0, 2, 1 (matches manual: 2, −1, 1); one real root first, then complex pair with +i first | | to verify more cases |
+| 68 | MAT / VCT pickers | after Dim / Edit: ` A   B   C`; after Mat / Vct: `A  B  C  Ans` | SHIFT 4 1 | to verify text |
+| 69 | Matrix editor | `MatA₁₂` with ▲▼←→ indicators; `=` stores and moves along the row, then to the next row; any other key leaves the editor | | to verify |
+| 70 | MAT / VCT history | calculation history not kept in MAT / VCT (manual lists COMP, CMPLX, BASE only) | | — |
+| 71 | Matrix stack | the 2-level matrix stack limit (Stack ERROR) is not enforced | | to do |
+| 72 | OFF / contrast | SHIFT AC blanks the LCD until ON (memories kept); Disp page `Disp ◀CONT▶`, ▶ opens `CONT ◀  ▶`, ◀ ▶ adjust −5…+5, AC closes | | to verify screen text |

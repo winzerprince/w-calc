@@ -2,40 +2,62 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'haptics.dart';
+import 'pages/about_page.dart';
+import 'pages/guide_page.dart';
+import 'pages/settings_page.dart';
+import 'pages/shortcuts_page.dart';
+import 'pages/theme_page.dart';
 
-/// One entry of the W-Calc menu. Entries without [ready] are shown but
+/// One entry of the W-Calc menu. Entries that are not [ready] are shown but
 /// marked "Soon" (visible constraint) and explain themselves when tapped.
 class MenuEntry {
-  const MenuEntry(this.icon, this.title, this.subtitle, {this.ready = false});
+  const MenuEntry(this.icon, this.title, this.subtitle, {this.page});
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final bool ready;
+
+  /// Builds the page opened by this entry (gets the reset action).
+  final Widget Function(VoidCallback onReset)? page;
+
+  bool get ready => page != null;
 }
 
-const menuEntries = [
-  MenuEntry(Icons.tune, 'Settings', 'Sound, vibration, start-up mode'),
+final menuEntries = [
+  MenuEntry(
+    Icons.tune,
+    'Settings',
+    'Vibration, sound, theme, reset',
+    page: (onReset) => SettingsPage(onResetCalculator: onReset),
+  ),
   MenuEntry(
     Icons.palette_outlined,
     'Theme',
-    'Classic, dark and high-contrast looks',
+    'Classic, Midnight, High contrast, Ivory',
+    page: (_) => const ThemePage(),
   ),
   MenuEntry(
     Icons.menu_book_outlined,
     'User guide',
     'How each key and mode works',
+    page: (_) => const GuidePage(),
   ),
   MenuEntry(
     Icons.keyboard_outlined,
     'Keyboard shortcuts',
     'Use a physical keyboard on the web',
+    page: (_) => const ShortcutsPage(),
   ),
-  MenuEntry(Icons.info_outline, 'About W-Calc', 'Version, licence and credits'),
+  MenuEntry(
+    Icons.info_outline,
+    'About W-Calc',
+    'Version, licence and credits',
+    page: (_) => const AboutPage(),
+  ),
 ];
 
 /// Opens the full-screen menu over the calculator.
-Future<void> showAppMenu(BuildContext context) {
+Future<void> showAppMenu(BuildContext context, {VoidCallback? onReset}) {
   keyVibration();
   return showGeneralDialog<void>(
     context: context,
@@ -43,7 +65,7 @@ Future<void> showAppMenu(BuildContext context) {
     barrierDismissible: false,
     barrierColor: Colors.transparent,
     transitionDuration: const Duration(milliseconds: 160),
-    pageBuilder: (context, _, _) => const AppMenu(),
+    pageBuilder: (context, _, _) => AppMenu(onReset: onReset ?? () {}),
     transitionBuilder: (context, animation, _, child) {
       final curved = CurvedAnimation(parent: animation, curve: Curves.easeOut);
       return FadeTransition(
@@ -59,7 +81,9 @@ Future<void> showAppMenu(BuildContext context) {
 
 /// Semi-transparent black menu: white text, calculator faintly visible behind.
 class AppMenu extends StatefulWidget {
-  const AppMenu({super.key});
+  const AppMenu({super.key, required this.onReset});
+
+  final VoidCallback onReset;
 
   @override
   State<AppMenu> createState() => _AppMenuState();
@@ -75,9 +99,13 @@ class _AppMenuState extends State<AppMenu> {
 
   void _open(MenuEntry entry) {
     keyVibration();
-    if (!entry.ready) {
+    final page = entry.page;
+    if (!entry.ready || page == null) {
       setState(() => _notice = '${entry.title} is coming in a later update.');
+      return;
     }
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => page(widget.onReset)));
   }
 
   @override
