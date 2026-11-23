@@ -41,53 +41,114 @@ void main() {
     await tester.tap(find.byKey(const Key('graph-button')));
     await settle(tester);
     expect(find.byKey(const Key('graph-canvas')), findsOneWidget);
-    expect(find.text('x²+1'), findsOneWidget);
+    expect(find.byKey(const Key('graph-expr-0')), findsOneWidget);
   });
 
-  testWidgets('graph mode: type a function, trace a point', (tester) async {
-    await open(tester);
+  Future<void> openGraph(WidgetTester tester) async {
     await tester.tap(find.byKey(const Key('app-menu-button')));
     await settle(tester);
     await tester.tap(find.text('Graph'));
     await settle(tester);
-    await tester.enterText(find.byKey(const Key('graph-formula-0')), '2x+1');
+  }
+
+  Future<void> keys(WidgetTester tester, List<String> ids) async {
+    for (final k in ids) {
+      await tester.tap(find.byKey(Key('gx-key-$k')));
+      await tester.pump();
+    }
     await settle(tester);
+  }
+
+  testWidgets('graph mode: type with the keypad, trace a point', (
+    tester,
+  ) async {
+    await open(tester);
+    await openGraph(tester);
+    expect(find.byKey(const Key('graph-expr-0')), findsOneWidget);
+    // Replace x² by 2x+1.
+    await tester.tap(find.byKey(const Key('graph-expr-0')));
+    await settle(tester);
+    expect(find.byKey(const Key('gx-keypad')), findsOneWidget);
+    await keys(tester, ['back', 'back', 'back', 'back', '2', 'x', 'plus', '1']);
     final canvas = tester.getRect(find.byKey(const Key('graph-canvas')));
     await tester.tapAt(canvas.center);
     await settle(tester);
+    expect(find.byKey(const Key('gx-keypad')), findsNothing);
     expect(find.byKey(const Key('graph-trace')), findsOneWidget);
-    expect(find.text('(0, 1)'), findsOneWidget);
-    // A bad formula shows a message instead of crashing.
+    // Tapping near the root snaps to it.
+    expect(find.text('(−0.5, 0)'), findsOneWidget);
+    // Undo brings x² back.
+    await tester.tap(find.byKey(const Key('graph-undo')));
+    await settle(tester);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('functions panel, errors, values and sliders', (tester) async {
+    await open(tester);
+    await openGraph(tester);
     await tester.tap(find.byKey(const Key('graph-add')));
     await settle(tester);
-    await tester.enterText(find.byKey(const Key('graph-formula-1')), 'x ? 2');
+    // a·sin x: the free a offers a slider.
+    await keys(tester, ['abc', 'letter-a', 'abc', 'funcs', 'fn-sin', 'x']);
+    expect(find.byKey(const Key('graph-slider-add-a')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('graph-slider-add-a')));
     await settle(tester);
-    expect(find.textContaining('Unexpected'), findsOneWidget);
+    expect(find.byKey(const Key('graph-slider-2')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('graph-play-2')));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byKey(const Key('graph-play-2')));
+    await settle(tester);
+    // A constant shows its value; a bad row shows a warning.
+    await tester.tap(find.byKey(const Key('graph-add')));
+    await settle(tester);
+    await keys(tester, ['2', 'plus', '3']);
+    expect(find.text('= 5'), findsOneWidget);
+    await keys(tester, ['plus']);
+    expect(find.byKey(const Key('graph-error-3')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('table of values', (tester) async {
+  testWidgets('edit mode: table of values, delete all', (tester) async {
     await open(tester);
-    await tester.tap(find.byKey(const Key('app-menu-button')));
+    await openGraph(tester);
+    await tester.tap(find.byKey(const Key('graph-edit')));
     await settle(tester);
-    await tester.tap(find.text('Graph'));
-    await settle(tester);
-    await tester.tap(find.byKey(const Key('graph-table')));
+    await tester.tap(find.byKey(const Key('graph-table-0')));
     await settle(tester);
     expect(find.byKey(const Key('graph-values')), findsOneWidget);
-    expect(find.text('y = x^2'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('graph-delete-all')));
+    await settle(tester);
+    expect(find.byKey(const Key('graph-expr-0')), findsNothing);
   });
 
-  testWidgets('graph mode remembers typed functions', (tester) async {
+  testWidgets('settings panel: grid, log axis, degrees', (tester) async {
+    await open(tester);
+    await openGraph(tester);
+    await tester.tap(find.byKey(const Key('graph-settings')));
+    await settle(tester);
+    expect(find.byKey(const Key('graph-settings-panel')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('graph-opt-minor')));
+    await settle(tester);
+    await tester.tap(find.text('Logarithmic').first);
+    await settle(tester);
+    await tester.tap(find.text('Degrees'));
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('graph-home')));
+    await settle(tester);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('graph mode remembers old saved functions', (tester) async {
     SharedPreferences.setMockInitialValues({
       'wcalc.graph.v1': ['x^3', 'sin(x)'],
     });
     await open(tester);
-    await tester.tap(find.byKey(const Key('app-menu-button')));
-    await settle(tester);
-    await tester.tap(find.text('Graph'));
-    await settle(tester);
-    expect(find.text('x^3'), findsOneWidget);
-    expect(find.text('sin(x)'), findsOneWidget);
+    await openGraph(tester);
+    expect(find.byKey(const Key('graph-expr-1')), findsOneWidget);
+    expect(find.byKey(const Key('graph-expr-2')), findsNothing);
   });
 
   testWidgets('landscape puts the list beside the plot; summary for TalkBack', (
@@ -99,15 +160,15 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(WCalcApp(settings: AppSettings()));
     await tester.pump();
-    await tester.tap(find.byKey(const Key('app-menu-button')));
-    await settle(tester);
-    await tester.tap(find.text('Graph'));
-    await settle(tester);
+    await openGraph(tester);
     final canvas = tester.getRect(find.byKey(const Key('graph-canvas')));
     final list = tester.getRect(find.byKey(const Key('graph-add')));
     expect(list.left, greaterThan(canvas.right - 1));
     expect(tester.takeException(), isNull);
-    expect(find.bySemanticsLabel(RegExp('Graph of y = x\\^2')), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(RegExp(r'Graph of y = x\^\(2\)')),
+      findsOneWidget,
+    );
     handle.dispose();
   });
 
