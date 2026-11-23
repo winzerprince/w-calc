@@ -77,12 +77,15 @@ class _DotLcdState extends State<DotLcd> {
           ),
           AspectRatio(
             aspectRatio: DotLcd.aspectRatio,
-            child: CustomPaint(
-              painter: _DotLcdPainter(
-                labels: labels,
-                screen: s,
-                cursorOn: _cursorOn,
-                palette: CalcSkin.of(context).lcd,
+            child: glowingLcd(
+              CalcSkin.of(context).lcd,
+              CustomPaint(
+                painter: _DotLcdPainter(
+                  labels: labels,
+                  screen: s,
+                  cursorOn: _cursorOn,
+                  palette: CalcSkin.of(context).lcd,
+                ),
               ),
             ),
           ),

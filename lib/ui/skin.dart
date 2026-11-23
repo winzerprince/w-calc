@@ -31,7 +31,15 @@ class CalcSkin {
     required this.labels,
     required this.lcd,
     this.solarStrip = const Color(0xFF3A2A22),
+    this.neon,
+    this.rainbow = false,
   });
+
+  /// Neon themes: the glow colour (null for [rainbow], whose colour drifts).
+  final Color? neon;
+  final bool rainbow;
+
+  bool get isNeon => neon != null || rainbow;
 
   final String id;
   final String name;
@@ -428,6 +436,156 @@ class CalcSkin {
     solarStrip: Color(0xFF221A17),
   );
 
+  static const neonBlue = CalcSkin(
+    id: 'neon-blue',
+    name: 'Neon Blue',
+    description: 'Glowing blue outlines on black; keys and display light up when pressed',
+    background: Color(0xFF020205),
+    bodyTop: Color(0xFF0B0C14),
+    body: Color(0xFF05060B),
+    bezel: Color(0xFF020306),
+    brandText: Color(0xFF2EC9FF),
+    modifierKey: Color(0xFF0A0B12),
+    modifierText: Color(0xFF2EC9FF),
+    functionKey: Color(0xFF07080E),
+    functionText: Color(0xFFEFF6FF),
+    digitKey: Color(0xFF0A0B12),
+    digitText: Color(0xFFFFFFFF),
+    operatorKey: Color(0xFF0A0B12),
+    clearKey: Color(0xFF14070B),
+    clearText: Color(0xFF2EC9FF),
+    disc: Color(0xFF0A0B12),
+    discMark: Color(0xFF2EC9FF),
+    labels: {
+      LabelKind.shift: Color(0xFF2EC9FF),
+      LabelKind.alpha: Color(0xFFFF7AD9),
+      LabelKind.complex: Color(0xFFC59BFF),
+      LabelKind.stat: Color(0xFF7FC8FF),
+      LabelKind.base: Color(0xFF8CFFB0),
+      LabelKind.plain: Color(0xFFD6E2F0),
+      LabelKind.neutral: Color(0xFF8E9AAE),
+    },
+    lcd: LcdPalette(
+      glass: Color(0xFF05070C),
+      ink: Color(0xFF2EC9FF),
+      glow: true,
+    ),
+    solarStrip: Color(0xFF101018),
+    neon: Color(0xFF2EC9FF),
+  );
+  static const neonGreen = CalcSkin(
+    id: 'neon-green',
+    name: 'Neon Green',
+    description: 'Glowing green outlines on black; keys and display light up when pressed',
+    background: Color(0xFF020205),
+    bodyTop: Color(0xFF0B0C14),
+    body: Color(0xFF05060B),
+    bezel: Color(0xFF020306),
+    brandText: Color(0xFF39FF88),
+    modifierKey: Color(0xFF0A0B12),
+    modifierText: Color(0xFF39FF88),
+    functionKey: Color(0xFF07080E),
+    functionText: Color(0xFFEFF6FF),
+    digitKey: Color(0xFF0A0B12),
+    digitText: Color(0xFFFFFFFF),
+    operatorKey: Color(0xFF0A0B12),
+    clearKey: Color(0xFF14070B),
+    clearText: Color(0xFF39FF88),
+    disc: Color(0xFF0A0B12),
+    discMark: Color(0xFF39FF88),
+    labels: {
+      LabelKind.shift: Color(0xFF39FF88),
+      LabelKind.alpha: Color(0xFFFF7AD9),
+      LabelKind.complex: Color(0xFFC59BFF),
+      LabelKind.stat: Color(0xFF7FC8FF),
+      LabelKind.base: Color(0xFF8CFFB0),
+      LabelKind.plain: Color(0xFFD6E2F0),
+      LabelKind.neutral: Color(0xFF8E9AAE),
+    },
+    lcd: LcdPalette(
+      glass: Color(0xFF05070C),
+      ink: Color(0xFF39FF88),
+      glow: true,
+    ),
+    solarStrip: Color(0xFF101018),
+    neon: Color(0xFF39FF88),
+  );
+  static const neonRed = CalcSkin(
+    id: 'neon-red',
+    name: 'Neon Red',
+    description:
+        'Glowing red outlines on black; keys and display light up when pressed',
+    background: Color(0xFF020205),
+    bodyTop: Color(0xFF0B0C14),
+    body: Color(0xFF05060B),
+    bezel: Color(0xFF020306),
+    brandText: Color(0xFFFF3B5C),
+    modifierKey: Color(0xFF0A0B12),
+    modifierText: Color(0xFFFF3B5C),
+    functionKey: Color(0xFF07080E),
+    functionText: Color(0xFFEFF6FF),
+    digitKey: Color(0xFF0A0B12),
+    digitText: Color(0xFFFFFFFF),
+    operatorKey: Color(0xFF0A0B12),
+    clearKey: Color(0xFF14070B),
+    clearText: Color(0xFFFF3B5C),
+    disc: Color(0xFF0A0B12),
+    discMark: Color(0xFFFF3B5C),
+    labels: {
+      LabelKind.shift: Color(0xFFFF3B5C),
+      LabelKind.alpha: Color(0xFFFF7AD9),
+      LabelKind.complex: Color(0xFFC59BFF),
+      LabelKind.stat: Color(0xFF7FC8FF),
+      LabelKind.base: Color(0xFF8CFFB0),
+      LabelKind.plain: Color(0xFFD6E2F0),
+      LabelKind.neutral: Color(0xFF8E9AAE),
+    },
+    lcd: LcdPalette(
+      glass: Color(0xFF05070C),
+      ink: Color(0xFFFF3B5C),
+      glow: true,
+    ),
+    solarStrip: Color(0xFF101018),
+    neon: Color(0xFFFF3B5C),
+  );
+  static const neonRainbow = CalcSkin(
+    id: 'neon-rainbow',
+    name: 'Neon Rainbow',
+    description: 'Glowing outlines whose colour drifts through the rainbow',
+    background: Color(0xFF020205),
+    bodyTop: Color(0xFF0B0C14),
+    body: Color(0xFF05060B),
+    bezel: Color(0xFF020306),
+    brandText: Color(0xFFFFFFFF),
+    modifierKey: Color(0xFF0A0B12),
+    modifierText: Color(0xFFFFFFFF),
+    functionKey: Color(0xFF07080E),
+    functionText: Color(0xFFEFF6FF),
+    digitKey: Color(0xFF0A0B12),
+    digitText: Color(0xFFFFFFFF),
+    operatorKey: Color(0xFF0A0B12),
+    clearKey: Color(0xFF14070B),
+    clearText: Color(0xFFFFFFFF),
+    disc: Color(0xFF0A0B12),
+    discMark: Color(0xFFFFFFFF),
+    labels: {
+      LabelKind.shift: Color(0xFFFFD166),
+      LabelKind.alpha: Color(0xFFFF7AD9),
+      LabelKind.complex: Color(0xFFC59BFF),
+      LabelKind.stat: Color(0xFF7FC8FF),
+      LabelKind.base: Color(0xFF8CFFB0),
+      LabelKind.plain: Color(0xFFD6E2F0),
+      LabelKind.neutral: Color(0xFF8E9AAE),
+    },
+    lcd: LcdPalette(
+      glass: Color(0xFF05070C),
+      ink: Color(0xFF9EF0FF),
+      glow: true,
+    ),
+    solarStrip: Color(0xFF101018),
+    rainbow: true,
+  );
+
   static const all = [
     classic,
     midnight,
@@ -440,6 +598,10 @@ class CalcSkin {
     graphite,
     ocean,
     indigo,
+    neonBlue,
+    neonGreen,
+    neonRed,
+    neonRainbow,
   ];
 
   static CalcSkin byId(String? id) =>

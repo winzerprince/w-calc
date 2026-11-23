@@ -7,6 +7,7 @@ import 'app/calc_model.dart';
 import 'app/history_store.dart';
 import 'ui/calculator_screen.dart';
 import 'ui/finish.dart';
+import 'ui/neon.dart';
 import 'ui/skin.dart';
 
 void main() {
@@ -57,17 +58,19 @@ class WCalcApp extends StatelessWidget {
             skin: CalcSkin.byId(settings.skinId),
             child: FinishScope(
               finish: CalcFinish.byId(settings.finishId),
-              child: MaterialApp(
-                title: 'W-Calc',
-                debugShowCheckedModeBanner: false,
-                theme: ThemeData(
-                  fontFamily: 'Barlow',
-                  fontFamilyFallback: const ['WCalcSymbols'],
-                  colorScheme: ColorScheme.fromSeed(
-                    seedColor: const Color(0xFF2B2F3A),
+              child: NeonClock(
+                child: MaterialApp(
+                  title: 'W-Calc',
+                  debugShowCheckedModeBanner: false,
+                  theme: ThemeData(
+                    fontFamily: 'Barlow',
+                    fontFamilyFallback: const ['WCalcSymbols'],
+                    colorScheme: ColorScheme.fromSeed(
+                      seedColor: const Color(0xFF2B2F3A),
+                    ),
                   ),
+                  home: const CalculatorScreen(),
                 ),
-                home: const CalculatorScreen(),
               ),
             ),
           ),
