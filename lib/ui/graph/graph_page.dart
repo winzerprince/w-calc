@@ -318,6 +318,28 @@ class _GraphPageState extends State<GraphPage> {
     );
   }
 
+  /// Spoken description of the graph for screen readers.
+  String _summary() {
+    final shown = [
+      for (final c in _curves)
+        if (c.visible && c.function != null) 'y = ${c.text}',
+    ];
+    if (shown.isEmpty) return 'Empty graph';
+    final parts = <String>['Graph of ${shown.join(', ')}'];
+    final roots = [
+      for (final (p, kind) in _poi)
+        if (kind == 'root') _fmt(p.dx),
+    ];
+    if (roots.isNotEmpty) parts.add('roots at x = ${roots.join(', ')}');
+    for (final (p, kind) in _poi) {
+      if (kind == 'maximum' || kind == 'minimum' || kind == 'intersection') {
+        parts.add('$kind at (${_fmt(p.dx)}, ${_fmt(p.dy)})');
+      }
+    }
+    if (_points.isNotEmpty) parts.add('${_points.length} data points');
+    return parts.join('; ');
+  }
+
   static String _fmt(double v) {
     if (v == 0) return '0';
     final a = v.abs();
@@ -373,9 +395,9 @@ class _GraphPageState extends State<GraphPage> {
                 ),
               ],
             ),
-            body: Column(
-              children: [
-                Expanded(
+            body: LayoutBuilder(
+              builder: (context, outer) {
+                final plot = Expanded(
                   child: LayoutBuilder(
                     builder: (context, box) {
                       if (_size != box.biggest) {
@@ -424,18 +446,21 @@ class _GraphPageState extends State<GraphPage> {
                             onScaleEnd: (_) => _schedulePoi(),
                             onTapUp: (d) => _onTap(d.localPosition),
                             onDoubleTapDown: (d) => _zoom(2, d.localPosition),
-                            child: CustomPaint(
-                              key: TourKeys.graphCanvas,
-                              size: Size.infinite,
-                              painter: _GraphPainter(
-                                points: _points,
-                                center: _center,
-                                scale: _scale,
-                                curves: _curves,
-                                poi: _poi,
-                                trace: _trace,
-                                paper: scheme.surface,
-                                ink: scheme.onSurface,
+                            child: Semantics(
+                              label: _summary(),
+                              child: CustomPaint(
+                                key: TourKeys.graphCanvas,
+                                size: Size.infinite,
+                                painter: _GraphPainter(
+                                  points: _points,
+                                  center: _center,
+                                  scale: _scale,
+                                  curves: _curves,
+                                  poi: _poi,
+                                  trace: _trace,
+                                  paper: scheme.surface,
+                                  ink: scheme.onSurface,
+                                ),
                               ),
                             ),
                           ),
@@ -473,8 +498,8 @@ class _GraphPageState extends State<GraphPage> {
                       );
                     },
                   ),
-                ),
-                _FunctionList(
+                );
+                final list = _FunctionList(
                   key: TourKeys.graphList,
                   curves: _curves,
                   onChanged: (c) {
@@ -496,8 +521,20 @@ class _GraphPageState extends State<GraphPage> {
                   onAdd: () {
                     setState(() => _addCurve(''));
                   },
-                ),
-              ],
+                );
+                // Landscape: the list beside the plot, so the plot keeps
+                // its height.
+                if (outer.maxWidth > outer.maxHeight * 1.2) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      plot,
+                      SizedBox(width: outer.maxWidth * 0.36, child: list),
+                    ],
+                  );
+                }
+                return Column(children: [plot, list]);
+              },
             ),
           );
         },

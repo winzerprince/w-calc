@@ -11,6 +11,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ### Added
 - Graph mode remembers the functions you typed.
+- Graph in landscape keeps the function list beside the plot; screen readers hear a summary
+  (curves, roots, turning points, intersections).
 
 ### Changed
 - Dot displays draw in two batched calls (lighter on battery and older phones).
