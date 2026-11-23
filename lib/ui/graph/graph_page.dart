@@ -76,7 +76,7 @@ class _Expr {
         ..loop = j['loop'] as bool? ?? false;
 }
 
-/// Desmos-style graphing: a typeset expression list with its own maths
+/// Graphing: a typeset expression list with its own maths
 /// keypad under the plot; sliders for variables; settings behind the
 /// wrench.
 class GraphPage extends StatefulWidget {

@@ -22,7 +22,7 @@ testing.
 - **Private** — no network, no data collected ([`docs/PRIVACY.md`](docs/PRIVACY.md)).
 
 ## Status
-Beta (v0.11.x). Plan: [`docs/PLAN.md`](docs/PLAN.md) · changes: [`CHANGELOG.md`](CHANGELOG.md) ·
+Beta (v0.12.x). Plan: [`docs/PLAN.md`](docs/PLAN.md) · changes: [`CHANGELOG.md`](CHANGELOG.md) ·
 device questions: [`docs/behaviour-notes.md`](docs/behaviour-notes.md) · known issues:
 [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md).
 
@@ -37,11 +37,12 @@ device questions: [`docs/behaviour-notes.md`](docs/behaviour-notes.md) · known 
 flutter pub get
 tool/gate.sh            # format, analyze, engine + widget tests (run before every PR)
 tool/web.sh             # run in a browser (LAN-accessible); `tool/web.sh release` for a release build
+tool/itch_web.sh        # web build zipped for itch.io
 ```
 Android builds run only in CI on `main`. Workflow and CI rules: [`docs/CI_CD.md`](docs/CI_CD.md).
 
 ## License
-MIT — see [`LICENSE`](LICENSE). Free and open source; contributions welcome. (v0.5.0–v0.12.0
+MIT — see [`LICENSE`](LICENSE). Free and open source; contributions welcome. (v0.5.0–v0.11.0
 were briefly proprietary; up to v0.4.0 were GPL-3.0.)
 
 Like W-Calc? [Buy me a coffee on Ko-fi](https://ko-fi.com/winzerprince). Third-party components: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
