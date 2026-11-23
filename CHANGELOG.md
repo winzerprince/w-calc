@@ -4,6 +4,13 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+## [0.13.0-beta] - 2026-11-23
+
+Snappier neon themes, the website, and graph keypad fixes.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
 ### Changed
 - Neon themes: keys give a quick edge flash; the light running round the key and then round the
   display now plays only on = (an answer), and much faster.

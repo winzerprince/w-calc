@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Release version. Bump on `dev` via PR; merging to `main` creates tag v<version-without-build>.
 # Build number (+N) is overridden in CI by the workflow run number.
-version: 0.12.0-beta+1
+version: 0.13.0-beta+1
 
 environment:
   sdk: ^3.13.7
