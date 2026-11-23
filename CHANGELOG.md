@@ -4,6 +4,29 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+## [0.13.0-beta] - 2026-11-23
+
+Snappier neon themes, the website, and graph keypad fixes.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
+### Changed
+- Neon themes: keys give a quick edge flash; the light running round the key and then round the
+  display now plays only on = (an answer), and much faster.
+- “Buy me a coffee” is now the first item in Settings (removed from About).
+- Graph: tapping beside an expression takes the cursor out of a power or fraction; the functions
+  panel closes with its × or a tap outside; the settings panel is centred and stays on screen.
+
+### Added
+- Graph: a one-time tip the first time you type a power or subscript.
+
+### Added
+- Website w-calc.0xwinzer.com: on wide screens W-Calc sits in a phone frame beside a short
+  introduction with download (itch.io), Ko-fi and source links; full screen on phones; loading
+  screen, link previews and a privacy page. The website may show ads; the apps never do.
+- About (web): “Get the Android app”.
+
 ## [0.12.0-beta] - 2026-11-23
 
 Open source (MIT), a new graph screen with typeset maths and sliders, and a Ko-fi button.

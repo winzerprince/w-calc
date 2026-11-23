@@ -121,11 +121,18 @@ class _KeyButtonState extends State<KeyButton>
     with SingleTickerProviderStateMixin {
   bool _down = false;
 
-  /// Neon themes: light running once round the key after a press.
+  /// Neon themes: a quick edge flash on every press; = also sends a
+  /// light once round the key.
   late final AnimationController _snake = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 460),
-  );
+    duration: const Duration(milliseconds: 240),
+  )..addListener(() => setState(() {}));
+
+  /// The light runs round the key (only for =).
+  bool _lap = false;
+
+  /// 1 right after a press, fading to 0.
+  double get _flash => _snake.isAnimating ? 1 - _snake.value : 0;
 
   @override
   void dispose() {
@@ -254,7 +261,10 @@ class _KeyButtonState extends State<KeyButton>
         key: Key('key-${spec.key.name}'),
         onPointerDown: (_) {
           setState(() => _down = true);
-          if (CalcSkin.of(context).isNeon) _snake.forward(from: 0);
+          if (CalcSkin.of(context).isNeon) {
+            _lap = spec.key == CalcKey.equals;
+            _snake.forward(from: 0);
+          }
           widget.onPress(spec.key);
         },
         onPointerUp: (_) => setState(() => _down = false),
@@ -262,7 +272,7 @@ class _KeyButtonState extends State<KeyButton>
         child: AnimatedBuilder(
           animation: _snake,
           builder: (context, child) => CustomPaint(
-            foregroundPainter: neon == null
+            foregroundPainter: neon == null || !_lap
                 ? null
                 : NeonSnakePainter(
                     progress: _snake.value,
@@ -277,15 +287,25 @@ class _KeyButtonState extends State<KeyButton>
             decoration: neon != null
                 ? BoxDecoration(
                     borderRadius: BorderRadius.circular(radius),
-                    color: Color.lerp(base, neon, _down ? 0.22 : 0.04),
+                    color: Color.lerp(
+                      base,
+                      neon,
+                      _down ? 0.22 : 0.04 + 0.14 * _flash,
+                    ),
                     border: Border.all(
-                      color: neon.withValues(alpha: _down ? 1 : 0.8),
-                      width: 1.3,
+                      color: Color.lerp(
+                        neon,
+                        Colors.white,
+                        0.5 * _flash,
+                      )!.withValues(alpha: _down ? 1 : 0.8 + 0.2 * _flash),
+                      width: 1.3 + 0.9 * _flash,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: neon.withValues(alpha: _down ? 0.7 : 0.35),
-                        blurRadius: _down ? 14 : 7,
+                        color: neon.withValues(
+                          alpha: _down ? 0.7 : 0.35 + 0.4 * _flash,
+                        ),
+                        blurRadius: _down ? 14 : 7 + 9 * _flash,
                       ),
                     ],
                   )

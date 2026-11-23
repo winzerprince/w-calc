@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/app_settings.dart';
@@ -36,10 +37,24 @@ class AboutPage extends StatelessWidget {
           'W-Calc collects no data. It works offline; settings, memories and '
           'graphs stay on this device.',
         ),
+        if (kIsWeb)
+          const PageText(
+            'The website version may show ads from Google, which can use '
+            'cookies. The Android app has no ads.',
+          ),
         const PageSection('Legal'),
         const PageText(
           '© 2026 winzerprince. Free and open source under the MIT licence.',
         ),
+        if (kIsWeb)
+          ListTile(
+            key: const Key('about-android'),
+            leading: const Icon(Icons.android),
+            title: const Text('Get the Android app'),
+            subtitle: const Text('Free download on itch.io, no ads'),
+            trailing: const Icon(Icons.open_in_new),
+            onTap: () => openLink(itchUrl),
+          ),
         ListTile(
           key: const Key('about-source'),
           leading: const Icon(Icons.code),
@@ -47,14 +62,6 @@ class AboutPage extends StatelessWidget {
           subtitle: const Text('github.com/winzerprince/w-calc'),
           trailing: const Icon(Icons.open_in_new),
           onTap: () => openLink(sourceUrl),
-        ),
-        ListTile(
-          key: const Key('about-kofi'),
-          leading: const Icon(Icons.coffee_outlined),
-          title: const Text('Buy me a coffee'),
-          subtitle: const Text('Support W-Calc on Ko-fi'),
-          trailing: const Icon(Icons.open_in_new),
-          onTap: () => openLink(kofiUrl),
         ),
         ListTile(
           leading: const Icon(Icons.description_outlined),

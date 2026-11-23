@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
+import '../../app/app_settings.dart';
 import '../haptics.dart';
 import '../reading_theme.dart';
 import '../tour/tours.dart';
@@ -174,6 +175,8 @@ class _GraphPageState extends State<GraphPage>
   void dispose() {
     _ticker.dispose();
     _blinkTimer?.cancel();
+    _hintTimer?.cancel();
+    _saveTimer?.cancel();
     _blink.dispose();
     _keys.dispose();
     _listScroll.dispose();
@@ -545,8 +548,13 @@ class _GraphPageState extends State<GraphPage>
 
   void _focusRow(int index, {GxCursor? at}) {
     final e = _exprs[index];
-    if (at != null) e.editor.moveTo(at);
-    if (_focus != index && at == null) e.editor.end();
+    // A tap beside the expression (not on it) puts the cursor at the end
+    // of the main line — out of any exponent or fraction.
+    if (at != null) {
+      e.editor.moveTo(at);
+    } else {
+      e.editor.end();
+    }
     setState(() {
       _focus = index;
       _settings = false;
@@ -559,6 +567,33 @@ class _GraphPageState extends State<GraphPage>
       (_) => _blink.value = !_blink.value,
     );
     _keys.requestFocus();
+  }
+
+  /// One-line tip above the keypad (first use of a key), or null.
+  String? _hint;
+  Timer? _hintTimer;
+
+  void _onPadKey(String id) {
+    if (id != 'pow' && id != 'sub') return;
+    final settings = SettingsScope.maybeOf(context);
+    final tip = 'graph-tip-$id';
+    if (settings == null || settings.seenTours.contains(tip)) return;
+    settings.markTourSeen(tip);
+    _showHint(
+      id == 'pow'
+          ? 'Typing the power. Press → or tap beside the expression to come '
+                'back down.'
+          : 'Typing the subscript. Press → or tap beside the expression to '
+                'come back down.',
+    );
+  }
+
+  void _showHint(String text) {
+    _hintTimer?.cancel();
+    setState(() => _hint = text);
+    _hintTimer = Timer(const Duration(seconds: 7), () {
+      if (mounted) setState(() => _hint = null);
+    });
   }
 
   void _unfocus() {
@@ -1058,32 +1093,38 @@ class _GraphPageState extends State<GraphPage>
             ),
             if (_settings)
               Positioned(
-                right: 60,
-                top: 10,
-                child: _SettingsPanel(
-                  key: const Key('graph-settings-panel'),
-                  grid: _grid,
-                  view: _view,
-                  degrees: _env.degrees,
-                  onGrid: (g) {
-                    _remember();
-                    setState(() => _grid = g);
-                    _save();
-                  },
-                  onView: (v) {
-                    setState(() => _view = v);
-                    _save();
-                    _schedulePoi();
-                  },
-                  onLog: (x, y) {
-                    _remember();
-                    setState(() {
-                      _view = _view.copyWith(xLog: x, yLog: y);
-                    });
-                    _home();
-                    _save();
-                  },
-                  onDegrees: _setAngle,
+                // Centred under the buttons, inside the plot on any width.
+                left: 12,
+                right: 12,
+                top: 112,
+                bottom: 12,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: _SettingsPanel(
+                    key: const Key('graph-settings-panel'),
+                    grid: _grid,
+                    view: _view,
+                    degrees: _env.degrees,
+                    onGrid: (g) {
+                      _remember();
+                      setState(() => _grid = g);
+                      _save();
+                    },
+                    onView: (v) {
+                      setState(() => _view = v);
+                      _save();
+                      _schedulePoi();
+                    },
+                    onLog: (x, y) {
+                      _remember();
+                      setState(() {
+                        _view = _view.copyWith(xLog: x, yLog: y);
+                      });
+                      _home();
+                      _save();
+                    },
+                    onDegrees: _setAngle,
+                  ),
                 ),
               ),
           ],
@@ -1195,7 +1236,42 @@ class _GraphPageState extends State<GraphPage>
             Expanded(child: list)
           else
             SizedBox(height: keypad ? h * 0.2 : h * 0.36, child: list),
-          if (keypad) GxKeypad(onEdit: _edit, onEnter: _enter),
+          if (keypad && _hint != null)
+            Material(
+              key: const Key('graph-hint'),
+              color: scheme.inverseSurface,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 6, 4, 6),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline,
+                      size: 18,
+                      color: scheme.onInverseSurface,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _hint!,
+                        style: TextStyle(color: scheme.onInverseSurface),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Got it',
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(
+                        Icons.close,
+                        size: 18,
+                        color: scheme.onInverseSurface,
+                      ),
+                      onPressed: () => setState(() => _hint = null),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (keypad)
+            GxKeypad(onEdit: _edit, onEnter: _enter, onKey: _onPadKey),
         ],
       ),
     );
@@ -2031,7 +2107,7 @@ class _SettingsPanel extends StatelessWidget {
       elevation: 8,
       borderRadius: BorderRadius.circular(12),
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 330, maxHeight: maxH),
+        constraints: BoxConstraints(maxWidth: 360, maxHeight: maxH),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(12),
           child: Column(

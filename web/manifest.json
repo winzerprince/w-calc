@@ -1,12 +1,12 @@
 {
-    "name": "W-Calc Scientific Calculator",
+    "name": "W-Calc — Scientific Calculator",
     "short_name": "W-Calc",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#15171C",
-    "theme_color": "#2B2F3A",
-    "description": "W-Calc: two-line scientific calculator",
-    "orientation": "portrait-primary",
+    "theme_color": "#1C2470",
+    "description": "Free scientific calculators that look and work like the ones used in class.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

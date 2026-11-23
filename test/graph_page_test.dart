@@ -172,6 +172,49 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('power hint, back to the main line, closing functions', (
+    tester,
+  ) async {
+    await open(tester);
+    await openGraph(tester);
+    await tester.tap(find.byKey(const Key('graph-add')));
+    await settle(tester);
+    await keys(tester, ['x', 'pow']);
+    expect(find.byKey(const Key('graph-hint')), findsOneWidget);
+    await keys(tester, ['2']);
+    // Tapping the row beside the expression leaves the exponent: the next
+    // digit goes on the main line.
+    final row = tester.getRect(find.byKey(const Key('graph-expr-1')));
+    await tester.tapAt(Offset(row.right + 60, row.center.dy));
+    await settle(tester);
+    await keys(tester, ['plus', '1']);
+    // Functions panel: the X and a tap outside both close it.
+    await keys(tester, ['funcs']);
+    expect(find.byKey(const Key('gx-funcs')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('gx-funcs-close')));
+    await settle(tester);
+    expect(find.byKey(const Key('gx-funcs')), findsNothing);
+    await keys(tester, ['funcs']);
+    await tester.tapAt(row.center);
+    await settle(tester);
+    expect(find.byKey(const Key('gx-funcs')), findsNothing);
+    expect(tester.takeException(), isNull);
+    // Let the hint time out.
+    await tester.pump(const Duration(seconds: 8));
+  });
+
+  testWidgets('settings panel stays on screen', (tester) async {
+    await open(tester);
+    await openGraph(tester);
+    await tester.tap(find.byKey(const Key('graph-settings')));
+    await settle(tester);
+    final panel = tester.getRect(find.byKey(const Key('graph-settings-panel')));
+    final screen = tester.getRect(find.byType(Scaffold).first);
+    expect(panel.left, greaterThanOrEqualTo(screen.left));
+    expect(panel.right, lessThanOrEqualTo(screen.right));
+    expect((panel.center.dx - screen.center.dx).abs(), lessThan(2));
+  });
+
   testWidgets('mouse wheel zooms the graph', (tester) async {
     await open(tester);
     await tester.tap(find.byKey(const Key('app-menu-button')));

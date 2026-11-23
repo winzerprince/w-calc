@@ -1,8 +1,8 @@
 # W-Calc
 
 An offline scientific-calculator app for students: ten calculators that look and work like the
-ones used in class, with exact answers, graphs and a built-in manual. Android first; web for local
-testing.
+ones used in class, with exact answers, graphs and a built-in manual. Android (APK on itch.io) and the web at
+https://w-calc.0xwinzer.com.
 
 > Independent product, not affiliated with or endorsed by any calculator manufacturer. All
 > calculation code is original.
@@ -22,7 +22,7 @@ testing.
 - **Private** — no network, no data collected ([`docs/PRIVACY.md`](docs/PRIVACY.md)).
 
 ## Status
-Beta (v0.12.x). Plan: [`docs/PLAN.md`](docs/PLAN.md) · changes: [`CHANGELOG.md`](CHANGELOG.md) ·
+Beta (v0.13.x). Plan: [`docs/PLAN.md`](docs/PLAN.md) · changes: [`CHANGELOG.md`](CHANGELOG.md) ·
 device questions: [`docs/behaviour-notes.md`](docs/behaviour-notes.md) · known issues:
 [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md).
 
