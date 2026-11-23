@@ -95,6 +95,17 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     StateStore.save(_calc);
   }
 
+  /// Portrait body: phones fill the width; tablets get a larger body that
+  /// keeps a calculator's proportions (keys neither stretched nor squat).
+  static BoxConstraints _portraitBody(BoxConstraints box) {
+    final width = [
+      box.maxWidth,
+      box.maxHeight / 1.75,
+      620.0,
+    ].reduce((a, b) => a < b ? a : b);
+    return BoxConstraints(maxWidth: width, maxHeight: width * 2.25);
+  }
+
   /// Long press on the LCD copies the shown result.
   void _copyResult() {
     final text = _busy ? null : _calc.display.copyText;
@@ -169,8 +180,11 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               final keypad = Keypad(onPress: _press);
               return Center(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: landscape ? 980 : 460),
+                  constraints: landscape
+                      ? const BoxConstraints(maxWidth: 980)
+                      : _portraitBody(box),
                   child: Container(
+                    key: const Key('calc-body'),
                     margin: const EdgeInsets.all(8),
                     padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                     decoration: BoxDecoration(

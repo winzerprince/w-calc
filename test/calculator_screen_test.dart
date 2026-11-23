@@ -163,4 +163,23 @@ void main() {
     await tapKey(tester, 'd9');
     expect(lcdText(tester, 'upper'), '9');
   });
+
+  for (final (name, size, ratio) in [
+    ('tablet portrait', const Size(1600, 2560), 2.0),
+    ('7-inch tablet portrait', const Size(1200, 1920), 2.0),
+    ('tall phone', const Size(1080, 2400), 2.625),
+  ]) {
+    testWidgets('$name keeps calculator proportions', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = ratio;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(WCalcApp());
+      final body = tester.getSize(find.byKey(const Key('calc-body')));
+      expect(body.width, lessThanOrEqualTo(620));
+      expect(body.height / body.width, inInclusiveRange(1.6, 2.3));
+      await tapKey(tester, 'd8');
+      expect(lcdText(tester, 'upper'), '8');
+    });
+  }
 }
