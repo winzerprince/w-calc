@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../angle_unit.dart';
+import '../calc_engine.dart';
 import '../calc_key.dart';
 import '../display_state.dart';
 import '../eval/evaluator.dart';
@@ -45,7 +46,7 @@ final class _History {
 /// Shares the evaluator, number types and functions with the two-line
 /// models; adds the 2-D input editor, exact result forms and the menu-style
 /// MODE / SETUP screens. Draws its own 96 × 31 dot screen.
-class NaturalCalculator {
+class NaturalCalculator implements CalcEngine {
   NaturalCalculator({math.Random? random}) : _random = random ?? math.Random();
 
   final math.Random _random;
@@ -118,9 +119,11 @@ class NaturalCalculator {
   Value get ans => _ans;
 
   // ------------------------------------------------------------- keys
+  @override
   bool isSlowKey(CalcKey key) =>
       key == CalcKey.equals && !_shift && _menu == null && _error == null;
 
+  @override
   void press(CalcKey key) {
     if (_off) {
       if (key == CalcKey.on) _turnOn();
@@ -858,6 +861,7 @@ class NaturalCalculator {
   }
 
   /// CLR All.
+  @override
   void resetAll() {
     _resetSetup();
     _clearMemory();
@@ -1120,8 +1124,24 @@ class NaturalCalculator {
       }),
   ];
 
+  @override
+  String? get copyText {
+    final r = _result;
+    if (!_resultShown || r == null || _error != null || r.isLinear) return null;
+    if (r.isComplex) return null;
+    final f = formatValue(
+      r,
+      DisplaySettings(format: format, leadingZeroCounts: false),
+      view: ResultView.decimal,
+    );
+    var m = f.mantissa;
+    if (m.endsWith('.')) m = m.substring(0, m.length - 1);
+    return f.exponent == null ? m : '${m}E${f.exponent}';
+  }
+
   // ------------------------------------------------------------- persistence
 
+  @override
   Map<String, Object?> saveState() => {
     'v': 1,
     'mathInput': mathInput,
@@ -1137,6 +1157,7 @@ class NaturalCalculator {
     'ans': _ans.dec.toString(),
   };
 
+  @override
   void restoreState(Map<String, Object?> s) {
     if (s['v'] != 1) return;
     mathInput = s['mathInput'] != false;

@@ -3,16 +3,19 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
-/// Keeps memories, Ans and setup across app restarts (the real unit keeps
-/// them while switched off). Web: browser localStorage.
+/// Keeps memories, Ans and setup across app restarts (the real units keep
+/// them while switched off). Web: browser localStorage. Each engine family
+/// has its own snapshot.
 class StateStore {
-  static const _key = 'wcalc.state.v1';
+  /// Two-line models (key kept from the first release).
+  static const twoLineKey = 'wcalc.state.v1';
+  static const textbookKey = 'wcalc.textbook.v1';
 
   /// The saved state, or null when there is none or storage is unavailable.
-  static Future<Map<String, Object?>?> read() async {
+  static Future<Map<String, Object?>?> read([String key = twoLineKey]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw = prefs.getString(_key);
+      final raw = prefs.getString(key);
       if (raw == null) return null;
       final decoded = jsonDecode(raw);
       return decoded is Map<String, Object?> ? decoded : null;
@@ -22,10 +25,10 @@ class StateStore {
     }
   }
 
-  static Future<void> save(Calculator calc) async {
+  static Future<void> save(CalcEngine calc, [String key = twoLineKey]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_key, jsonEncode(calc.saveState()));
+      await prefs.setString(key, jsonEncode(calc.saveState()));
     } on Object {
       // Ignore: persistence is best-effort.
     }

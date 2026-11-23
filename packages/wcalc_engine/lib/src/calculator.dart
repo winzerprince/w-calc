@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'angle_unit.dart';
+import 'calc_engine.dart';
 import 'calc_key.dart';
 import 'display_state.dart';
 import 'eval/evaluator.dart';
@@ -268,7 +269,7 @@ class _EquationSession {
 }
 
 /// Key-driven calculator state machine (COMP mode so far).
-class Calculator {
+class Calculator implements CalcEngine {
   Calculator({math.Random? random, this.features = CalcFeatures.full})
     : _random = random ?? math.Random(),
       _modeMenus = _buildModePages(features);
@@ -620,6 +621,7 @@ class Calculator {
 
   // ------------------------------------------------------------------ keys
 
+  @override
   void press(CalcKey key) {
     if (key == CalcKey.on) {
       _off = false;
@@ -2456,6 +2458,10 @@ class Calculator {
 
   /// True when [key] will start a long computation (∫dx, d/dx, SOLVE), so a
   /// UI can show the cleared "busy" display first, as the device does.
+  @override
+  String? get copyText => display.copyText;
+
+  @override
   bool isSlowKey(CalcKey key) {
     bool heavy(Iterable<Tok> tokens) =>
         tokens.any((t) => t == Tok.integral || t == Tok.derivative);
@@ -2475,6 +2481,7 @@ class Calculator {
 
   /// Factory reset (app Settings ▸ Reset): like CLR All, plus COMP mode,
   /// contrast and every mode's data.
+  @override
   void resetAll() {
     _setMode(CalcMode.comp);
     _clear(_clrAll);
@@ -2527,6 +2534,7 @@ class Calculator {
   // ------------------------------------------------------------------ persistence
 
   /// What survives switching the device off: memories, Ans and setup.
+  @override
   Map<String, Object?> saveState() => {
     'version': 2,
     'ans': _encode(_ans),
@@ -2575,6 +2583,7 @@ class Calculator {
   }
 
   /// Restores [saveState] output; silently ignores anything malformed.
+  @override
   void restoreState(Map<String, Object?> state) {
     try {
       final ans = state['ans'];

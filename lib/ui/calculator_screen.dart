@@ -9,6 +9,7 @@ import 'haptics.dart';
 import 'keyboard_shortcuts.dart';
 import 'keypad.dart';
 import 'lcd.dart';
+import 'lcd/dot_lcd.dart';
 import 'skin.dart';
 import 'state_store.dart';
 
@@ -20,29 +21,13 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  Calculator _calc = Calculator();
+  CalcEngine _calc = Calculator();
   CalcModel? _model;
-  final FocusNode _focus = FocusNode(debugLabel: 'calculator');
 
-  @override
-  void initState() {
-    super.initState();
-    // Restore into whichever engine is current when loading finishes (the
-    // model may have changed meanwhile).
-    StateStore.read().then((state) {
-      if (!mounted) return;
-      setState(() {
-        if (state != null) {
-          try {
-            _calc.restoreState(state);
-          } on Object {
-            // Corrupt or outdated snapshot: start fresh.
-          }
-        }
-        _replayFromUrl();
-      });
-    });
-  }
+  String get _stateKey => _model?.family == CalcFamily.textbook
+      ? StateStore.textbookKey
+      : StateStore.twoLineKey;
+  final FocusNode _focus = FocusNode(debugLabel: 'calculator');
 
   /// Switching model keeps memories, data and setup: the state moves to a
   /// new engine with that model's features.
@@ -52,14 +37,42 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     final model = ModelScope.of(context);
     if (_model == null) {
       _model = model;
-      _calc = Calculator(features: model.features);
+      _calc = model.createEngine();
+      _load(_calc, replayUrl: true);
     } else if (model != _model) {
-      final saved = _calc.saveState();
-      _model = model;
-      _calc = Calculator(features: model.features)..restoreState(saved);
+      final old = _model!;
+      StateStore.save(_calc, _stateKey);
       _busy = false;
-      StateStore.save(_calc);
+      if (old.family == model.family) {
+        final saved = _calc.saveState();
+        _model = model;
+        _calc = model.createEngine()..restoreState(saved);
+        StateStore.save(_calc, _stateKey);
+      } else {
+        // Another engine family: its own memories and setup.
+        _model = model;
+        _calc = model.createEngine();
+        _load(_calc);
+      }
     }
+  }
+
+  /// Restores [engine]'s saved state once storage answers, if it is still
+  /// the engine in use.
+  void _load(CalcEngine engine, {bool replayUrl = false}) {
+    StateStore.read(_stateKey).then((state) {
+      if (!mounted || !identical(_calc, engine)) return;
+      setState(() {
+        if (state != null) {
+          try {
+            engine.restoreState(state);
+          } on Object {
+            // Corrupt or outdated snapshot: start fresh.
+          }
+        }
+        if (replayUrl) _replayFromUrl();
+      });
+    });
   }
 
   /// Web: `?keys=2,div,3,=` presses those keys on load (repro links, screenshots).
@@ -92,7 +105,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     } else {
       setState(() => _calc.press(key));
     }
-    StateStore.save(_calc);
+    StateStore.save(_calc, _stateKey);
   }
 
   /// Portrait body: phones fill the width; tablets get a larger body that
@@ -108,7 +121,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   /// Long press on the LCD copies the shown result.
   void _copyResult() {
-    final text = _busy ? null : _calc.display.copyText;
+    final text = _busy ? null : _calc.copyText;
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (text == null) {
       messenger?.showSnackBar(
@@ -132,7 +145,21 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   /// Settings ▸ Reset calculator.
   void _reset() {
     setState(_calc.resetAll);
-    StateStore.save(_calc);
+    StateStore.save(_calc, _stateKey);
+  }
+
+  Widget _lcd() {
+    final calc = _calc;
+    if (calc is NaturalCalculator) {
+      return DotLcd(
+        screen: _busy
+            ? DotScreen(dots: DotBitmap(DotScreen.width, DotScreen.height))
+            : calc.screen,
+      );
+    }
+    return Lcd(
+      display: _busy ? DisplayState.busy : (calc as Calculator).display,
+    );
   }
 
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
@@ -171,9 +198,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   onLongPress: _copyResult,
                   child: Semantics(
                     onLongPressHint: 'copy result',
-                    child: Lcd(
-                      display: _busy ? DisplayState.busy : _calc.display,
-                    ),
+                    child: _lcd(),
                   ),
                 ),
               );

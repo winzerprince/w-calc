@@ -34,7 +34,7 @@ final menuEntries = [
   MenuEntry(
     Icons.calculate_outlined,
     'Calculator model',
-    'Plus, Grid or Basic',
+    'Two-line or textbook display, five bodies',
     page: (_) => const ModelPage(),
   ),
   MenuEntry(

@@ -48,7 +48,12 @@ class Keypad extends StatelessWidget {
                     ],
                   ),
                 ),
-                Expanded(flex: 2, child: CursorDisc(onPress: onPress)),
+                Expanded(
+                  flex: 2,
+                  child: layout.pad == PadStyle.cross
+                      ? CursorCross(onPress: onPress)
+                      : CursorDisc(onPress: onPress),
+                ),
                 Expanded(
                   flex: 2,
                   child: Column(
@@ -330,6 +335,133 @@ class _BracketPainter extends CustomPainter {
 }
 
 /// Oval four-way cursor disc ("REPLAY") with printed triangles.
+/// Four separate arrow keys in a diamond (black textbook body).
+class CursorCross extends StatelessWidget {
+  const CursorCross({super.key, required this.onPress});
+
+  final ValueChanged<CalcKey> onPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = CalcSkin.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
+      child: Center(
+        child: AspectRatio(
+          aspectRatio: 1.3,
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final w = box.maxWidth * 0.34, h = box.maxHeight * 0.36;
+              Widget arrow(CalcKey key, Alignment a, AxisDirection dir) =>
+                  Align(
+                    alignment: a,
+                    child: SizedBox(
+                      width: w,
+                      height: h,
+                      child: _ArrowKey(
+                        calcKey: key,
+                        dir: dir,
+                        onPress: onPress,
+                        color: skin.disc,
+                        mark: skin.discMark,
+                      ),
+                    ),
+                  );
+              return Stack(
+                children: [
+                  arrow(CalcKey.up, Alignment.topCenter, AxisDirection.up),
+                  arrow(
+                    CalcKey.down,
+                    Alignment.bottomCenter,
+                    AxisDirection.down,
+                  ),
+                  arrow(CalcKey.left, Alignment.centerLeft, AxisDirection.left),
+                  arrow(
+                    CalcKey.right,
+                    Alignment.centerRight,
+                    AxisDirection.right,
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ArrowKey extends StatefulWidget {
+  const _ArrowKey({
+    required this.calcKey,
+    required this.dir,
+    required this.onPress,
+    required this.color,
+    required this.mark,
+  });
+
+  final CalcKey calcKey;
+  final AxisDirection dir;
+  final ValueChanged<CalcKey> onPress;
+  final Color color;
+  final Color mark;
+
+  @override
+  State<_ArrowKey> createState() => _ArrowKeyState();
+}
+
+class _ArrowKeyState extends State<_ArrowKey> {
+  bool _down = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Color.lerp(widget.color, Colors.black, _down ? 0.25 : 0)!;
+    return Semantics(
+      button: true,
+      label: 'cursor ${widget.dir.name}',
+      onTap: () => widget.onPress(widget.calcKey),
+      child: Listener(
+        key: Key('key-${widget.calcKey.name}'),
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: (_) {
+          setState(() => _down = true);
+          widget.onPress(widget.calcKey);
+        },
+        onPointerUp: (_) => setState(() => _down = false),
+        onPointerCancel: (_) => setState(() => _down = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 60),
+          margin: const EdgeInsets.all(1.5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color.lerp(c, Colors.white, 0.18)!, c],
+            ),
+            boxShadow: _down
+                ? const []
+                : const [
+                    BoxShadow(
+                      color: Colors.black54,
+                      blurRadius: 2,
+                      offset: Offset(0, 1.5),
+                    ),
+                  ],
+          ),
+          child: FractionallySizedBox(
+            widthFactor: 0.45,
+            heightFactor: 0.45,
+            child: CustomPaint(
+              painter: _TrianglePainter(widget.dir, widget.mark),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CursorDisc extends StatelessWidget {
   const CursorDisc({super.key, required this.onPress});
 
