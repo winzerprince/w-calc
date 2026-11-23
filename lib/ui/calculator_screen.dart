@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
+import 'app_menu.dart';
 import 'haptics.dart';
 import 'keyboard_shortcuts.dart';
 import 'keypad.dart';
@@ -127,15 +128,7 @@ class _Header extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text(
-                  'W-Calc',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                  ),
-                ),
+                const _MenuButton(),
                 const SizedBox(width: 8),
                 Text(
                   'TWO-LINE SCIENTIFIC',
@@ -192,6 +185,51 @@ class _Bezel extends StatelessWidget {
         border: Border.all(color: Colors.black45, width: 1.5),
       ),
       child: child,
+    );
+  }
+}
+
+/// The brand name doubles as the menu button: menu icon + ripple + tooltip
+/// make it clearly tappable.
+class _MenuButton extends StatelessWidget {
+  const _MenuButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Menu',
+      child: Semantics(
+        button: true,
+        label: 'Open W-Calc menu',
+        excludeSemantics: true,
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            key: const Key('app-menu-button'),
+            borderRadius: BorderRadius.circular(8),
+            onTap: () => showAppMenu(context),
+            child: const Padding(
+              padding: EdgeInsets.fromLTRB(4, 2, 8, 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.menu, color: Colors.white70, size: 20),
+                  SizedBox(width: 6),
+                  Text(
+                    'W-Calc',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

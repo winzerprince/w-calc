@@ -50,7 +50,10 @@ class LcdPainter extends CustomPainter {
   static const double _expW = 34;
   static const double _expH = 66;
   static const int _mantissaCells = 11; // sign + 10 digits
-  static const double _mantissaRight = designWidth - _pad - 130;
+  static const double _mantissaRight = designWidth - _pad - 176;
+
+  /// Left edge of the exponent digits; the printed ×10 sits between.
+  static const double _expLeft = _mantissaRight + 72;
 
   /// Indicator slots, left to right (fixed positions like printed LCD segments).
   static const indicatorSlots = <(Indicator, String)>[
@@ -217,7 +220,7 @@ class LcdPainter extends CustomPainter {
     for (var i = 0; i < 3; i++) {
       _segments(
         canvas,
-        Offset(_mantissaRight + 24 + i * _expW, _lowerTop),
+        Offset(_expLeft + i * _expW, _lowerTop),
         _expW,
         _expH,
         i == 0 ? {Segment.g} : Segment.values.toSet(),
@@ -256,6 +259,7 @@ class LcdPainter extends CustomPainter {
       );
     }
 
+    _paintTimesTen(canvas, display.exponent != null ? ink : ghost);
     final symbol = display.engSymbol;
     if (symbol != null) _paintEngSymbol(canvas, symbol, ink);
     final exp = display.exponent;
@@ -264,7 +268,7 @@ class LcdPainter extends CustomPainter {
       if (exp.startsWith('-')) {
         _segments(
           canvas,
-          Offset(_mantissaRight + 24, _lowerTop),
+          Offset(_expLeft, _lowerTop),
           _expW,
           _expH,
           {Segment.g},
@@ -275,7 +279,7 @@ class LcdPainter extends CustomPainter {
       for (var i = 0; i < digits.length && i < 2; i++) {
         _segments(
           canvas,
-          Offset(_mantissaRight + 24 + (i + 1) * _expW, _lowerTop),
+          Offset(_expLeft + (i + 1) * _expW, _lowerTop),
           _expW,
           _expH,
           segmentsFor(digits[i]),
@@ -286,11 +290,44 @@ class LcdPainter extends CustomPainter {
     }
   }
 
+  /// The small printed `×10` between mantissa and exponent: lit only when an
+  /// exponent is shown, faint (unlit LCD segment) otherwise.
+  void _paintTimesTen(Canvas canvas, Paint paint) {
+    const left = _mantissaRight + 8;
+    const top = _lowerTop + 58;
+    const cross = 16.0;
+    final stroke = Paint()
+      ..color = paint.color
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+      const Offset(left, top + 10),
+      const Offset(left + cross, top + 10 + cross),
+      stroke,
+    );
+    canvas.drawLine(
+      const Offset(left + cross, top + 10),
+      const Offset(left, top + 10 + cross),
+      stroke,
+    );
+    for (final (i, ch) in ['1', '0'].indexed) {
+      _segments(
+        canvas,
+        Offset(left + cross + 4 + i * 22, top),
+        22,
+        38,
+        segmentsFor(ch),
+        null,
+        paint,
+      );
+    }
+  }
+
   /// EngON symbol (k, m, μ …) as small dot-matrix text in the exponent area.
   void _paintEngSymbol(Canvas canvas, String symbol, Paint ink) {
     final glyph = glyphFor(symbol);
     const pitch = 7.0;
-    const left = _mantissaRight + 24 + _expW * 0.6;
+    const left = _expLeft + _expW * 0.6;
     for (var r = 0; r < dotFontHeight; r++) {
       for (var c = 0; c < dotFontWidth; c++) {
         if (glyph[r][c] != '#') continue;
