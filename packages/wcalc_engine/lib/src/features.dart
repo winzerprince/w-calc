@@ -21,6 +21,18 @@ class CalcFeatures {
 
   /// Basic two-line scientific: COMP, SD, REG; no constants, conversions,
   /// calculus, CALC or SOLVE.
+  /// Everything except matrices and vectors.
+  static const standard = CalcFeatures(
+    modes: {
+      CalcMode.comp,
+      CalcMode.cmplx,
+      CalcMode.sd,
+      CalcMode.reg,
+      CalcMode.base,
+      CalcMode.eqn,
+    },
+  );
+
   static const basic = CalcFeatures(
     modes: {CalcMode.comp, CalcMode.sd, CalcMode.reg},
     constants: false,

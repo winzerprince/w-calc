@@ -62,4 +62,15 @@ void main() {
       ..restoreState(full.saveState());
     expect(basic.mode, CalcMode.comp);
   });
+
+  test('standard model has no MAT or VCT page entries', () {
+    final calc = Calculator(features: CalcFeatures.standard);
+    final pages = <String>[];
+    for (var i = 0; i < 3; i++) {
+      calc.press(CalcKey.mode);
+      pages.add(calc.display.upper);
+    }
+    expect(pages.join(' | '), isNot(contains('MAT')));
+    expect(pages.join(' | '), contains('EQN'));
+  });
 }

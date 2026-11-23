@@ -30,41 +30,45 @@ class Keypad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final layout = ModelScope.of(context).layout;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          flex: 21,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Column(
-                  children: [
-                    Expanded(child: _row(row0Left)),
-                    Expanded(child: _row(row1Left)),
-                  ],
+        if (layout.hasDisc)
+          Expanded(
+            flex: 21,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      for (final r in layout.topLeft) Expanded(child: _row(r)),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(flex: 2, child: CursorDisc(onPress: onPress)),
-              Expanded(
-                flex: 2,
-                child: Column(
-                  children: [
-                    Expanded(child: _row(row0Right)),
-                    Expanded(child: _row(row1Right)),
-                  ],
+                Expanded(flex: 2, child: CursorDisc(onPress: onPress)),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      for (final r in layout.topRight) Expanded(child: _row(r)),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          )
+        else
+          for (final r in layout.topRows) Expanded(flex: 10, child: _row(r)),
+        for (final (i, r) in layout.functionRows.indexed)
+          Expanded(
+            flex: i == layout.functionRows.length - 1 ? 12 : 10,
+            child: _row(r),
           ),
-        ),
-        Expanded(flex: 10, child: _row(functionRows[0])),
-        Expanded(flex: 10, child: _row(functionRows[1])),
-        Expanded(flex: 12, child: _row(functionRows[2])),
         const SizedBox(height: 4),
-        for (final r in numberRows) Expanded(flex: 13, child: _row(r)),
+        for (final r in layout.numberRows) Expanded(flex: 13, child: _row(r)),
       ],
     );
   }

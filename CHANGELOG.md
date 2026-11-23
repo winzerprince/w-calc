@@ -7,6 +7,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ### Added
 - Calculator models: choose *Scientific Plus* (all modes) or *Scientific Basic* (COMP, SD, REG) in
   Menu ▸ Calculator model. Memories and data carry over; keys a model lacks are faded and inert.
+- *Scientific Grid* model: square key grid with arrow keys and a 2nd key; all modes except MAT/VCT.
+  Keypad layouts are now data (`KeypadLayout`), so models can differ in look. Web: `?model=grid`.
 - Long-press the LCD to copy the result (plain text, `E` notation).
 - Screen readers: keys can be activated by TalkBack/VoiceOver and announce their second functions.
 - Busy display during long calculations, landscape layout and app icon.

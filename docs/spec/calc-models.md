@@ -16,4 +16,8 @@ Rules
 - Adding a model: define `CalcFeatures` + `CalcModel` entry in `CalcModel.all`; optional
   own skin. Later models may bring their own `KeySpec` layout through the same scope.
 
-Models today: `plus` (reference two-line model, full), `basic` (COMP/SD/REG).
+Layouts: `KeypadLayout.disc` (modifier keys around a cursor disc) and `KeypadLayout.grid`
+(equal keys, separate arrows). Each model names one (`twoLineLayout`, `gridLayout`).
+
+Models today: `plus` (reference two-line model, full), `grid` (grid look, no MAT/VCT),
+`basic` (COMP/SD/REG).

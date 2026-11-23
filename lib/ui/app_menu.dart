@@ -34,7 +34,7 @@ final menuEntries = [
   MenuEntry(
     Icons.calculate_outlined,
     'Calculator model',
-    'Scientific Plus or Scientific Basic',
+    'Plus, Grid or Basic',
     page: (_) => const ModelPage(),
   ),
   MenuEntry(
