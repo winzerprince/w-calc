@@ -2,7 +2,13 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
-## [Unreleased]
+## [0.3.0-beta] - 2026-11-23
+
+Textbook-display calculators (silver and black bodies), exact results and a searchable manual.
+
+**Which file to install on Android:** most phones from the last ten years (for example Samsung
+Galaxy S-series) need `…-arm64-v8a.apk`; if unsure, use `…-universal.apk`. The `x86_64` file is
+for emulators and Chromebooks only and shows "app not compatible" on phones.
 
 ### Added
 - Manual (Menu ▸ Manual) replaces the user guide: searchable chapters and articles with keycap
@@ -14,12 +20,16 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
   memories, errors with Goto.
 - Two new calculator models in Menu ▸ Calculator model: *Textbook Plus* (silver body, round
   cursor disc) and *Textbook Plus II* (black body, four arrow keys), with full-dot LCD and their
-  own Silver / Black themes. COMP mode works; other modes follow.
+  own Silver / Black themes. COMP and CMPLX work; STAT, BASE-N, EQN, MATRIX, TABLE and VECTOR
+  follow in the next releases.
 - Textbook models keep results exact: fractions, √ forms ((√2+2)×√3 = 2√3+√6, 1÷√2 = √2/2)
   and π forms (π÷6 = π/6); function results such as sin 45° are recognised. S⇔D and SHIFT =
   switch to decimals.
 - Textbook models: CMPLX mode (i, ∠, arg, Conjg, ▶r∠θ, ▶a+bi, exact parts), CALC with prompts
   and Y = … assignment, SOLVE for X with the L−R check, multi-statements.
+
+### Fixed
+- Copying a BASE-mode result no longer includes the base letter.
 
 ## [0.2.0-beta] - 2026-11-23
 
