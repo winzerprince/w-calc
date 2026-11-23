@@ -2,6 +2,12 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [Unreleased]
+
+### Changed
+- Licence: W-Calc is now proprietary (all rights reserved). Versions up to v0.4.0-beta remain
+  GPL-3.0-or-later for anyone who received them.
+
 ## [0.4.0-beta] - 2026-11-23
 
 All eight modes on the textbook-display models, and working key vibration on Android.
