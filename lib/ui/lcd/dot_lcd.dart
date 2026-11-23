@@ -175,7 +175,13 @@ class _DotLcdPainter extends CustomPainter {
       for (final (ind, standard) in _indicatorOrder)
         label(labels[ind] ?? standard, fontSize),
     ];
-    var total = painters.fold<double>(0, (t, p) => t + p.width);
+    // The scroll arrows keep extra room (half their width) after "Math".
+    double lead(int i) =>
+        _indicatorOrder[i].$1 == Indicator.scrollUp ? painters[i].width / 2 : 0;
+    double sum() =>
+        [for (var i = 0; i < painters.length; i++) painters[i].width + lead(i)]
+            .fold<double>(0, (t, w) => t + w);
+    var total = sum();
     final room = avail - minGap * (painters.length - 1);
     if (total > room) {
       fontSize *= room / total;
@@ -183,12 +189,13 @@ class _DotLcdPainter extends CustomPainter {
         for (final (ind, standard) in _indicatorOrder)
           label(labels[ind] ?? standard, fontSize),
       ];
-      total = painters.fold<double>(0, (t, p) => t + p.width);
+      total = sum();
     }
     final gap = (avail - total) / (painters.length - 1);
     var x = left;
     for (var i = 0; i < painters.length; i++) {
       final p = painters[i];
+      x += lead(i);
       if (screen.indicators.contains(_indicatorOrder[i].$1)) {
         p.paint(
           canvas,

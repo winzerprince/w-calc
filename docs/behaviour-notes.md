@@ -94,3 +94,5 @@ how to verify on the device, result.
 | 82 | EQN double root | a repeated quadratic root is shown once as "X=" | guide example | — |
 | 83 | Mixed input in d/c | textbook models treat a typed mixed fraction as Syntax ERROR while d/c is set (as on the two-line models) | assumption | verify on device |
 | 84 | INS wrap | SHIFT DEL then a template wraps the items right of the cursor up to the next function or bracket (fraction → numerator, ˣ√ / log□ → second box) | guide description | verify range on device |
+| 85 | EQN entry label | W-Calc names the cell on the bottom line (a=, b=, a2= …) and draws column letters in the normal font, for clarity — the device shows only the value and small letters | deliberate (user request) | — |
+| 86 | Tall input + fraction answer | only the answer's own box is cleared, so a fraction input keeps its denominators beside a fraction answer | user report (device shows both) | — |

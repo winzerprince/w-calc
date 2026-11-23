@@ -1869,14 +1869,19 @@ class NaturalCalculator implements CalcEngine {
     const letters = ['a', 'b', 'c', 'd', 'e'];
     const rowNumW = 7;
     final colW = (DotScreen.width - rowNumW) ~/ cols;
+    // Column letters in the normal font, centred over their columns.
     for (var c = 0; c < cols; c++) {
-      bmp.smallText(rowNumW + c * colW + colW ~/ 2 - 1, 0, letters[c]);
+      bmp.text(
+        rowNumW + c * colW + (colW - textWidth(letters[c])) ~/ 2,
+        0,
+        letters[c],
+      );
     }
     final top = (_eRow - 1).clamp(0, rows);
     final chars = (colW + 1) ~/ 6;
     for (var k = 0; k < 2 && top + k < rows; k++) {
       final r = top + k;
-      final y = 6 + k * 8;
+      final y = 8 + k * 8;
       if (rows > 1) bmp.smallText(0, y + 1, '${r + 1}');
       for (var c = 0; c < cols; c++) {
         var t = _plainDecimal(_coef[r][c]);
@@ -1888,6 +1893,9 @@ class NaturalCalculator implements CalcEngine {
         }
       }
     }
+    // The cell being entered, named at the left of the bottom line.
+    final cell = '${letters[_eCol]}${rows > 1 ? _eRow + 1 : ''}=';
+    bmp.text(0, 24, cell);
     if (_ed.isEmpty) {
       final t = _plainDecimal(_coef[_eRow][_eCol]);
       bmp.text(DotScreen.width - textWidth(t) - 1, 24, t);
@@ -3001,14 +3009,17 @@ class NaturalCalculator implements CalcEngine {
     _lastResultRow = row;
     text.write(row.toString());
     final layout = MathLayout(row);
-    // Clear the result area, then draw right-aligned on the bottom row.
+    // Right-aligned on the bottom row. Only the result's own box is
+    // cleared: a tall input (fractions) keeps its lower half wherever the
+    // result is not, as on the device.
     final top = DotScreen.height - layout.height;
+    final left = DotScreen.width - layout.width - 1;
     for (var y = top - 1; y < DotScreen.height; y++) {
-      for (var x = 0; x < DotScreen.width; x++) {
+      for (var x = math.max(0, left - 2); x < DotScreen.width; x++) {
         bmp.set(x, y, false);
       }
     }
-    layout.paint(bmp, DotScreen.width - layout.width - 1, top);
+    layout.paint(bmp, left, top);
   }
 
   /// Decimal text in the current format (prompts, SOLVE screen).
