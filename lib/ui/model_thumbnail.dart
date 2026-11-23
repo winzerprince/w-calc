@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app/calc_model.dart';
+import 'finish.dart';
 import 'keypad.dart';
 import 'skin.dart';
 
@@ -59,17 +60,7 @@ class _Body extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(34),
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [skin.bodyTop, skin.body],
-        ),
-        border: Border.all(color: Colors.black45, width: 3),
-      ),
+    return CalcShell(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

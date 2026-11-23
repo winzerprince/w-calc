@@ -4,6 +4,7 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 import '../app/calc_model.dart';
 import 'keypad_layout.dart';
 import 'legend.dart';
+import 'finish.dart';
 import 'skin.dart';
 
 /// Height of one printed legend strip.
@@ -114,7 +115,7 @@ class _KeyButtonState extends State<KeyButton> {
       KeyStyle.operator => (skin.operatorKey, skin.digitText),
       KeyStyle.clear => (skin.clearKey, skin.clearText),
     };
-    final cap = Color.lerp(base, Colors.black, _down ? 0.25 : 0)!;
+    final cap = base; // the finish darkens pressed keys
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
@@ -157,6 +158,8 @@ class _KeyButtonState extends State<KeyButton> {
 
   Widget _cap(KeySpec spec, Color cap, Color fg) {
     final model = ModelScope.of(context);
+    final finish = CalcFinish.of(context);
+    final base = cap;
     final enabled = model.keyEnabled(spec.key);
     final extras = [
       for (final l in [...spec.above, ...spec.below])
@@ -183,23 +186,20 @@ class _KeyButtonState extends State<KeyButton> {
           transform: Matrix4.translationValues(0, _down ? 1.5 : 0, 0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(
-              spec.style == KeyStyle.modifier ? 20 : 9,
+              finish.keyRadius(spec.style == KeyStyle.modifier ? 20 : 9),
             ),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color.lerp(cap, Colors.white, 0.10)!, cap],
-            ),
-            boxShadow: _down
-                ? const []
-                : const [
-                    BoxShadow(
-                      color: Colors.black54,
-                      blurRadius: 2,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
+            gradient: finish.keyGradient(base, down: _down),
+            border: finish.keyBorder(base),
+            boxShadow: finish.keyShadow(down: _down),
           ),
+          foregroundDecoration: finish.keySheen() == null
+              ? null
+              : BoxDecoration(
+                  borderRadius: BorderRadius.circular(
+                    finish.keyRadius(spec.style == KeyStyle.modifier ? 20 : 9),
+                  ),
+                  gradient: finish.keySheen(),
+                ),
           alignment: Alignment.center,
           child: FittedBox(
             child: Padding(
@@ -415,7 +415,7 @@ class _ArrowKeyState extends State<_ArrowKey> {
 
   @override
   Widget build(BuildContext context) {
-    final c = Color.lerp(widget.color, Colors.black, _down ? 0.25 : 0)!;
+    final finish = CalcFinish.of(context);
     return Semantics(
       button: true,
       label: 'cursor ${widget.dir.name}',
@@ -433,21 +433,10 @@ class _ArrowKeyState extends State<_ArrowKey> {
           duration: const Duration(milliseconds: 60),
           margin: const EdgeInsets.all(1.5),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color.lerp(c, Colors.white, 0.18)!, c],
-            ),
-            boxShadow: _down
-                ? const []
-                : const [
-                    BoxShadow(
-                      color: Colors.black54,
-                      blurRadius: 2,
-                      offset: Offset(0, 1.5),
-                    ),
-                  ],
+            borderRadius: BorderRadius.circular(finish.keyRadius(10)),
+            gradient: finish.keyGradient(widget.color, down: _down),
+            border: finish.keyBorder(widget.color),
+            boxShadow: finish.keyShadow(down: _down),
           ),
           child: FractionallySizedBox(
             widthFactor: 0.45,
@@ -478,11 +467,8 @@ class CursorDisc extends StatelessWidget {
           child: DecoratedBox(
             decoration: ShapeDecoration(
               shape: OvalBorder(),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color.lerp(skin.disc, Colors.white, 0.12)!, skin.disc],
-              ),
+              gradient: CalcFinish.of(context)
+                  .keyGradient(skin.disc, down: false),
               shadows: const [
                 BoxShadow(
                   color: Colors.black54,

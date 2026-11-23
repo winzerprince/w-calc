@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/app_settings.dart';
 import '../haptics.dart';
+import '../finish.dart';
 import '../skin.dart';
 import 'page_scaffold.dart';
 
@@ -43,7 +44,70 @@ class ThemePage extends StatelessWidget {
             ],
           ),
         ),
+        const PageSection('Finish'),
+        RadioGroup<String>(
+          groupValue: settings.finishId,
+          onChanged: (id) {
+            if (id == null) return;
+            keyVibration();
+            settings.update(finishId: id);
+          },
+          child: Column(
+            children: [
+              for (final f in CalcFinish.values)
+                RadioListTile<String>(
+                  key: Key('finish-${f.name}'),
+                  value: f.name,
+                  title: Text(
+                    f.label,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(f.description),
+                  secondary: _FinishPreview(finish: f),
+                ),
+            ],
+          ),
+        ),
       ],
+    );
+  }
+}
+
+/// Two sample keys in the current skin with [finish].
+class _FinishPreview extends StatelessWidget {
+  const _FinishPreview({required this.finish});
+
+  final CalcFinish finish;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = CalcSkin.of(context);
+    Widget key(Color c) => Container(
+      width: 22,
+      height: 16,
+      margin: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(finish.keyRadius(4)),
+        gradient: finish.keyGradient(c, down: false),
+        border: finish.keyBorder(c),
+        boxShadow: finish.keyShadow(down: false),
+      ),
+      foregroundDecoration: finish.keySheen() == null
+          ? null
+          : BoxDecoration(
+              borderRadius: BorderRadius.circular(finish.keyRadius(4)),
+              gradient: finish.keySheen(),
+            ),
+    );
+    return ExcludeSemantics(
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: finish.bodyFace(skin, BorderRadius.circular(6)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [key(skin.functionKey), key(skin.digitKey)],
+        ),
+      ),
     );
   }
 }
