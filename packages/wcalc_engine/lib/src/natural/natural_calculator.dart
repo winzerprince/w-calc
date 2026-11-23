@@ -14,6 +14,7 @@ import '../number/dec.dart';
 import '../number/frac.dart';
 import '../number/surd.dart';
 import '../number/value.dart';
+import '../stats/stats.dart';
 import 'dot_screen.dart';
 import 'math_input.dart';
 import 'math_render.dart';
@@ -21,6 +22,9 @@ import 'result_forms.dart';
 
 /// Calculation modes of the textbook-display models (MODE 1-8).
 enum NaturalMode { comp, cmplx, stat, base, eqn, matrix, table, vector }
+
+/// STAT calculation types in MODE 3 menu order.
+enum StatType { oneVar, lin, quad, log, eExp, abExp, pwr, inv }
 
 /// A menu screen: up to four text lines; digit keys pick items.
 final class _Menu {
@@ -84,6 +88,14 @@ class NaturalCalculator implements CalcEngine {
   /// MthIO (true) or LineIO.
   bool mathInput = true;
 
+  /// STAT, BASE-N, MATRIX and VECTOR always use Linear display.
+  bool get _mathIO =>
+      mathInput &&
+      mode != NaturalMode.stat &&
+      mode != NaturalMode.base &&
+      mode != NaturalMode.matrix &&
+      mode != NaturalMode.vector;
+
   /// MthIO-MathO (true) or MthIO-LineO (results in linear form).
   bool mathOutput = true;
 
@@ -141,6 +153,32 @@ class NaturalCalculator implements CalcEngine {
 
   _Equation? _equation;
 
+  // STAT
+  StatType statType = StatType.oneVar;
+  final StatData _stat = StatData();
+  bool _editor = false;
+  int _row = 0;
+  int _col = 0;
+  int _top = 0;
+  String _cell = '';
+
+  bool get _paired => statType != StatType.oneVar;
+  int get _cols => 1 + (_paired ? 1 : 0) + (statFrequency ? 1 : 0);
+  int get _maxRows => switch (_cols) {
+    1 => 80,
+    2 => 40,
+    _ => 26,
+  };
+
+  /// Column names left to right.
+  List<String> get _colNames => [
+    'X',
+    if (_paired) 'Y',
+    if (statFrequency) 'FREQ',
+  ];
+
+  List<StatItem> get statItems => List.unmodifiable(_stat.items);
+
   /// ▶r∠θ / ▶a+bi at the end of the last calculation (null: setup).
   bool? _polarOverride;
 
@@ -193,6 +231,7 @@ class NaturalCalculator implements CalcEngine {
     final shift = _shift, alpha = _alpha;
     _shift = _alpha = false;
     if (_equation != null && _onEquationKey(key, shift: shift)) return;
+    if (_editor && !shift && !alpha && _onEditorKey(key)) return;
     if (!shift && !alpha && key == CalcKey.calc) {
       _startEquation(solve: false);
       return;
@@ -257,7 +296,7 @@ class NaturalCalculator implements CalcEngine {
 
   void _tok(Tok t, {bool paren = false}) {
     _beforeInput(continues: _continuation.contains(t.kind));
-    if (_overwrite && !mathInput && _ed.cursor.pos < _ed.row.items.length) {
+    if (_overwrite && !_mathIO && _ed.cursor.pos < _ed.row.items.length) {
       _ed.row.items.removeAt(_ed.cursor.pos);
     }
     _ed.insertTok(t, paren: paren);
@@ -267,7 +306,7 @@ class NaturalCalculator implements CalcEngine {
   void _fn(Tok t) => _tok(t, paren: true);
 
   void _template(MathTemplate t, {Tok? linear}) {
-    if (!mathInput) {
+    if (!_mathIO) {
       // LineIO: the linear equivalent.
       switch (t) {
         case MathTemplate.fraction:
@@ -343,13 +382,13 @@ class NaturalCalculator implements CalcEngine {
       case CalcKey.power:
         _template(MathTemplate.power);
       case CalcKey.logBase:
-        if (mathInput) {
+        if (_mathIO) {
           _template(MathTemplate.logBase);
         } else {
           _tok(Tok.logBase);
         }
       case CalcKey.integrate:
-        if (mathInput) {
+        if (_mathIO) {
           _template(MathTemplate.integral);
         } else {
           _tok(Tok.integral);
@@ -410,19 +449,19 @@ class NaturalCalculator implements CalcEngine {
       case CalcKey.fraction:
         _template(MathTemplate.mixed);
       case CalcKey.logBase:
-        if (mathInput) {
+        if (_mathIO) {
           _template(MathTemplate.sum);
         } else {
           _tok(Tok.sigma);
         }
       case CalcKey.integrate:
-        if (mathInput) {
+        if (_mathIO) {
           _template(MathTemplate.derivative);
         } else {
           _tok(Tok.derivative);
         }
       case CalcKey.hyp:
-        if (mathInput) {
+        if (_mathIO) {
           _template(MathTemplate.abs);
         } else {
           _fn(Tok.cAbs);
@@ -455,6 +494,8 @@ class NaturalCalculator implements CalcEngine {
         });
       case CalcKey.d9:
         _menu = _clrMenu();
+      case CalcKey.d1 when mode == NaturalMode.stat:
+        _menu = _statMenu();
       case CalcKey.d2 when mode == NaturalMode.cmplx:
         _menu = _cmplxMenu();
       case CalcKey.negative when mode == NaturalMode.cmplx:
@@ -480,7 +521,7 @@ class NaturalCalculator implements CalcEngine {
       case CalcKey.equals:
         _execute(decimal: true);
       case CalcKey.del:
-        if (!mathInput) _overwrite = !_overwrite;
+        if (!_mathIO) _overwrite = !_overwrite;
       case CalcKey.ac:
         _off = true;
       case CalcKey.mode:
@@ -584,7 +625,7 @@ class NaturalCalculator implements CalcEngine {
       _ed.cursor = MathCursor(const [], _ed.root.items.length);
       return;
     }
-    if (_overwrite && !mathInput) {
+    if (_overwrite && !_mathIO) {
       if (_ed.cursor.pos < _ed.row.items.length) {
         _ed.row.items.removeAt(_ed.cursor.pos);
       } else {
@@ -614,7 +655,7 @@ class NaturalCalculator implements CalcEngine {
 
   void _vertical({required bool up}) {
     if (!_resultShown) {
-      if (mathInput) _ed.vertical(up: up);
+      if (_mathIO) _ed.vertical(up: up);
       return;
     }
     // History: ▲ older, ▼ newer.
@@ -689,6 +730,7 @@ class NaturalCalculator implements CalcEngine {
           polRecVars: c.polRecVars,
           exactForms: c.exactForms,
           functionParens: c.functionParens,
+          stats: c.stats,
           store: c.store,
         );
 
@@ -702,6 +744,7 @@ class NaturalCalculator implements CalcEngine {
     polRecVars: const ('X', 'Y'),
     exactForms: true,
     functionParens: true,
+    stats: mode == NaturalMode.stat ? _stat : null,
     store: (n, v) => _vars[n] = v,
   );
 
@@ -907,6 +950,301 @@ class NaturalCalculator implements CalcEngine {
     }
   }
 
+  void _setFrequency(bool on) {
+    if (statFrequency != on) _stat.clear();
+    statFrequency = on;
+    _col = 0;
+  }
+
+  // ------------------------------------------------------------- STAT
+
+  static const _statTypeLines = [
+    '1:1-VAR  2:A+BX',
+    '3:_+CX²  4:ln X',
+    '5:e^X    6:A·B^X',
+    '7:A·X^B  8:1/X',
+  ];
+
+  _Menu _statTypeMenu() => _Menu(_statTypeLines, {
+    for (final t in StatType.values) t.index + 1: () => _setStatType(t),
+  });
+
+  void _setStatType(StatType t) {
+    final wasPaired = _paired;
+    statType = t;
+    if (wasPaired != _paired) _stat.clear();
+    _stat.type = switch (t) {
+      StatType.oneVar || StatType.lin => RegressionType.lin,
+      StatType.quad => RegressionType.quad,
+      StatType.log => RegressionType.log,
+      StatType.eExp => RegressionType.exp,
+      StatType.abExp => RegressionType.abExp,
+      StatType.pwr => RegressionType.pwr,
+      StatType.inv => RegressionType.inv,
+    };
+    _openEditor();
+  }
+
+  void _openEditor() {
+    _editor = true;
+    _resultShown = false;
+    _row = _stat.items.length.clamp(0, _maxRows - 1);
+    _col = 0;
+    _cell = '';
+    _top = (_row - 1).clamp(0, 1 << 20);
+  }
+
+  /// Keys in the Stat Editor; false lets other handling take the key.
+  bool _onEditorKey(CalcKey key) {
+    final d = key.digit;
+    if (d != null) {
+      _cell += '$d';
+      return true;
+    }
+    switch (key) {
+      case CalcKey.dot:
+        _cell += '.';
+      case CalcKey.negative:
+        _cell += '-';
+      case CalcKey.exp:
+        _cell += 'E';
+      case CalcKey.del:
+        if (_cell.isNotEmpty) {
+          _cell = _cell.substring(0, _cell.length - 1);
+        } else if (_row < _stat.items.length) {
+          _stat.items.removeAt(_row);
+          _row = _row.clamp(0, _stat.items.length);
+        }
+      case CalcKey.equals:
+        _commitCell();
+      case CalcKey.up:
+        _cell = '';
+        if (_row > 0) _row--;
+      case CalcKey.down:
+        _cell = '';
+        if (_row < _stat.items.length && _row < _maxRows - 1) _row++;
+      case CalcKey.left:
+        _cell = '';
+        if (_col > 0) _col--;
+      case CalcKey.right:
+        _cell = '';
+        if (_col < _cols - 1) _col++;
+      case CalcKey.ac:
+        _editor = false;
+        _clearInput();
+      default:
+        return false;
+    }
+    if (_row < _top) _top = _row;
+    if (_row > _top + 2) _top = _row - 2;
+    return true;
+  }
+
+  void _commitCell() {
+    if (_cell.isEmpty) {
+      if (_row < _stat.items.length) _row++;
+      return;
+    }
+    final toks = <Tok>[
+      for (final c in _cell.split(''))
+        switch (c) {
+          '.' => Tok.point,
+          '-' => Tok.negative,
+          'E' => Tok.exp,
+          _ => Tok.digits[int.parse(c)],
+        },
+    ];
+    final Dec v;
+    try {
+      v = evaluateValue(toks, _context()).dec;
+    } on CalcError catch (e) {
+      _cell = '';
+      _error = _errorText(e.kind);
+      _errorCursor = null;
+      return;
+    }
+    _cell = '';
+    if (_row >= _stat.items.length) {
+      if (_stat.items.length >= _maxRows) return;
+      _stat.add(StatItem(Dec.zero, y: _paired ? Dec.zero : null));
+    }
+    final item = _stat.items[_row];
+    final name = _colNames[_col];
+    _stat.items[_row] = switch (name) {
+      'X' => item.copyWith(x: v),
+      'Y' => item.copyWith(y: v),
+      _ => item.copyWith(freq: v),
+    };
+    if (_row < _maxRows - 1) _row++;
+  }
+
+  _Menu _statMenu() {
+    final edit = _editor;
+    final last = _paired ? 'Reg' : 'Distr';
+    final lines = edit
+        ? [
+            '1:Type   2:Data',
+            '3:Edit   4:Sum',
+            '5:Var    6:${last.padRight(6)}',
+            '7:MinMax',
+          ]
+        : [
+            '1:Type   2:Data',
+            '3:Sum    4:Var',
+            '5:${last.padRight(6)} 6:MinMax',
+          ];
+    final o = edit ? 1 : 0;
+    return _Menu(lines, {
+      1: () => _menu = _statTypeMenu(),
+      2: _openEditor,
+      if (edit)
+        3: () => _menu = _Menu(
+          const ['1:Ins    2:Del-A'],
+          {
+            1: () {
+              _stat.items.insert(
+                _row.clamp(0, _stat.items.length),
+                StatItem(Dec.zero, y: _paired ? Dec.zero : null),
+              );
+            },
+            2: () {
+              _stat.clear();
+              _row = _top = 0;
+            },
+          },
+        ),
+      3 + o: () => _menu = _sumMenu(),
+      4 + o: () => _menu = _varMenu(),
+      5 + o: () => _menu = _paired ? _regMenu() : _distrMenu(),
+      6 + o: () => _menu = _minMaxMenu(),
+    });
+  }
+
+  /// Puts a statistics token into the calculation (leaving the editor).
+  void Function() _statTok(Tok t) => () {
+    if (_editor) {
+      _editor = false;
+      _clearInput();
+    }
+    _tok(t);
+  };
+
+  _Menu _pick(List<String> lines, List<Tok> toks) =>
+      _Menu(lines, {for (final (i, t) in toks.indexed) i + 1: _statTok(t)});
+
+  _Menu _sumMenu() => _paired
+      ? _pick(
+          const [
+            '1:Σx²   2:Σx',
+            '3:Σy²   4:Σy',
+            '5:Σxy   6:Σx³',
+            '7:Σx²y  8:Σx⁴',
+          ],
+          const [
+            Tok.statSumX2,
+            Tok.statSumX,
+            Tok.statSumY2,
+            Tok.statSumY,
+            Tok.statSumXY,
+            Tok.statSumX3,
+            Tok.statSumX2Y,
+            Tok.statSumX4,
+          ],
+        )
+      : _pick(const ['1:Σx²   2:Σx'], const [Tok.statSumX2, Tok.statSumX]);
+
+  _Menu _varMenu() => _pick(
+    [
+      '1:n      2:\uE000',
+      '3:xσn    4:xσn-1',
+      if (_paired) ...['5:\uE001      6:yσn', '7:yσn-1'],
+    ],
+    [
+      Tok.statN,
+      Tok.statMeanX,
+      Tok.statSigmaX,
+      Tok.statSampleX,
+      if (_paired) ...[Tok.statMeanY, Tok.statSigmaY, Tok.statSampleY],
+    ],
+  );
+
+  _Menu _regMenu() => statType == StatType.quad
+      ? _pick(
+          const [
+            '1:A      2:B',
+            '3:C      4:\uE0021',
+            '5:\uE0022     6:\uE003',
+          ],
+          const [Tok.regA, Tok.regB, Tok.regC, Tok.estX1, Tok.estX2, Tok.estY],
+        )
+      : _pick(
+          const ['1:A      2:B', '3:r      4:\uE002', '5:\uE003'],
+          const [Tok.regA, Tok.regB, Tok.regR, Tok.estX, Tok.estY],
+        );
+
+  _Menu _distrMenu() => _pick(
+    const ['1:P(     2:Q(', '3:R(     4:▶t'],
+    const [Tok.distP, Tok.distQ, Tok.distR, Tok.toT],
+  );
+
+  _Menu _minMaxMenu() => _paired
+      ? _pick(
+          const ['1:minX   2:maxX', '3:minY   4:maxY'],
+          const [Tok.statMinX, Tok.statMaxX, Tok.statMinY, Tok.statMaxY],
+        )
+      : _pick(const ['1:minX   2:maxX'], const [Tok.statMinX, Tok.statMaxX]);
+
+  /// Stat Editor screen: small header, two data rows, the cell value below.
+  void _paintEditor(DotBitmap bmp, StringBuffer text) {
+    const rowNumW = 9;
+    final colW = (DotScreen.width - rowNumW) ~/ _cols;
+    final names = _colNames;
+    for (var c = 0; c < _cols; c++) {
+      final n = names[c];
+      final x = rowNumW + c * colW + (colW - smallTextWidth(n)) ~/ 2;
+      bmp.smallText(x, 0, n);
+    }
+    final chars = (colW + 1) ~/ 6;
+    String cellText(int r, int c) {
+      if (r >= _stat.items.length) return '';
+      final it = _stat.items[r];
+      final v = switch (names[c]) {
+        'X' => it.x,
+        'Y' => it.y ?? Dec.zero,
+        _ => it.freq,
+      };
+      final t = _plainDecimal(Value.dec(v));
+      return t.length > chars ? t.substring(0, chars) : t;
+    }
+
+    for (var k = 0; k < 3; k++) {
+      final r = _top + k;
+      if (r >= _maxRows) break;
+      final y = 6 + k * 8;
+      if (k == 2) break; // third row would overlap the input line
+      bmp.smallText(0, y + 1, '${r + 1}');
+      for (var c = 0; c < _cols; c++) {
+        final t = cellText(r, c);
+        final x0 = rowNumW + c * colW;
+        bmp.text(x0 + colW - textWidth(t) - 1, y, t);
+        if (r == _row && c == _col) bmp.invert(x0, y - 1, x0 + colW - 1, y + 7);
+      }
+    }
+    final current = _cell.isNotEmpty
+        ? _cell.replaceAll('E', '×10^')
+        : (_row < _stat.items.length ? cellText(_row, _col) : '');
+    bmp.text(DotScreen.width - textWidth(current) - 1, 24, current);
+    text.write('STAT ${names.join(' ')}');
+    for (var r = 0; r < _stat.items.length; r++) {
+      text.write(
+        ' | ${r + 1}: ${[for (var c = 0; c < _cols; c++) cellText(r, c)].join(' ')}',
+      );
+    }
+    text.write(
+      ' | cell ${_row + 1},${names[_col]} ${_cell.isEmpty ? '' : _cell}',
+    );
+  }
+
   _Menu _cmplxMenu() => _Menu(
     const ['1:arg    2:Conjg', '3:▶r∠θ   4:▶a+bi'],
     {
@@ -953,9 +1291,9 @@ class NaturalCalculator implements CalcEngine {
   ExactForm? _shownForm() {
     final r = _result;
     if (r == null || _engExponent != null) return null;
-    final mathOut = mathInput && mathOutput;
+    final mathOut = _mathIO && mathOutput;
     // Exact first on MathO / LineO; decimal first on LineIO and after SHIFT =.
-    final exactFirst = mathInput && !_decimalFirst;
+    final exactFirst = _mathIO && !_decimalFirst;
     if (exactFirst == _alternate) return null;
     final form = exactFormOf(r, surd: mathOut && !_decimalFirst, pi: mathOut);
     return form;
@@ -1051,8 +1389,18 @@ class NaturalCalculator implements CalcEngine {
   );
 
   void _setMode(NaturalMode m) {
+    if (mode == NaturalMode.stat && m != NaturalMode.stat) {
+      _stat.clear(); // Leaving STAT deletes its data.
+    }
     mode = m;
     _equation = null;
+    _editor = false;
+    if (m == NaturalMode.stat) {
+      _history.clear();
+      _clearInput();
+      _menu = _statTypeMenu();
+      return;
+    }
     _history.clear();
     _clearInput();
   }
@@ -1107,7 +1455,7 @@ class NaturalCalculator implements CalcEngine {
       ),
       4: () => _menu = _Menu(
         const ['Frequency?', '1:ON    2:OFF'],
-        {1: () => statFrequency = true, 2: () => statFrequency = false},
+        {1: () => _setFrequency(true), 2: () => _setFrequency(false)},
       ),
       5: () => _menu = _Menu(
         const ['1:Dot   2:Comma'],
@@ -1259,8 +1607,9 @@ class NaturalCalculator implements CalcEngine {
       },
       if (format.mode == DisplayMode.fix) Indicator.fix,
       if (format.mode == DisplayMode.sci) Indicator.sci,
-      if (mathInput) Indicator.math,
+      if (_mathIO) Indicator.math,
       if (mode == NaturalMode.cmplx) Indicator.cmplx,
+      if (mode == NaturalMode.stat) Indicator.stat,
     };
     CursorRect? cursor;
     final text = StringBuffer();
@@ -1295,6 +1644,8 @@ class NaturalCalculator implements CalcEngine {
       bmp.text(0, 24, 'L-R=');
       bmp.text(DotScreen.width - textWidth(lr) - 1, 24, lr);
       text.write('${eq.input} | X= $x | L-R= $lr');
+    } else if (_editor && _menu == null) {
+      _paintEditor(bmp, text);
     } else if (_menu != null) {
       final m = _menu!;
       for (var i = 0; i < m.lines.length && i < 4; i++) {
@@ -1369,7 +1720,7 @@ class NaturalCalculator implements CalcEngine {
       row = _fractionRow(
         form.value,
         improperView,
-        linear: !(mathInput && mathOutput),
+        linear: !(_mathIO && mathOutput),
       );
     } else if (form is SurdForm) {
       row = _surdRow(form.value);
@@ -1494,7 +1845,7 @@ class NaturalCalculator implements CalcEngine {
   /// a+bi or r∠θ, each part in its exact form when one fits.
   MathRow _complexRow(Value v) {
     final polar = _polarOverride ?? polarComplex;
-    final exact = mathInput && mathOutput && !_alternate && !_decimalFirst;
+    final exact = _mathIO && mathOutput && !_alternate && !_decimalFirst;
     MathRow part(Dec x) {
       if (exact) {
         final f = exactFormOf(Value.dec(x));

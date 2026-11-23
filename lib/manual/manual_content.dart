@@ -658,6 +658,62 @@ const manualChapters = <ManualChapter>[
         ],
       ),
       ManualArticle(
+        id: 'stat-tb',
+        title: 'Statistics and regression (STAT)',
+        summary: 'Stat Editor, mean, standard deviation and regression.',
+        audience: _tb,
+        keywords: [
+          'statistics',
+          'mean',
+          'average',
+          'standard deviation',
+          'regression',
+          'correlation',
+          'frequency',
+        ],
+        blocks: [
+          Steps([
+            ManualStep(
+              'Enter STAT mode and choose a type (1 for one variable).',
+              'MODE 3 1',
+            ),
+            ManualStep(
+              'Type each value and press = (the editor moves down).',
+              '10 = 20 = 30 =',
+            ),
+            ManualStep('Leave the editor for calculations.', 'AC'),
+            ManualStep(
+              'SHIFT 1 opens the STAT menu: Sum, Var, Reg or Distr, MinMax.',
+            ),
+          ]),
+          Example(
+            title: 'Mean of 10, 20, 30',
+            setup: 'MODE 3 1 10 = 20 = 30 = AC',
+            keys: 'SHIFT 1 4 2 =',
+            result: '20',
+            verify: '20',
+          ),
+          Para(
+            'Paired data (types 2-8): type the X column, go back up with ▲, '
+            'move to Y with ▶ and type the Y values. Reg gives A, B, r and the '
+            'estimates x̂ and ŷ: 160 x̂… or 160 ŷ.',
+          ),
+          Example(
+            title: 'Linear regression: y at x = 4 for (1,3), (2,5), (3,7)',
+            setup: 'MODE 3 2 1 = 2 = 3 = up up up > 3 = 5 = 7 = AC',
+            keys: '4 SHIFT 1 5 5 =',
+            result: '9',
+            verify: '9',
+          ),
+          Tip(
+            'SHIFT MODE ▼ 4 turns on the FREQ column for repeated values. '
+            'Changing it, switching between one-variable and paired types, '
+            'or leaving STAT deletes the data. DEL deletes the row under the '
+            'cursor.',
+          ),
+        ],
+      ),
+      ManualArticle(
         id: 'base',
         title: 'Number systems (BASE)',
         summary: 'Decimal, hexadecimal, binary and octal.',
@@ -727,7 +783,7 @@ const manualChapters = <ManualChapter>[
         blocks: [
           Para(
             'MODE lists COMP, CMPLX, STAT, BASE-N, EQN, MATRIX, TABLE and '
-            'VECTOR. COMP (with CALC and SOLVE) and CMPLX work today; the '
+            'VECTOR. COMP (with CALC and SOLVE), CMPLX and STAT work today; the '
             'other modes are being added and will appear here with their own '
             'instructions.',
           ),

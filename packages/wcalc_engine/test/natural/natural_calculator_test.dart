@@ -275,4 +275,58 @@ void main() {
       expect(calc.screen.text, startsWith('Variable ERROR'));
     });
   });
+
+  group('STAT', () {
+    test('MODE 3 shows the type menu; 1-VAR opens the editor', () {
+      expect(press('MODE 3'), contains('1:1-VAR  2:A+BX'));
+      expect(press('1'), startsWith('STAT X'));
+      expect(calc.screen.indicators, contains(Indicator.stat));
+      expect(calc.screen.indicators, isNot(contains(Indicator.math)));
+    });
+    test('1-VAR with FREQ: mean 3, σx 1.154700538', () {
+      press('SHIFT MODE down 4 1'); // FREQ column on
+      press('MODE 3 1');
+      press('1 = 2 = 3 = 4 = 5 =');
+      press('up up up up up >');
+      press('1 = 2 = 3 = 2 = 1 =');
+      expect(calc.statItems, hasLength(5));
+      expect(result('AC SHIFT 1 4 2 ='), '3');
+      expect(result('AC SHIFT 1 4 3 ='), '1.154700538');
+    });
+    test('linear and log regression (Fix 3)', () {
+      press('SHIFT MODE 6 3');
+      press('MODE 3 2');
+      press('20 = 110 = 200 = 290 =');
+      press('up up up up >');
+      press('3150 = 7310 = 8800 = 9310 =');
+      expect(result('AC SHIFT 1 5 3 ='), '0.923');
+      press('SHIFT 1 1 4'); // ln X keeps paired data
+      expect(result('AC SHIFT 1 5 3 ='), '0.998');
+      expect(result('AC SHIFT 1 5 1 ='), '-3857.984');
+      expect(result('AC SHIFT 1 5 2 ='), '2357.532');
+      expect(result('AC 160 SHIFT 1 5 5 ='), '8106.898');
+    });
+    test('normal distribution: ▶t of 3 and P(t)', () {
+      press('SHIFT MODE down 4 1');
+      press('SHIFT MODE 6 3');
+      press('MODE 3 1');
+      press('0 = 1 = 2 = 3 = 4 = 5 = 6 = 7 = 9 = 10 =');
+      for (var i = 0; i < 10; i++) {
+        press('up');
+      }
+      press('> 1 = 2 = 1 = 2 = 2 = 2 = 3 = 4 = 2 = 1 =');
+      expect(result('AC 3 SHIFT 1 5 4 ='), '-0.762');
+      expect(result('SHIFT 1 5 1 Ans ) ='), '0.223');
+    });
+    test('DEL deletes a row; Edit ▸ Del-A clears all', () {
+      press('MODE 3 1 1 = 2 = 3 = up DEL');
+      expect(calc.statItems.map((i) => i.x.toString()), ['1', '2']);
+      press('SHIFT 1 3 2');
+      expect(calc.statItems, isEmpty);
+    });
+    test('leaving STAT deletes the data', () {
+      press('MODE 3 1 5 = AC MODE 1 MODE 3 1');
+      expect(calc.statItems, isEmpty);
+    });
+  });
 }

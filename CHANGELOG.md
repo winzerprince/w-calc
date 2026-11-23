@@ -2,6 +2,12 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [Unreleased]
+
+### Added
+- Textbook models: STAT mode with the eight regression types (incl. A·B^x), Stat Editor
+  (FREQ column, DEL row, Ins, Del-A), and the Sum / Var / Reg / Distr / MinMax menus.
+
 ## [0.3.0-beta] - 2026-11-23
 
 Textbook-display calculators (silver and black bodies), exact results and a searchable manual.

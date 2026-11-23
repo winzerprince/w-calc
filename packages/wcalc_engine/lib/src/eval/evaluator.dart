@@ -599,6 +599,10 @@ class _Evaluator {
       Tok.regB => s.b,
       Tok.regC => s.c,
       Tok.regR => s.r,
+      Tok.statMinX => s.minX,
+      Tok.statMaxX => s.maxX,
+      Tok.statMinY => s.minY,
+      Tok.statMaxY => s.maxY,
       _ => throw ArgumentError('not a statistic: $tok'),
     };
   }
