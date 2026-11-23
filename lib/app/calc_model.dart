@@ -26,7 +26,12 @@ class CalcModel {
     this.bigLinear = false,
     this.listNames = false,
     this.menuCursor = false,
+    this.disabled = const {},
   });
+
+  /// Textbook family: functions this model lacks, as (key, modifier) with
+  /// 0 plain, 1 SHIFT, 2 ALPHA. Their legends are hidden, plain keys fade.
+  final Set<(CalcKey, int)> disabled;
 
   /// Textbook family: menus as highlighted option rows (◀ ▶, =).
   final bool menuCursor;
@@ -61,6 +66,7 @@ class CalcModel {
       bigLinear: bigLinear,
       listNames: listNames,
       menuCursor: menuCursor,
+      disabled: disabled,
     ),
   };
 
@@ -220,12 +226,41 @@ class CalcModel {
     bigLinear: true,
   );
 
+  /// Everyday textbook model: COMP, STAT and TABLE; no calculus,
+  /// CALC/SOLVE, constants or conversions.
+  static final textbookBasic = CalcModel(
+    id: 'textbookbasic',
+    name: 'Textbook Basic',
+    description:
+        'Everyday textbook-display model: exact fractions and roots, '
+        'statistics and tables',
+    features: CalcFeatures.full,
+    layout: textbookDiscLayout,
+    family: CalcFamily.textbook,
+    skinId: 'indigo',
+    naturalModes: {NaturalMode.comp, NaturalMode.stat, NaturalMode.table},
+    disabled: {
+      (CalcKey.integrate, 0),
+      (CalcKey.integrate, 1),
+      (CalcKey.calc, 0),
+      (CalcKey.calc, 1),
+      (CalcKey.d7, 1),
+      (CalcKey.d8, 1),
+      (CalcKey.d2, 1),
+      (CalcKey.d3, 1),
+      (CalcKey.d4, 1),
+      (CalcKey.d5, 1),
+      (CalcKey.logBase, 1),
+    },
+  );
+
   static final all = [
     plus,
     grid,
     basic,
     textbook,
     textbook2,
+    textbookBasic,
     max,
     twoView,
     view,
@@ -253,6 +288,10 @@ class CalcModel {
     if (label.kind != LabelKind.alpha && hiddenLegends.contains(label.text)) {
       return false;
     }
+    if (label.kind == LabelKind.shift && disabled.contains((key, 1)) ||
+        label.kind == LabelKind.alpha && disabled.contains((key, 2))) {
+      return false;
+    }
     if (label.kind == LabelKind.alpha && label.text == '=' ||
         label.text == ':') {
       return features.calc;
@@ -266,8 +305,9 @@ class CalcModel {
   }
 
   /// Key caps without a function on this model are drawn faded.
-  bool keyEnabled(CalcKey key) =>
-      family == CalcFamily.textbook || features.allows(key, shift: false);
+  bool keyEnabled(CalcKey key) => family == CalcFamily.textbook
+      ? !disabled.contains((key, 0))
+      : features.allows(key, shift: false);
 }
 
 /// Provides the active [CalcModel] to the widget tree.

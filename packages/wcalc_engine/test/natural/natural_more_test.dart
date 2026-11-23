@@ -195,4 +195,14 @@ void main() {
     expect(st.curves.single.$1, 'regression A+BX');
     expect(st.curves.single.$2.at(4), closeTo(9, 1e-9));
   });
+
+  test('disabled functions do nothing', () {
+    final b = NaturalCalculator(
+      disabled: {(CalcKey.integrate, 0), (CalcKey.calc, 1), (CalcKey.d7, 1)},
+    );
+    for (final k in parseKeySequence('∫dx SHIFT CALC SHIFT 7 2 + 3 =')) {
+      b.press(k);
+    }
+    expect(b.screen.text, '2+3 = 5');
+  });
 }

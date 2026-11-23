@@ -57,7 +57,7 @@ const manualChapters = <ManualChapter>[
             'picture for a large preview.\n'
             '• Two-line (Scientific Plus, Grid, Basic): the calculation above '
             'a ten-digit result.\n'
-            '• Textbook (Textbook Plus, Plus II, Scientific Max): fractions, '
+            '• Textbook (Textbook Plus, Plus II, Basic, Scientific Max): fractions, '
             'roots and powers as written; Max adds 4×4 matrices and four '
             'unknowns.\n'
             '• Multi-line (Scientific Two-View, View, Write): a dot entry line '
@@ -400,6 +400,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'constants',
+        tbKey: (CalcKey.d7, 1),
         title: 'Scientific constants and unit conversions',
         summary: '40 constants (CONST) and 40 conversions (CONV).',
         keywords: ['constant', 'speed of light', 'convert', 'unit', 'conv'],
@@ -431,6 +432,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'constants-list',
+        tbKey: (CalcKey.d7, 1),
         title: 'List of the 40 constants',
         summary: 'Number, symbol, meaning and value of every CONST entry.',
         keywords: ['constant', 'const', 'list', 'value', 'physics', 'codata'],
@@ -460,6 +462,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'conversions-list',
+        tbKey: (CalcKey.d8, 1),
         title: 'List of the 40 unit conversions',
         summary: 'Which CONV number converts which units.',
         keywords: ['convert', 'conversion', 'conv', 'unit', 'list', 'metric'],
@@ -775,6 +778,7 @@ const manualChapters = <ManualChapter>[
     articles: [
       ManualArticle(
         id: 'integration',
+        tbKey: (CalcKey.integrate, 0),
         title: 'Integration',
         summary: 'Definite integrals with ∫dx.',
         keywords: ['integral', 'integrate', 'area', '∫'],
@@ -806,6 +810,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'derivative',
+        tbKey: (CalcKey.integrate, 1),
         title: 'Derivative at a point',
         summary: 'd/dx f(X) at X = a.',
         keywords: ['derivative', 'differentiate', 'slope', 'gradient'],
@@ -828,6 +833,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'sum',
+        tbKey: (CalcKey.logBase, 1),
         title: 'Sums with Σ',
         summary: 'Add f(X) for X from a to b.',
         audience: _tb,
@@ -847,6 +853,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'calc',
+        tbKey: (CalcKey.calc, 0),
         title: 'CALC: evaluate a formula for different values',
         summary: 'Store an expression, then enter values for its variables.',
         keywords: ['calc', 'formula', 'substitute', 'variable'],
@@ -878,6 +885,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'solve',
+        tbKey: (CalcKey.calc, 1),
         title: 'SOLVE: find where an equation holds',
         summary: 'Newton’s method from a starting guess.',
         keywords: ['solve', 'root', 'equation', 'newton'],
@@ -922,6 +930,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'complex-tb',
+        tbModes: {NaturalMode.cmplx},
         title: 'Complex numbers (CMPLX)',
         summary: 'a + bi and r∠θ, with exact parts.',
         audience: _tb,
@@ -980,6 +989,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'stat-tb',
+        tbModes: {NaturalMode.stat},
         title: 'Statistics and regression (STAT)',
         summary: 'Stat Editor, mean, standard deviation and regression.',
         audience: _tb,
@@ -1078,6 +1088,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'eqn-tb',
+        tbModes: {NaturalMode.eqn},
         title: 'Equations (EQN)',
         summary:
             'Simultaneous, quadratic and cubic equations with exact roots.',
@@ -1112,6 +1123,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'base-tb',
+        tbModes: {NaturalMode.base},
         title: 'Number systems (BASE-N)',
         summary: 'Decimal, hexadecimal, binary and octal with logic.',
         audience: _tb,
@@ -1149,6 +1161,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'table-tb',
+        tbModes: {NaturalMode.table},
         title: 'Number tables (TABLE)',
         summary: 'Values of f(X) for X from Start to End.',
         audience: _tb,
@@ -1193,6 +1206,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'matrix-tb',
+        tbModes: {NaturalMode.matrix},
         title: 'Matrices (MATRIX)',
         summary: 'Up to 3 × 3: +, −, ×, det, Trn, inverse, powers.',
         audience: _tb,
@@ -1228,6 +1242,7 @@ const manualChapters = <ManualChapter>[
       ),
       ManualArticle(
         id: 'vector-tb',
+        tbModes: {NaturalMode.vector},
         title: 'Vectors (VECTOR)',
         summary: '2-D and 3-D vectors: dot and cross products, length.',
         audience: _tb,
