@@ -107,7 +107,10 @@ class DisplayState {
     if (!RegExp(r'\d').hasMatch(m)) return null;
     if (m.endsWith('.')) m = m.substring(0, m.length - 1);
     if (exponent != null) m = '${m}E$exponent';
-    if (engSymbol != null) m = '$m$engSymbol';
+    // Engineering symbols belong to the value; BASE letters (d h b o) do not.
+    if (engSymbol != null && !const {'d', 'h', 'b', 'o'}.contains(engSymbol)) {
+      m = '$m$engSymbol';
+    }
     return m;
   }
 

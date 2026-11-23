@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:w_calc/app/app_settings.dart';
 import 'package:w_calc/main.dart';
-import 'package:w_calc/ui/pages/guide_page.dart';
 
 Future<void> settle(WidgetTester tester) async {
   for (var i = 0; i < 5; i++) {
@@ -77,12 +76,23 @@ void main() {
     expect(lcd(tester, 'lower'), '0.');
   });
 
-  testWidgets('user guide lists every topic', (tester) async {
+  testWidgets('manual: chapters, search and an article', (tester) async {
     await openApp(tester);
-    await openMenuItem(tester, 'User guide');
-    for (final topic in guideTopics.take(4)) {
-      expect(find.text(topic.title), findsOneWidget);
-    }
+    await openMenuItem(tester, 'Manual');
+    expect(find.text('Getting started'), findsOneWidget);
+    expect(find.text('For Scientific Plus'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('manual-search')), 'integral');
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('hit-integration')));
+    await settle(tester);
+    expect(find.text('Integration'), findsWidgets);
+    expect(find.text('Press'), findsWidgets);
+    // Textbook-only topics are not offered on a two-line model.
+    await tester.pageBack();
+    await settle(tester);
+    await tester.enterText(find.byKey(const Key('manual-search')), 'sigma');
+    await settle(tester);
+    expect(find.byKey(const Key('hit-sum')), findsNothing);
   });
 
   test('settings round-trip through preferences', () async {

@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
 /// Key names for the textbook keypad (on top of the shared ones).
-const _extra = {
+const _extra = <String, CalcKey>{
   'S<>D': CalcKey.sd,
   'frac': CalcKey.fraction,
   'logb': CalcKey.logBase,

@@ -5,6 +5,9 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Added
+- Manual (Menu ▸ Manual) replaces the user guide: searchable chapters and articles with keycap
+  key sequences and worked examples for the model in use, on a white or black page matching the
+  theme. Every example is checked against the calculator by a test.
 - Engine groundwork for the textbook-display models (silver / black units): 2-D input editor
   (fractions, roots, powers, log base, Abs, ∫, d/dx, Σ), full-dot 96×31 screen rendering,
   COMP calculations with exact fraction results, S⇔D, SETUP / MODE / CLR / hyp / DRG menus,
