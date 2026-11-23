@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
 import '../app/app_settings.dart';
+import '../app/calc_model.dart';
 import 'app_menu.dart';
 import 'haptics.dart';
 import 'keyboard_shortcuts.dart';
@@ -19,16 +20,46 @@ class CalculatorScreen extends StatefulWidget {
 }
 
 class _CalculatorScreenState extends State<CalculatorScreen> {
-  final Calculator _calc = Calculator();
+  Calculator _calc = Calculator();
+  CalcModel? _model;
   final FocusNode _focus = FocusNode(debugLabel: 'calculator');
 
   @override
   void initState() {
     super.initState();
-    StateStore.load(_calc).then((_) {
+    // Restore into whichever engine is current when loading finishes (the
+    // model may have changed meanwhile).
+    StateStore.read().then((state) {
       if (!mounted) return;
-      setState(_replayFromUrl);
+      setState(() {
+        if (state != null) {
+          try {
+            _calc.restoreState(state);
+          } on Object {
+            // Corrupt or outdated snapshot: start fresh.
+          }
+        }
+        _replayFromUrl();
+      });
     });
+  }
+
+  /// Switching model keeps memories, data and setup: the state moves to a
+  /// new engine with that model's features.
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final model = ModelScope.of(context);
+    if (_model == null) {
+      _model = model;
+      _calc = Calculator(features: model.features);
+    } else if (model != _model) {
+      final saved = _calc.saveState();
+      _model = model;
+      _calc = Calculator(features: model.features)..restoreState(saved);
+      _busy = false;
+      StateStore.save(_calc);
+    }
   }
 
   /// Web: `?keys=2,div,3,=` presses those keys on load (repro links, screenshots).
@@ -184,7 +215,7 @@ class _Header extends StatelessWidget {
                 _MenuButton(onReset: onReset),
                 const SizedBox(width: 8),
                 Text(
-                  'TWO-LINE SCIENTIFIC',
+                  ModelScope.of(context).name.toUpperCase(),
                   style: TextStyle(
                     color: CalcSkin.of(context).brandText
                         .withValues(alpha: 0.55),

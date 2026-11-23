@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_settings.dart';
 import '../haptics.dart';
 import 'page_scaffold.dart';
+import 'model_page.dart';
 import 'theme_page.dart';
 
 /// Feedback, appearance and reset.
@@ -91,6 +92,17 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
         const PageSection('Calculator'),
+        ListTile(
+          key: const Key('setting-model'),
+          leading: const Icon(Icons.calculate_outlined),
+          title: const Text('Calculator model'),
+          subtitle: Text(modelName(settings.modelId)),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(builder: (_) => const ModelPage()),
+          ),
+        ),
         ListTile(
           key: const Key('setting-reset'),
           leading: const Icon(Icons.restart_alt, color: Color(0xFFFF8A8A)),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app/app_settings.dart';
+import 'app/calc_model.dart';
 import 'ui/calculator_screen.dart';
 import 'ui/skin.dart';
 
@@ -41,19 +42,22 @@ class WCalcApp extends StatelessWidget {
       settings: settings,
       child: ListenableBuilder(
         listenable: settings,
-        builder: (context, _) => SkinScope(
-          skin: CalcSkin.byId(settings.skinId),
-          child: MaterialApp(
-            title: 'W-Calc',
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              fontFamily: 'Barlow',
-              fontFamilyFallback: const ['WCalcSymbols'],
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: const Color(0xFF2B2F3A),
+        builder: (context, _) => ModelScope(
+          model: CalcModel.byId(settings.modelId),
+          child: SkinScope(
+            skin: CalcSkin.byId(settings.skinId),
+            child: MaterialApp(
+              title: 'W-Calc',
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                fontFamily: 'Barlow',
+                fontFamilyFallback: const ['WCalcSymbols'],
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: const Color(0xFF2B2F3A),
+                ),
               ),
+              home: const CalculatorScreen(),
             ),
-            home: const CalculatorScreen(),
           ),
         ),
       ),

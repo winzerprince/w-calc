@@ -16,6 +16,7 @@ const guideTopics = [
     'AC clears the current calculation. DEL deletes the character under the cursor; SHIFT DEL switches to insert mode.',
     '◀ and ▶ move the cursor. Right after a result, ◀ lets you edit the calculation you just did.',
     'Coloured labels above a key are its second functions: orange with SHIFT, red with ALPHA. Purple, blue and green labels work in the CMPLX, SD/REG and BASE modes.',
+    'Menu ▸ Calculator model switches between Scientific Plus (every mode) and Scientific Basic (calculations, statistics and regression). Your memories and data stay.',
   ]),
   GuideTopic('Modes and setup (MODE)', [
     'Press MODE repeatedly to page through: COMP / CMPLX, SD / REG / BASE, EQN / MAT / VCT, angle unit, display format and Disp. Press the number under an option to choose it. After the last page MODE returns to the calculation.',
