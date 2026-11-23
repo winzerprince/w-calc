@@ -64,7 +64,7 @@ class SettingsPage extends StatelessWidget {
           secondary: const Icon(Icons.vibration),
           title: const Text('Vibrate on key press'),
           subtitle: const Text(
-            'A short buzz like a real key. On Android it also needs system touch feedback.',
+            'A short buzz like a real key. Works even when system touch feedback is off.',
           ),
           value: settings.vibration,
           onChanged: (v) {

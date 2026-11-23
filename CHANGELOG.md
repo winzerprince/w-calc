@@ -4,6 +4,10 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Fixed
+- Android: key-press vibration now uses the vibrator directly, so it works even when the phone's
+  touch-feedback setting is off.
+
 ### Added
 - Textbook models: STAT mode with the eight regression types (incl. A·B^x), Stat Editor
   (FREQ column, DEL row, Ins, Del-A), and the Sum / Var / Reg / Distr / MinMax menus.
