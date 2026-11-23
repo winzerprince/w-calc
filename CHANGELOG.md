@@ -4,6 +4,13 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+## [0.13.2-beta] - 2026-11-23
+
+Display fixes (fractions, equation entry, indicators) and an easy way to report bugs.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
 ### Fixed
 - Textbook display: when the answer is a fraction, the fractions you typed keep their full
   denominators (only the answer's own area is cleared).
