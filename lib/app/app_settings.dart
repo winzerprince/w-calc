@@ -10,7 +10,7 @@ class AppSettings extends ChangeNotifier {
     this.keySound = false,
     this.skinId = 'classic',
     this.modelId = 'plus',
-    this.finishId = 'glossy',
+    this.finishId = 'classic',
   });
 
   static const _key = 'wcalc.app.v1';

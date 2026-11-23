@@ -5,10 +5,14 @@ import 'skin.dart';
 /// Surface material of the body and keys. Skins set the colours; the finish
 /// sets how light falls on them.
 enum CalcFinish {
+  classic('Classic', 'The original W-Calc look: soft gradient keys'),
   glossy('Glossy plastic', 'Bright highlights and deep shadows'),
   matte('Soft-touch matte', 'Even, low-sheen surfaces'),
   rubber('Rubber keys', 'Soft, rounded keys with a satin body'),
-  metallic('Metallic', 'Brushed metal body and keys');
+  metallic('Metallic', 'Brushed metal body and keys'),
+  flat('Flat', 'Plain colours, thin outlines, no shadows'),
+  raised('Raised', 'Chunky keys standing on a solid edge'),
+  soft('Soft', 'Keys pressed gently out of the body');
 
   const CalcFinish(this.label, this.description);
 
@@ -17,12 +21,12 @@ enum CalcFinish {
 
   static CalcFinish byId(String? id) => CalcFinish.values.firstWhere(
     (f) => f.name == id,
-    orElse: () => CalcFinish.glossy,
+    orElse: () => CalcFinish.classic,
   );
 
   static CalcFinish of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<FinishScope>()?.finish ??
-      CalcFinish.glossy;
+      CalcFinish.classic;
 
   Color _l(Color c, double t) => Color.lerp(c, Colors.white, t)!;
   Color _d(Color c, double t) => Color.lerp(c, Colors.black, t)!;
@@ -31,6 +35,22 @@ enum CalcFinish {
   Gradient keyGradient(Color base, {required bool down}) {
     final c = down ? _d(base, 0.22) : base;
     return switch (this) {
+      classic => LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [_l(c, 0.10), c],
+      ),
+      flat => LinearGradient(colors: [c, c]),
+      raised => LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [_l(c, 0.14), c],
+      ),
+      soft => LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [_l(c, 0.08), _d(c, 0.06)],
+      ),
       glossy => LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
@@ -76,12 +96,42 @@ enum CalcFinish {
     rubber => Border.all(color: _d(base, 0.35), width: 1.2),
     metallic => Border.all(color: _l(base, 0.35), width: 0.8),
     glossy => Border.all(color: _d(base, 0.25), width: 0.6),
-    matte => null,
+    flat => Border.all(color: _d(base, 0.30), width: 1),
+    matte || classic || raised || soft => null,
   };
 
   List<BoxShadow> keyShadow({required bool down}) {
-    if (down) return const [];
+    if (down) {
+      // Raised keys keep a thin edge when pressed.
+      return this == raised
+          ? const [BoxShadow(color: Color(0xCC000000), offset: Offset(0, 1))]
+          : const [];
+    }
     return switch (this) {
+      classic => const [
+        BoxShadow(color: Colors.black54, blurRadius: 2, offset: Offset(0, 2)),
+      ],
+      flat => const [],
+      raised => const [
+        BoxShadow(color: Color(0xCC000000), offset: Offset(0, 4)),
+        BoxShadow(
+          color: Color(0x55000000),
+          blurRadius: 3,
+          offset: Offset(0, 5),
+        ),
+      ],
+      soft => const [
+        BoxShadow(
+          color: Color(0x33FFFFFF),
+          blurRadius: 4,
+          offset: Offset(-2, -2),
+        ),
+        BoxShadow(
+          color: Color(0x88000000),
+          blurRadius: 5,
+          offset: Offset(2, 3),
+        ),
+      ],
       glossy => const [
         BoxShadow(
           color: Color(0x99000000),
@@ -114,7 +164,15 @@ enum CalcFinish {
   }
 
   /// Extra roundness for keys (rubber keys are softer).
-  double keyRadius(double base) => this == rubber ? base + 4 : base;
+  double keyRadius(double base) => switch (this) {
+    rubber => base + 4,
+    soft => base + 3,
+    flat => base - 2,
+    _ => base,
+  };
+
+  /// Whether the body keeps the original single-piece look (no rim band).
+  bool get plainBody => this == classic || this == flat;
 
   /// Calculator shell: a darker rim band around a shaded face.
   BoxDecoration bodyRim(CalcSkin skin, BorderRadius radius) => BoxDecoration(
@@ -226,6 +284,33 @@ class CalcShell extends StatelessWidget {
             bottom: Radius.elliptical(40, 32),
           );
     final sheen = finish.bodySheen();
+    if (finish.plainBody) {
+      // The original W-Calc body: one rounded piece with a soft shadow.
+      return Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          borderRadius: flat ? BorderRadius.zero : BorderRadius.circular(28),
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [skin.bodyTop, skin.body],
+          ),
+          border: finish == CalcFinish.flat
+              ? Border.all(color: Colors.black26)
+              : null,
+          boxShadow: flat
+              ? null
+              : const [
+                  BoxShadow(
+                    color: Colors.black54,
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+        ),
+        child: child,
+      );
+    }
     return DecoratedBox(
       decoration: finish.bodyRim(skin, outer),
       child: Padding(
