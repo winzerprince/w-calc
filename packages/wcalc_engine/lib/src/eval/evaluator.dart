@@ -170,11 +170,16 @@ class _Op {
 
 Value _mul(Value a, Value b) => a * b;
 
-/// Wraps a decimal function as a value function.
-Value Function(Value) _d1(Dec Function(Dec) f) =>
-    (a) => Value.dec(f(a.dec));
-Value Function(Value, Value) _d2(Dec Function(Dec, Dec) f) =>
-    (a, b) => Value.dec(f(a.dec, b.dec));
+/// Wraps a real function as a value function; complex arguments are a
+/// Math ERROR (the device only has arithmetic, Abs, arg, Conjg for them).
+Value Function(Value) _d1(Dec Function(Dec) f) => (a) {
+  if (a.isComplex) throw const CalcError(CalcErrorKind.math);
+  return Value.dec(f(a.dec));
+};
+Value Function(Value, Value) _d2(Dec Function(Dec, Dec) f) => (a, b) {
+  if (a.isComplex || b.isComplex) throw const CalcError(CalcErrorKind.math);
+  return Value.dec(f(a.dec, b.dec));
+};
 
 /// Rnd: round to what the display would show.
 Dec roundForDisplay(Dec x, DisplayFormat f) => switch (f.mode) {
@@ -187,6 +192,12 @@ Dec roundForDisplay(Dec x, DisplayFormat f) => switch (f.mode) {
 
 /// x^y keeping fractions exact for integer exponents.
 Value _power(Value a, Value b) {
+  if (a.isComplex || b.isComplex) {
+    if (b.isComplex || !b.dec.isInteger || b.dec.abs() > Dec.fromInt(1000)) {
+      throw const CalcError(CalcErrorKind.math);
+    }
+    return a.powInt(b.dec.toInt())!;
+  }
   if (a.frac != null && b.dec.isInteger && b.dec.abs() <= Dec.fromInt(1000)) {
     return a.powInt(b.dec.toInt())!;
   }
@@ -278,7 +289,8 @@ class _Evaluator {
         case TokKind.separator ||
             TokKind.literalMark ||
             TokKind.percent ||
-            TokKind.equation:
+            TokKind.equation ||
+            TokKind.formatCommand:
           _syntax(i); // Handled by literal parsing / the calculator.
         case TokKind.closeParen:
           if (expectOperand) _syntax(i);
@@ -408,6 +420,7 @@ class _Evaluator {
     Tok.ans => ctx.ans,
     Tok.pi => Value.dec(piConstant),
     Tok.e => Value.dec(eConstant),
+    Tok.imagUnit => Value.imaginaryUnit,
     Tok.ran => Value.dec(Dec(BigInt.from(ctx.random.nextInt(1000)), -3)),
     _ when tok.name.startsWith('const') => Value.dec(
       constantValues[Tok.constants.indexOf(tok)],
@@ -578,6 +591,9 @@ class _Evaluator {
       Tok.sqrt => _d1(sqrtDec),
       Tok.cbrt => _d1(cbrtDec),
       Tok.rnd => _d1((a) => roundForDisplay(a, ctx.format)),
+      Tok.cAbs => (a) => Value.dec(a.magnitude()),
+      Tok.cArg => (a) => Value.dec(a.argument(u)),
+      Tok.conjg => (a) => a.conjugate(),
       _ => throw ArgumentError('not a prefix token: $tok'),
     };
   }
@@ -601,7 +617,13 @@ class _Evaluator {
     };
   }
 
-  static _Op _binaryOp(Tok tok, int pos) => switch (tok) {
+  _Op _binaryOp(Tok tok, int pos) => switch (tok) {
+    Tok.angle => _Op(_OpType.binary, Priority.permutation, pos, (r, theta) {
+      if (r.isComplex || theta.isComplex) {
+        throw const CalcError(CalcErrorKind.math);
+      }
+      return Value.polar(r.dec, theta.dec, ctx.angle);
+    }),
     Tok.add => _Op(_OpType.binary, Priority.addSubtract, pos, (a, b) => a + b),
     Tok.subtract => _Op(
       _OpType.binary,

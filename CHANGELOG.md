@@ -2,6 +2,16 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [0.0.7-alpha] - 2026-11-23
+
+Complex numbers (M7).
+
+### Added
+- CMPLX mode (MODE 2): `i` (ENG key), polar input r∠θ (SHIFT (−)), Abs, arg, Conjg.
+- Re⇔Im (SHIFT =) between real/imaginary parts or r/θ, with R⇔I, i, ∠ indicators.
+- a+bi / r∠θ format (Disp page in CMPLX) and ▶r∠θ / ▶a+bi commands.
+- Complex values in Ans, variables, history and saved state; mode is remembered.
+
 ## [0.0.6-alpha] - 2026-11-22
 
 Equations and calculus (M6).

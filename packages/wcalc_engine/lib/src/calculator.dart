@@ -51,11 +51,13 @@ const _normPrompt = _Menu('Norm 1~2?', {});
 const _clrMenu = _Menu('Mcl Mode All', {1: '1', 5: '2', 10: '3'});
 
 /// Disp setup screens (MODE … 1), paged with ◀ ▶.
-const _dispPages = [
-  _Menu('EngON EngOFF', {1: '1', 7: '2'}),
-  _Menu('ab/c d/c', {1: '1', 6: '2'}),
-  _Menu('Dot Comma', {1: '1', 5: '2'}),
-];
+const _engPage = _Menu('EngON EngOFF', {1: '1', 7: '2'});
+const _complexPage = _Menu('a+bi r∠θ', {1: '1', 6: '2'});
+const _fractionPage = _Menu('ab/c d/c', {1: '1', 6: '2'});
+const _commaPage = _Menu('Dot Comma', {1: '1', 5: '2'});
+
+/// Calculation modes implemented so far.
+enum CalcMode { comp, cmplx }
 
 /// CLR confirmations (press = to execute, AC to cancel).
 const _clrMcl = _Menu('Mcl', {});
@@ -157,6 +159,33 @@ class Calculator {
 
   _EquationSession? _equation;
 
+  CalcMode _mode = CalcMode.comp;
+
+  /// CMPLX: which part of a complex result is shown (0 = re or r, 1 = im or θ).
+  int _complexPart = 0;
+
+  /// CMPLX: ▶r∠θ (true) / ▶a+bi (false) command on the last expression.
+  bool? _polarCommand;
+
+  CalcMode get mode => _mode;
+
+  /// Disp setup pages for the current mode (a+bi / r∠θ only in CMPLX).
+  List<_Menu> get _dispPages => [
+    _engPage,
+    if (_mode == CalcMode.cmplx) _complexPage,
+    _fractionPage,
+    _commaPage,
+  ];
+
+  bool get _polarShown =>
+      _mode == CalcMode.cmplx && (_polarCommand ?? _settings.polarComplex);
+
+  /// CMPLX result has a second part to toggle with SHIFT = (Re⇔Im).
+  bool get _hasSecondPart =>
+      _mode == CalcMode.cmplx &&
+      _resultValue != null &&
+      (_resultValue!.isComplex || _polarShown);
+
   /// CONST / CONV number entry: (is CONV, digits typed so far).
   (bool, String)? _codePrompt;
 
@@ -176,6 +205,12 @@ class Calculator {
   FormattedNumber get _result {
     final v = _resultValue;
     if (v == null) return const FormattedNumber('0.');
+    if (_mode == CalcMode.cmplx && (v.isComplex || _polarShown)) {
+      final part = _complexPart == 1
+          ? (_polarShown ? v.argument(_angle) : v.imag)
+          : (_polarShown ? v.magnitude() : v.dec);
+      return formatValue(Value.dec(part), _settings);
+    }
     final settings = _flipFractionStyle
         ? _settings.copyWith(improperFractions: !_settings.improperFractions)
         : _settings;
@@ -184,6 +219,7 @@ class Calculator {
 
   /// A new result: forget conversions applied to the previous one.
   void _setResult(Value v) {
+    _complexPart = 0;
     _resultValue = v;
     _view = ResultView.auto;
     _flipFractionStyle = false;
@@ -207,6 +243,13 @@ class Calculator {
       if (showScroll && browse > 0) Indicator.scrollUp,
       if (showScroll && browse < _history.length - 1) Indicator.scrollDown,
       if (_midMulti) Indicator.disp,
+      if (_mode == CalcMode.cmplx) Indicator.cmplx,
+      if (_mode == CalcMode.cmplx && _settings.polarComplex) Indicator.polar,
+      if (_phase == _Phase.result && _hasSecondPart && !_midMulti) ...[
+        Indicator.reIm,
+        if (_complexPart == 1)
+          _polarShown ? Indicator.angleMark : Indicator.imaginary,
+      ],
     };
     final eq = _equation;
     if (eq != null && eq.prompting) {
@@ -329,6 +372,15 @@ class Calculator {
     }
 
     switch ((modifier, key)) {
+      case (_Modifier.shift, CalcKey.equals) when _mode == CalcMode.cmplx:
+        if (_phase == _Phase.result && _hasSecondPart) {
+          _complexPart = 1 - _complexPart;
+        }
+      case (_, CalcKey.integrate)
+          when _mode == CalcMode.cmplx && modifier != _Modifier.alpha:
+        break; // ∫ and d/dx: COMP only.
+      case (_Modifier.shift, CalcKey.calc) when _mode == CalcMode.cmplx:
+        break; // SOLVE: COMP only.
       case (_Modifier.none, CalcKey.mode):
         _menu = _modePages.first;
       case (_Modifier.shift, CalcKey.mode):
@@ -360,7 +412,9 @@ class Calculator {
       case (_Modifier.shift, CalcKey.equals):
         _percent();
       case (_, CalcKey.fraction || CalcKey.degMinSec || CalcKey.eng)
-          when _phase == _Phase.result && !_midMulti:
+          when _phase == _Phase.result &&
+              !_midMulti &&
+              !(_mode == CalcMode.cmplx && key == CalcKey.eng):
         _convertResult(key, modifier == _Modifier.shift);
       case (_Modifier.none, CalcKey.up || CalcKey.down):
         _scrollHistory(key == CalcKey.up ? -1 : 1);
@@ -375,7 +429,10 @@ class Calculator {
       case (_Modifier.none, CalcKey.del):
         if (_phase == _Phase.editing) _delete();
       default:
-        final tok = _tokenFor(key, modifier, hyp, engOn: _settings.engOn);
+        final tok = _mode == CalcMode.cmplx
+            ? (_complexToken(key, modifier) ??
+                  _tokenFor(key, modifier, hyp, engOn: _settings.engOn))
+            : _tokenFor(key, modifier, hyp, engOn: _settings.engOn);
         if (tok != null) _enter(tok);
     }
   }
@@ -433,6 +490,19 @@ class Calculator {
     };
   }
 
+  /// CMPLX-mode key meanings (purple legends), or null for the common ones.
+  static Tok? _complexToken(CalcKey key, _Modifier modifier) =>
+      switch ((modifier, key)) {
+        (_Modifier.none, CalcKey.eng) => Tok.imagUnit,
+        (_Modifier.shift, CalcKey.openParen) => Tok.cArg,
+        (_Modifier.shift, CalcKey.closeParen) => Tok.cAbs,
+        (_Modifier.shift, CalcKey.comma) => Tok.conjg,
+        (_Modifier.shift, CalcKey.negative) => Tok.angle,
+        (_Modifier.shift, CalcKey.add) => Tok.toPolar,
+        (_Modifier.shift, CalcKey.subtract) => Tok.toRect,
+        _ => null,
+      };
+
   /// SHIFT 1…9 with EngON: f p n μ m k M G T.
   static const _engSymbolKeys = [
     Tok.engFemto,
@@ -474,7 +544,9 @@ class Calculator {
     if (_phase == _Phase.result) {
       final continueWith = _continueWith;
       _clearInput();
-      if (tok.kind == TokKind.binary || tok.kind == TokKind.postfix) {
+      if (tok.kind == TokKind.binary ||
+          tok.kind == TokKind.postfix ||
+          tok.kind == TokKind.formatCommand) {
         _tokens.add(continueWith);
       }
       _cursor = _tokens.length;
@@ -755,17 +827,17 @@ class Calculator {
       _menu = null;
       return;
     }
-    if (_dispPages.contains(menu)) {
-      final i = _dispPages.indexOf(menu);
-      if (key == CalcKey.right && i < _dispPages.length - 1) {
-        _menu = _dispPages[i + 1];
-      }
-      if (key == CalcKey.left && i > 0) _menu = _dispPages[i - 1];
+    final pages = _dispPages;
+    if (pages.contains(menu)) {
+      final i = pages.indexOf(menu);
+      if (key == CalcKey.right && i < pages.length - 1) _menu = pages[i + 1];
+      if (key == CalcKey.left && i > 0) _menu = pages[i - 1];
       final d = key.digit;
       if (d == 1 || d == 2) {
-        _settings = switch (i) {
-          0 => _settings.copyWith(engOn: d == 1),
-          1 => _settings.copyWith(improperFractions: d == 2),
+        _settings = switch (menu) {
+          _engPage => _settings.copyWith(engOn: d == 1),
+          _complexPage => _settings.copyWith(polarComplex: d == 2),
+          _fractionPage => _settings.copyWith(improperFractions: d == 2),
           _ => _settings.copyWith(decimalComma: d == 2),
         };
         _menu = null;
@@ -819,8 +891,8 @@ class Calculator {
       return;
     }
     switch ((_modePages.indexOf(menu), d)) {
-      case (0, 1): // COMP
-        _menu = null;
+      case (0, 1 || 2): // COMP, CMPLX
+        _setMode(d == 1 ? CalcMode.comp : CalcMode.cmplx);
       case (3, 1 || 2 || 3):
         _angle = AngleUnit.values[d - 1];
         _menu = null;
@@ -831,7 +903,7 @@ class Calculator {
       case (4, 3):
         _menu = _normPrompt;
       case (5, 1):
-        _menu = _dispPages.first;
+        _menu = _engPage;
       default:
         // CMPLX, SD, REG, BASE, EQN, MAT, VCT, Disp: later milestones.
         break;
@@ -939,8 +1011,24 @@ class Calculator {
     _runStatement(0);
   }
 
+  /// Switches calculation mode: clears input, result and history.
+  void _setMode(CalcMode mode) {
+    _menu = null;
+    if (mode == _mode) return;
+    _mode = mode;
+    _clearInput();
+    _resultValue = null;
+    _history.clear();
+  }
+
   void _runStatement(int index) {
-    final (start, end) = _statements[index];
+    var (start, end) = _statements[index];
+    // CMPLX format commands (▶r∠θ, ▶a+bi) end a statement.
+    bool? polar;
+    while (end > start && _tokens[end - 1].kind == TokKind.formatCommand) {
+      polar ??= _tokens[end - 1] == Tok.toPolar;
+      end--;
+    }
     try {
       final value = evaluateValue(
         _tokens.sublist(start, end),
@@ -956,6 +1044,7 @@ class Calculator {
       );
       _ans = value;
       _setResult(value);
+      _polarCommand = polar;
       _statement = index;
       _phase = _Phase.result;
       _upperOverride = _statements.length > 1
@@ -1166,15 +1255,23 @@ class Calculator {
     'angle': _angle.name,
     'format': '${_format.mode.name}:${_format.digits}',
     'engOn': _settings.engOn,
+    'polar': _settings.polarComplex,
+    'mode': _mode.name,
     'improper': _settings.improperFractions,
     'comma': _settings.decimalComma,
   };
 
-  static String _encode(Value v) => v.frac != null
+  static String _encode(Value v) => v.isComplex
+      ? 'c:${v.dec},${v.imag}'
+      : v.frac != null
       ? 'f:${v.frac!.n}/${v.frac!.d}'
       : (v.isSexagesimal ? 's:${v.dec}' : v.dec.toString());
 
   static Value _decode(String s) {
+    if (s.startsWith('c:')) {
+      final [re, im] = s.substring(2).split(',');
+      return Value.complex(Dec.parse(re), Dec.parse(im));
+    }
     if (s.startsWith('f:')) {
       final [n, d] = s.substring(2).split('/');
       return Value.frac(Frac(BigInt.parse(n), BigInt.parse(d)));
@@ -1211,7 +1308,10 @@ class Calculator {
         engOn: state['engOn'] == true,
         improperFractions: state['improper'] == true,
         decimalComma: state['comma'] == true,
+        polarComplex: state['polar'] == true,
       );
+      final mode = state['mode'];
+      if (mode is String) _mode = CalcMode.values.byName(mode);
     } on Object {
       // Corrupt or foreign snapshot: keep defaults.
     }
