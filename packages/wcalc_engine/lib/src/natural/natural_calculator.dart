@@ -11,6 +11,7 @@ import '../input/token.dart';
 import '../lcd/dot_bitmap.dart';
 import '../eqn/solvers.dart';
 import '../eval/solve.dart';
+import '../graph/graph_math.dart';
 import '../number/dec.dart';
 import '../number/frac.dart';
 import '../number/surd.dart';
@@ -3199,6 +3200,68 @@ class NaturalCalculator implements CalcEngine {
 
   @override
   AngleUnit get angleUnit => angle;
+
+  @override
+  GraphSpec? get graphSpec {
+    if (mode == NaturalMode.comp) return functionSpec(graphTokens, angle);
+    double d(Dec x) => double.parse(x.toString());
+    if (mode == NaturalMode.eqn &&
+        (_eqnType == EqnType.quad || _eqnType == EqnType.cubic) &&
+        !_coef[0][0].dec.isZero) {
+      final k = [for (final v in _coef[0]) d(v.dec)];
+      final label = StringBuffer('y = ');
+      final deg = k.length - 1;
+      for (final (i, c) in k.indexed) {
+        if (c == 0) continue;
+        final p = deg - i;
+        final mag = c.abs();
+        final num = mag == mag.roundToDouble()
+            ? mag.toInt().toString()
+            : mag.toString();
+        if (label.length > 4) label.write(c < 0 ? ' − ' : ' + ');
+        if (label.length == 4 && c < 0) label.write('−');
+        if (p == 0 || num != '1') label.write(num);
+        if (p >= 1) label.write('x');
+        if (p >= 2) label.write(p == 2 ? '²' : '³');
+      }
+      return GraphSpec(
+        curves: [
+          (
+            label.toString(),
+            GraphFunction.of((x) => k.fold(0.0, (s, c) => s * x + c)),
+          ),
+        ],
+      );
+    }
+    if (mode == NaturalMode.stat && _paired && _stat.items.length >= 2) {
+      final pts = [
+        for (final i in _stat.items) (x: d(i.x), y: d(i.y ?? Dec.zero)),
+      ];
+      GraphFunction? fit;
+      try {
+        _stat.estimateY(_stat.items.first.x); // throws when undefined
+        fit = GraphFunction.of((x) {
+          try {
+            return d(_stat.estimateY(Dec.parse(x.toStringAsPrecision(15))));
+          } on Object {
+            return double.nan;
+          }
+        });
+      } on Object {
+        fit = null;
+      }
+      final name = _statTypeLines
+          .join(' ')
+          .split(RegExp(r'\s+\d:'))
+          .map((s) => s.replaceFirst(RegExp(r'^\d:'), '').trim())
+          .toList()[statType.index];
+      return GraphSpec(
+        curves: [if (fit != null) ('regression $name', fit)],
+        points: pts,
+      );
+    }
+    return null;
+  }
 
   @override
   String? get copyText {

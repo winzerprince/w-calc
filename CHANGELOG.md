@@ -5,6 +5,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Added
+- More graph shortcuts: the graph button also appears for quadratic / cubic equations (their
+  polynomial) and for paired statistics data (scatter plot with the regression curve).
 - Scientific View and Two-View: menus show option names in rows; ◀ ▶ move the highlight and
   enter chooses (numbers still work).
 
