@@ -171,7 +171,32 @@ class CalcModel {
     indicatorLabels: {Indicator.shift: '2ndF'},
   );
 
-  static final all = [plus, grid, basic, textbook, textbook2, view, write];
+  /// Two-line dot display: entry line above a tall result line; 2nd key.
+  static final twoView = CalcModel(
+    id: 'twoview',
+    name: 'Scientific Two-View',
+    description:
+        'Classic two-line dot display: the entry on top (÷ shown as /), the '
+        'answer below; fractions like 14/15 and 7u1/8, statistics',
+    features: CalcFeatures.full,
+    layout: viewLayout,
+    family: CalcFamily.textbook,
+    skinId: 'graphite',
+    profile: NaturalProfile.twoLine,
+    naturalModes: {NaturalMode.comp, NaturalMode.stat},
+    indicatorLabels: {Indicator.shift: '2nd'},
+  );
+
+  static final all = [
+    plus,
+    grid,
+    basic,
+    textbook,
+    textbook2,
+    twoView,
+    view,
+    write,
+  ];
 
   static CalcModel byId(String? id) =>
       all.firstWhere((m) => m.id == id, orElse: () => plus);

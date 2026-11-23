@@ -8,6 +8,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 - Font licence texts are now bundled so the third-party licence page can show them.
 
 ### Added
+- *Scientific Two-View* model: classic two-line dot display (entry line with / and *, tall answer
+  line with a trailing point, fractions 14/15 and 7u1/8, ◄► toggle), 2nd key, Graphite theme.
 - First-start tours: hand-drawn notes and arrows over a dark scrim explain the display, menu,
   modifier and MODE keys, the solar panel; the model, theme and manual pages have their own.
   Replay them from Settings ▸ Help.

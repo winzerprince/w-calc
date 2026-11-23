@@ -393,7 +393,22 @@ final class _BigOpBox extends _Box {
 
 /// Lays out a [MathRow] for painting.
 final class MathLayout {
-  MathLayout(MathRow root) : _box = _row(root, const [], 0);
+  /// [symbols] replaces how tokens are written (e.g. `/` for ÷ on models
+  /// that show division that way).
+  MathLayout(MathRow root, {Map<Tok, String> symbols = const {}})
+    : _box = _build(root, symbols);
+
+  static Map<Tok, String> _symbols = const {};
+
+  static _Box _build(MathRow root, Map<Tok, String> symbols) {
+    final saved = _symbols;
+    _symbols = symbols;
+    try {
+      return _row(root, const [], 0);
+    } finally {
+      _symbols = saved;
+    }
+  }
 
   final _Box _box;
 
@@ -426,12 +441,14 @@ final class MathLayout {
   }
 
   static String _tokText(TokItem t) {
-    final s = switch (t.tok) {
-      Tok.negative => '-',
-      Tok.fracSep => '⌟',
-      Tok.percentOf => '%',
-      _ => t.tok.text.trimRight(),
-    };
+    final s =
+        _symbols[t.tok] ??
+        switch (t.tok) {
+          Tok.negative => '-',
+          Tok.fracSep => '⌟',
+          Tok.percentOf => '%',
+          _ => t.tok.text.trimRight(),
+        };
     if (t.paren && t.tok.kind != TokKind.function) return '$s(';
     return s;
   }

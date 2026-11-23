@@ -68,6 +68,23 @@ final class DotBitmap {
     return x;
   }
 
+  /// Tall 5×10 text for result lines (rows 1, 3 and 5 doubled), 6-dot
+  /// pitch. Returns the x after the text.
+  int tallText(int x, int y, String s) {
+    for (final ch in s.runes.map(String.fromCharCode)) {
+      final g = glyphFor(ch);
+      final rows = <String>[
+        for (var r = 0; r < g.length; r++) ...[
+          g[r],
+          if (r == 1 || r == 3 || r == 5) g[r],
+        ],
+      ];
+      blit(x, y, rows);
+      x += dotFontWidth + 1;
+    }
+    return x;
+  }
+
   void invert(int x0, int y0, int x1, int y1) {
     for (var y = y0; y <= y1; y++) {
       for (var x = x0; x <= x1; x++) {

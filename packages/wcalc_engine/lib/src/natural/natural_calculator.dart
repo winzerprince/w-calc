@@ -32,6 +32,11 @@ enum NaturalProfile {
   /// Four text lines with the history above the current line: each entry
   /// left, its result right-aligned (on the same line when it fits).
   multiLine,
+
+  /// Classic two-line dot display: one scrolling entry line (÷ as `/`,
+  /// × as `*`), a tall result line with a trailing point on whole numbers,
+  /// fractions as `14/15` or `7u1/8`, no √ / π forms.
+  twoLine,
 }
 
 /// EQN types in MODE 5 menu order.
@@ -116,6 +121,7 @@ class NaturalCalculator implements CalcEngine {
   /// STAT, BASE-N, MATRIX and VECTOR always use Linear display.
   bool get _mathIO =>
       mathInput &&
+      profile != NaturalProfile.twoLine &&
       mode != NaturalMode.stat &&
       mode != NaturalMode.base &&
       mode != NaturalMode.matrix &&
@@ -862,7 +868,7 @@ class NaturalCalculator implements CalcEngine {
     improperFractions: improper,
     random: _random,
     polRecVars: const ('X', 'Y'),
-    exactForms: true,
+    exactForms: profile != NaturalProfile.twoLine,
     functionParens: true,
     stats: mode == NaturalMode.stat ? _stat : null,
     base: mode == NaturalMode.base ? _base : null,
@@ -2593,9 +2599,11 @@ class NaturalCalculator implements CalcEngine {
       if (m.prev != null) ind.add(Indicator.scrollUp);
       text.write(m.lines.join(' | '));
     } else {
-      cursor = profile == NaturalProfile.multiLine
-          ? _paintHistory(bmp, text)
-          : _paintCalculation(bmp, text);
+      cursor = switch (profile) {
+        NaturalProfile.multiLine => _paintHistory(bmp, text),
+        NaturalProfile.twoLine => _paintTwoLine(bmp, text),
+        NaturalProfile.textbook => _paintCalculation(bmp, text),
+      };
       if (_resultShown && _history.isNotEmpty) {
         final i = _historyIndex ?? _history.length - 1;
         if (i > 0) ind.add(Indicator.scrollUp);
@@ -2652,6 +2660,83 @@ class NaturalCalculator implements CalcEngine {
       text.write(' [$name]');
     }
     return editing ? cursor : null;
+  }
+
+  static const _twoLineSymbols = {
+    Tok.divide: '/',
+    Tok.multiply: '*',
+    Tok.fracSep: '⌟',
+  };
+
+  /// Two-line screen: scrolling entry line, tall result line.
+  CursorRect? _paintTwoLine(DotBitmap bmp, StringBuffer text) {
+    final layout = MathLayout(_ed.root, symbols: _twoLineSymbols);
+    final editing = !_resultShown;
+    final probe = DotBitmap(layout.width + 8, layout.height + 1);
+    final at = layout.paint(probe, 0, 0, cursor: editing ? _ed.cursor : null);
+    if (editing && at != null) {
+      if (at.x - _scrollX > DotScreen.width - 4) {
+        _scrollX = at.x - DotScreen.width + 4;
+      } else if (at.x - _scrollX < 0) {
+        _scrollX = at.x;
+      }
+    } else if (!editing) {
+      _scrollX = 0;
+    }
+    var cursor = layout.paint(
+      bmp,
+      1 - _scrollX,
+      1,
+      cursor: editing ? _ed.cursor : null,
+    );
+    if (editing && _ed.isEmpty) cursor = const CursorRect(1, 1, 7);
+    text.write(_ed.root.toString());
+    if (_resultShown && _result != null) {
+      final (mantissa, exponent) = _twoLineResult(_result!);
+      var right = DotScreen.width - 1;
+      if (exponent != null) {
+        // ×10 and the exponent sit raised at the right edge.
+        final ew = textWidth(exponent);
+        bmp.text(DotScreen.width - ew - 1, 12, exponent);
+        final xw = smallTextWidth('×10');
+        bmp.smallText(DotScreen.width - ew - xw - 3, 20, '×10');
+        right = DotScreen.width - ew - xw - 6;
+      }
+      bmp.tallText(right - textWidth(mantissa), 20, mantissa);
+      text.write(' = $mantissa${exponent == null ? '' : ' E$exponent'}');
+    }
+    return editing ? cursor : null;
+  }
+
+  /// Result text for the two-line display: fractions when the calculation
+  /// was made of fractions (◄► / S⇔D toggles), else the decimal with its
+  /// point.
+  (String, String?) _twoLineResult(Value v) {
+    if (v.isComplex || v.isLinear) return ('ERROR', null);
+    if (mode == NaturalMode.base) return (_baseRow(v).toString(), null);
+    Frac? f = v.frac;
+    if (_alternate) f = f == null ? Frac.approximate(v.dec) : null;
+    if (f != null && !f.isInteger && _engExponent == null) {
+      final n = f.n.abs(), d = f.d;
+      final sign = f.isNegative ? '-' : '';
+      if (improper != _flipMixed || n < d) return ('$sign$n/$d', null);
+      return ('$sign${n ~/ d}u${n % d}/$d', null);
+    }
+    final fmt = v.isSexagesimal
+        ? formatValue(
+            v,
+            DisplaySettings(format: format),
+            view: ResultView.sexagesimal,
+          )
+        : formatValue(
+            v,
+            DisplaySettings(format: format, decimalComma: decimalComma),
+            view: ResultView.decimal,
+            engExponent: _engExponent,
+          );
+    var m = fmt.mantissa;
+    if (decimalComma) m = m.replaceAll('.', ',');
+    return (m.replaceAll('°', '°'), fmt.exponent);
   }
 
   /// Four-line screen: the current line at the bottom, earlier entries and
