@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
 import '../haptics.dart';
@@ -71,6 +72,7 @@ class _GraphPageState extends State<GraphPage> {
     final spec = widget.spec;
     if (spec == null) {
       _addCurve('x^2');
+      _restore();
       return;
     }
     for (final (label, f) in spec.curves) {
@@ -101,6 +103,42 @@ class _GraphPageState extends State<GraphPage> {
     _scale = math.min(_size.width / (w * 1.4), _size.height / (h * 1.4));
   }
 
+  static const _storeKey = 'wcalc.graph.v1';
+
+  /// Graph mode remembers its typed functions.
+  Future<void> _restore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getStringList(_storeKey);
+      if (saved != null && saved.isNotEmpty && mounted) {
+        setState(() {
+          _curves.clear();
+          saved.forEach(_addCurve);
+        });
+        _schedulePoi();
+      }
+    } on Object {
+      // No storage: start with the example.
+    } finally {
+      _restored = true;
+    }
+  }
+
+  /// Saving waits until the stored functions have been read.
+  bool _restored = false;
+
+  void _save() {
+    // Only graph mode is remembered, and only after restoring.
+    if (widget.spec != null || !_restored) return;
+    final texts = [
+      for (final c in _curves)
+        if (c.text.trim().isNotEmpty) c.text,
+    ];
+    SharedPreferences.getInstance()
+        .then((p) => p.setStringList(_storeKey, texts))
+        .catchError((Object _) => true);
+  }
+
   void _addCurve(String text) {
     final c = GraphCurve(
       text: text,
@@ -112,6 +150,7 @@ class _GraphPageState extends State<GraphPage> {
   }
 
   void _parse(GraphCurve c) {
+    _save();
     try {
       c.function = GraphFunction(parseFormula(c.text), angle: _angle);
       c.error = null;
@@ -451,6 +490,7 @@ class _GraphPageState extends State<GraphPage> {
                       _curves.remove(c);
                       _trace = null;
                     });
+                    _save();
                     _schedulePoi();
                   },
                   onAdd: () {
@@ -549,6 +589,7 @@ class _FunctionList extends StatelessWidget {
             children: [
               for (final (i, c) in curves.indexed)
                 Padding(
+                  key: ObjectKey(c),
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
                     children: [

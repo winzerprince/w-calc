@@ -71,4 +71,17 @@ void main() {
     expect(find.byKey(const Key('graph-values')), findsOneWidget);
     expect(find.text('y = x^2'), findsOneWidget);
   });
+
+  testWidgets('graph mode remembers typed functions', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'wcalc.graph.v1': ['x^3', 'sin(x)'],
+    });
+    await open(tester);
+    await tester.tap(find.byKey(const Key('app-menu-button')));
+    await settle(tester);
+    await tester.tap(find.text('Graph'));
+    await settle(tester);
+    expect(find.text('x^3'), findsOneWidget);
+    expect(find.text('sin(x)'), findsOneWidget);
+  });
 }
