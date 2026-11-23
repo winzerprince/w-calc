@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'haptics.dart';
 import 'pages/about_page.dart';
-import 'pages/guide_page.dart';
+import 'pages/manual_page.dart';
 import 'pages/model_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/shortcuts_page.dart';
@@ -34,7 +34,7 @@ final menuEntries = [
   MenuEntry(
     Icons.calculate_outlined,
     'Calculator model',
-    'Plus, Grid or Basic',
+    'Two-line or textbook display, five bodies',
     page: (_) => const ModelPage(),
   ),
   MenuEntry(
@@ -45,9 +45,9 @@ final menuEntries = [
   ),
   MenuEntry(
     Icons.menu_book_outlined,
-    'User guide',
-    'How each key and mode works',
-    page: (_) => const GuidePage(),
+    'Manual',
+    'Searchable how-to for every mode of your model',
+    page: (_) => const ManualPage(),
   ),
   MenuEntry(
     Icons.keyboard_outlined,

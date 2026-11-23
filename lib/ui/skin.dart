@@ -189,7 +189,76 @@ class CalcSkin {
     solarStrip: Color(0xFF5A463B),
   );
 
-  static const all = [classic, midnight, highContrast, ivory];
+  /// Silver textbook body: blue-grey modifier keys, black function keys,
+  /// white digits, orange DEL / AC, grey-green LCD.
+  static const silver = CalcSkin(
+    id: 'silver',
+    name: 'Silver',
+    description: 'Silver body, white digit keys, orange DEL / AC',
+    background: Color(0xFF1B2230),
+    bodyTop: Color(0xFFE3E6EA),
+    body: Color(0xFFBCC2CA),
+    bezel: Color(0xFF39445A),
+    brandText: Color(0xFF233049),
+    modifierKey: Color(0xFF8193BA),
+    modifierText: Color(0xFF141B2B),
+    functionKey: Color(0xFF26292F),
+    functionText: Color(0xFFFFFFFF),
+    digitKey: Color(0xFFF7F7F4),
+    digitText: Color(0xFF1C1F26),
+    operatorKey: Color(0xFFF7F7F4),
+    clearKey: Color(0xFFF0782C),
+    clearText: Color(0xFFFFFFFF),
+    disc: Color(0xFF8193BA),
+    discMark: Color(0xFF3D4A66),
+    labels: {
+      LabelKind.shift: Color(0xFFC9700F),
+      LabelKind.alpha: Color(0xFFC0304E),
+      LabelKind.complex: Color(0xFF7A3FB8),
+      LabelKind.stat: Color(0xFF1F5FB8),
+      LabelKind.base: Color(0xFF1E7F3B),
+      LabelKind.plain: Color(0xFF1D2433),
+      LabelKind.neutral: Color(0xFF4A4E57),
+    },
+    lcd: LcdPalette(glass: Color(0xFFB8C3AE), ink: Color(0xFF1B2630)),
+    solarStrip: Color(0xFF2E2420),
+  );
+
+  /// Black textbook body: grey digit keys, green DEL / AC, blue-green LCD.
+  static const black = CalcSkin(
+    id: 'black',
+    name: 'Black',
+    description: 'Black body, grey digit keys, green DEL / AC, blue LCD',
+    background: Color(0xFF09090B),
+    bodyTop: Color(0xFF2B2D31),
+    body: Color(0xFF161719),
+    bezel: Color(0xFF0D0E10),
+    brandText: Color(0xFFE9E9E9),
+    modifierKey: Color(0xFFA2A5AA),
+    modifierText: Color(0xFF15161A),
+    functionKey: Color(0xFF1E1F23),
+    functionText: Color(0xFFF2F2F2),
+    digitKey: Color(0xFF6D7177),
+    digitText: Color(0xFFFFFFFF),
+    operatorKey: Color(0xFF6D7177),
+    clearKey: Color(0xFF7CC63C),
+    clearText: Color(0xFFFFFFFF),
+    disc: Color(0xFF8E9196),
+    discMark: Color(0xFF2A2C30),
+    labels: {
+      LabelKind.shift: Color(0xFFE9C46A),
+      LabelKind.alpha: Color(0xFFE6678A),
+      LabelKind.complex: Color(0xFFC29BF0),
+      LabelKind.stat: Color(0xFF7DB2F5),
+      LabelKind.base: Color(0xFF66CF85),
+      LabelKind.plain: Color(0xFFE9E9E9),
+      LabelKind.neutral: Color(0xFFB5B8BD),
+    },
+    lcd: LcdPalette(glass: Color(0xFFA6CCCF), ink: Color(0xFF15232C)),
+    solarStrip: Color(0xFF1A1512),
+  );
+
+  static const all = [classic, midnight, highContrast, ivory, silver, black];
 
   static CalcSkin byId(String? id) =>
       all.firstWhere((s) => s.id == id, orElse: () => classic);

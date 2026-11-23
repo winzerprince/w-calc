@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:w_calc/app/app_settings.dart';
 import 'package:w_calc/main.dart';
-import 'package:w_calc/ui/pages/guide_page.dart';
 
 Future<void> settle(WidgetTester tester) async {
   for (var i = 0; i < 5; i++) {
@@ -77,12 +76,23 @@ void main() {
     expect(lcd(tester, 'lower'), '0.');
   });
 
-  testWidgets('user guide lists every topic', (tester) async {
+  testWidgets('manual: chapters, search and an article', (tester) async {
     await openApp(tester);
-    await openMenuItem(tester, 'User guide');
-    for (final topic in guideTopics.take(4)) {
-      expect(find.text(topic.title), findsOneWidget);
-    }
+    await openMenuItem(tester, 'Manual');
+    expect(find.text('Getting started'), findsOneWidget);
+    expect(find.text('For Scientific Plus'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('manual-search')), 'integral');
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('hit-integration')));
+    await settle(tester);
+    expect(find.text('Integration'), findsWidgets);
+    expect(find.text('Press'), findsWidgets);
+    // Textbook-only topics are not offered on a two-line model.
+    await tester.pageBack();
+    await settle(tester);
+    await tester.enterText(find.byKey(const Key('manual-search')), 'sigma');
+    await settle(tester);
+    expect(find.byKey(const Key('hit-sum')), findsNothing);
   });
 
   test('settings round-trip through preferences', () async {
@@ -170,5 +180,61 @@ void main() {
       await tester.pump();
     }
     expect(lcd(tester, 'lower'), '42.');
+  });
+
+  testWidgets('textbook model: dot LCD, fraction result, silver body', (
+    tester,
+  ) async {
+    final settings = await openApp(tester);
+    await openMenuItem(tester, 'Calculator model');
+    await tester.tap(find.byKey(const Key('model-textbook')));
+    await settle(tester);
+    expect(settings.modelId, 'textbook');
+    expect(settings.skinId, 'silver');
+    await tester.pageBack();
+    await settle(tester);
+    final close = find.byKey(const Key('app-menu-close'));
+    if (close.evaluate().isNotEmpty) {
+      await tester.tap(close);
+      await settle(tester);
+    }
+    for (final k in [
+      'd2',
+      'fraction',
+      'd3',
+      'right',
+      'add',
+      'd1',
+      'fraction',
+      'd2',
+      'equals',
+    ]) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    await tester.pump(const Duration(milliseconds: 50));
+    final text = tester
+        .widget<Text>(find.byKey(const Key('lcd-text'), skipOffstage: false))
+        .data;
+    expect(text, endsWith('= fraction{7|6}'));
+    // S⇔D exists on this keypad.
+    await tester.tap(find.byKey(const Key('key-sd')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('lcd-text'), skipOffstage: false))
+          .data,
+      endsWith('= 1.166666667'),
+    );
+  });
+
+  testWidgets('black textbook body has four arrow keys', (tester) async {
+    final settings = await openApp(tester);
+    settings.update(modelId: 'textbook2', skinId: 'black');
+    await settle(tester);
+    for (final k in ['up', 'down', 'left', 'right']) {
+      expect(find.byKey(Key('key-$k')), findsOneWidget);
+    }
+    expect(find.text('TEXTBOOK PLUS II'), findsOneWidget);
   });
 }

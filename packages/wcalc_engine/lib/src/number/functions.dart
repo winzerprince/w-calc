@@ -186,6 +186,13 @@ Dec logDec(Dec x) {
   return (WideMath.ln(_w(x)) / Wide.ln10).toDec();
 }
 
+/// log_a(x): base a > 0, a ≠ 1, x > 0. Exact when x is an integer power of a.
+Dec logBaseDec(Dec a, Dec x) {
+  if (a <= Dec.zero || a == Dec.one || x <= Dec.zero) _mathError();
+  final r = (WideMath.ln(_w(x)) / WideMath.ln(_w(a))).toDec();
+  return r;
+}
+
 Dec expDec(Dec x) {
   if (x > _hypLimit) _mathError();
   if (x < Dec.parse('-230.2585093')) return Dec.zero; // underflow

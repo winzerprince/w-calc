@@ -15,7 +15,8 @@ void main() {
     // Web: ?skin=midnight&model=grid previews a theme / model without saving.
     final q = Uri.base.queryParameters;
     if (q['skin'] != null || q['model'] != null) {
-      settings.preview(skinId: q['skin'], modelId: q['model']);
+      final model = q['model'] == null ? null : CalcModel.byId(q['model']);
+      settings.preview(skinId: q['skin'] ?? model?.skinId, modelId: q['model']);
     }
   });
 }

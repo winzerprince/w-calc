@@ -8,6 +8,7 @@ import '../number/constants.dart';
 import '../number/frac.dart';
 import '../number/functions.dart';
 import '../number/linalg.dart';
+import '../number/surd.dart';
 import '../number/value.dart';
 import '../number/wide.dart';
 import '../stats/stats.dart';
@@ -20,6 +21,9 @@ abstract final class Priority {
 
   /// Implied multiplication before π, e, memory or variable names (2π, 3A, 2Ans).
   static const impliedOperand = 5;
+
+  /// Fraction bar (textbook display): binds tighter than (−).
+  static const fraction = 4;
 
   /// Type B functions: (−), √, sin, log, ...
   static const prefix = 6;
@@ -63,6 +67,9 @@ class EvalContext {
     this.stats,
     this.base,
     this.linear = const {},
+    this.polRecVars = const ('E', 'F'),
+    this.exactForms = false,
+    this.functionParens = false,
     math.Random? random,
   }) : ans = ans ?? Value.zero,
        random = random ?? math.Random();
@@ -87,6 +94,18 @@ class EvalContext {
 
   /// MAT / VCT variables by name (MatA … VctAns); missing = not dimensioned.
   final Map<String, Value> linear;
+
+  /// Textbook-display models: decimals, √ and π stay exact where possible
+  /// (results can then be shown as fractions, √ forms and π forms).
+  final bool exactForms;
+
+  /// Textbook models: a function's bracket group (sin(…), √(…)) is applied
+  /// as soon as it closes.
+  final bool functionParens;
+
+  /// Variables Pol/Rec write their two results to (E, F on two-line models;
+  /// X, Y on textbook-display models).
+  final (String, String) polRecVars;
 
   /// Receives values functions write to variables (Pol/Rec → E, F).
   final void Function(String name, Value value)? store;
@@ -304,7 +323,10 @@ class _Evaluator {
           // functions, so they apply to the value just completed.
           if (expectOperand) _syntax(i);
           _guard(i, () => values.add(_postfixFn(tok)(values.removeLast())));
-        case TokKind.function when tok == Tok.integral || tok == Tok.derivative:
+        case TokKind.function
+            when tok == Tok.integral ||
+                tok == Tok.derivative ||
+                tok == Tok.sigma:
           if (!expectOperand) {
             _pushBinary(_Op(_OpType.binary, Priority.impliedFunction, i, _mul));
           }
@@ -337,7 +359,15 @@ class _Evaluator {
             _apply(ops.removeLast());
           }
           if (ops.isEmpty) _syntax(i);
-          _closeParen(ops.removeLast(), i);
+          final closed = ops.removeLast();
+          _closeParen(closed, i);
+          // Textbook models: f( … ) is one unit, so sin(30)A = sin(30)·A.
+          if (ctx.functionParens &&
+              ops.isNotEmpty &&
+              ops.last.type == _OpType.prefix &&
+              ops.last.pos == closed.pos - 1) {
+            _apply(ops.removeLast());
+          }
           expectOperand = false;
       }
       i++;
@@ -377,7 +407,12 @@ class _Evaluator {
     }
     args.add((argStart, end));
     final integral = tokens[start] == Tok.integral;
-    final (minArgs, maxArgs) = integral ? (3, 4) : (2, 3);
+    final sigma = tokens[start] == Tok.sigma;
+    final (minArgs, maxArgs) = integral
+        ? (3, 4)
+        : sigma
+        ? (3, 3)
+        : (2, 3);
     if (args.length < minArgs || args.length > maxArgs) _syntax(end);
     for (final (a, b) in args) {
       if (a == b) _syntax(a);
@@ -402,10 +437,19 @@ class _Evaluator {
             variables: {...ctx.variables, 'X': Value.dec(x.toDec())},
             improperFractions: ctx.improperFractions,
             random: ctx.random,
+            polRecVars: ctx.polRecVars,
+            exactForms: ctx.exactForms,
+            functionParens: ctx.functionParens,
           ),
         ).run().dec,
       ),
     );
+
+    if (sigma) {
+      final a = number(1), b = number(2);
+      _pushValue(_guarded(start, () => _sum(fa, body, a, b)), start);
+      return end < tokens.length ? end + 1 : end;
+    }
 
     late Dec result;
     if (integral) {
@@ -431,6 +475,37 @@ class _Evaluator {
     return end < tokens.length ? end + 1 : end;
   }
 
+  /// Σ(f, a, b) = f(a) + f(a+1) + … + f(b); fractions stay exact.
+  Value _sum(int pos, List<Tok> body, Dec a, Dec b) {
+    final limit = Dec.parse('1e10');
+    if (!a.isInteger ||
+        !b.isInteger ||
+        b < a ||
+        a.abs() > limit ||
+        b.abs() > limit) {
+      throw const CalcError(CalcErrorKind.math);
+    }
+    var total = Value.zero;
+    for (var x = a; x <= b; x = x + Dec.one) {
+      final term = _Evaluator(
+        body,
+        EvalContext(
+          ans: ctx.ans,
+          angle: ctx.angle,
+          format: ctx.format,
+          variables: {...ctx.variables, 'X': Value.dec(x)},
+          improperFractions: ctx.improperFractions,
+          random: ctx.random,
+          polRecVars: ctx.polRecVars,
+          exactForms: ctx.exactForms,
+          functionParens: ctx.functionParens,
+        ),
+      ).run();
+      total = total + term;
+    }
+    return total;
+  }
+
   /// Closes a parenthesis; for a function, applies it to its arguments.
   void _closeParen(_Op paren, int pos) {
     final f = paren.function;
@@ -447,8 +522,8 @@ class _Evaluator {
         final (a, b) = f == Tok.pol
             ? polarDec(args[0].dec, args[1].dec, ctx.angle)
             : rectangularDec(args[0].dec, args[1].dec, ctx.angle);
-        ctx.store?.call('E', Value.dec(a));
-        ctx.store?.call('F', Value.dec(b));
+        ctx.store?.call(ctx.polRecVars.$1, Value.dec(a));
+        ctx.store?.call(ctx.polRecVars.$2, Value.dec(b));
         return Value.dec(a);
       case Tok.distP || Tok.distQ || Tok.distR:
         if (args.length != 1) _syntax(pos);
@@ -459,6 +534,23 @@ class _Evaluator {
           Tok.distQ => normalQ(t),
           _ => normalR(t),
         });
+      case Tok.logBase:
+        // log(x) is base 10; log(a, x) is base a.
+        if (args.isEmpty || args.length > 2) _syntax(pos);
+        if (args.any((a) => a.isComplex)) {
+          throw const CalcError(CalcErrorKind.math);
+        }
+        if (args.length == 1) return Value.dec(logDec(args.single.dec));
+        return Value.dec(logBaseDec(args[0].dec, args[1].dec));
+      case Tok.ranInt:
+        if (args.length != 2) _syntax(pos);
+        final lo = args[0].dec, hi = args[1].dec;
+        if (!lo.isInteger || !hi.isInteger || hi < lo) {
+          throw const CalcError(CalcErrorKind.math);
+        }
+        final span = (hi - lo).toInt() + 1;
+        if (span > 10000000000) throw const CalcError(CalcErrorKind.math);
+        return Value.dec(lo + Dec.fromInt(ctx.random.nextInt(span)));
       default:
         throw ArgumentError('not a function: $f');
     }
@@ -466,7 +558,10 @@ class _Evaluator {
 
   Value _operandValue(Tok tok) => switch (tok) {
     Tok.ans => ctx.ans,
-    Tok.pi => Value.dec(piConstant),
+    Tok.pi =>
+      ctx.exactForms
+          ? Value.pi(Frac.fromInt(BigInt.one))
+          : Value.dec(piConstant),
     Tok.e => Value.dec(eConstant),
     Tok.imagUnit => Value.imaginaryUnit,
     _ when tok.name.startsWith('mat') || tok.name.startsWith('vct') =>
@@ -599,7 +694,12 @@ class _Evaluator {
       });
       return i;
     }
-    _pushValue(Value.dec(value), start);
+    _pushValue(
+      ctx.exactForms && !value.isInteger
+          ? Value.frac(Frac.fromDec(value))
+          : Value.dec(value),
+      start,
+    );
     return i;
   }
 
@@ -672,7 +772,16 @@ class _Evaluator {
       Tok.ln => _d1(lnDec),
       Tok.tenPow => _d1(tenPowDec),
       Tok.ePow => _d1(expDec),
-      Tok.sqrt => _d1(sqrtDec),
+      Tok.sqrt => (a) {
+        if (ctx.exactForms && !a.isComplex && !a.isLinear) {
+          final e = a.frac ?? (a.dec.isInteger ? Frac.fromDec(a.dec) : null);
+          if (e != null && !e.isNegative) {
+            final r = Surd.sqrtOf(e);
+            if (r != null) return Value.fromSurd(r);
+          }
+        }
+        return _d1(sqrtDec)(a);
+      },
       Tok.cbrt => _d1(cbrtDec),
       Tok.rnd => _d1((a) => roundForDisplay(a, ctx.format)),
       Tok.cAbs =>
@@ -722,6 +831,8 @@ class _Evaluator {
       Tok.degMark => _d1((a) => convertAngle(a, AngleUnit.deg, u)),
       Tok.radMark => _d1((a) => convertAngle(a, AngleUnit.rad, u)),
       Tok.graMark => _d1((a) => convertAngle(a, AngleUnit.gra, u)),
+      // Textbook-display %: x% = x ÷ 100 (exact for fractions).
+      Tok.percentOf => (a) => a.fractionOver(Value.dec(Dec.fromInt(100))),
       _ => throw ArgumentError('not a postfix token: $tok'),
     };
   }
@@ -826,6 +937,12 @@ class _Evaluator {
       (a, b) => a / b,
     ),
     Tok.power => _Op(_OpType.binary, Priority.power, pos, _power),
+    Tok.fracDiv => _Op(
+      _OpType.binary,
+      Priority.fraction,
+      pos,
+      (a, b) => a.fractionOver(b),
+    ),
     Tok.xRoot => _Op(_OpType.binary, Priority.power, pos, _d2(xRootDec)),
     Tok.nPr => _Op(
       _OpType.binary,

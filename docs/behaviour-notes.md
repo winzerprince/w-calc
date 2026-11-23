@@ -77,3 +77,16 @@ how to verify on the device, result.
 | 70 | MAT / VCT history | calculation history not kept in MAT / VCT (manual lists COMP, CMPLX, BASE only) | | — |
 | 71 | Matrix stack | at most 2 matrices/vectors pending at once, else Stack ERROR (A+B×A errors, A×B+A works) | verify on device | done |
 | 72 | OFF / contrast | SHIFT AC blanks the LCD until ON (memories kept); Disp page `Disp ◀CONT▶`, ▶ opens `CONT ◀  ▶`, ◀ ▶ adjust −5…+5, AC closes | | to verify screen text |
+
+### Textbook-display models (silver / black units)
+
+| # | Topic | Our assumption | Source | Status |
+|---|---|---|---|---|
+| 73 | DEL on templates | DEL right after a template, or at the start of its first slot, removes the template and keeps its contents | assumption | verify on device |
+| 74 | Fraction key after a number | the digits/point run left of the cursor become the numerator; cursor to the denominator | manual example | — |
+| 75 | Slot order | ∫: f, lower, upper; Σ: f, first, last; log_□: base, argument; ˣ√: index, radicand; mixed: whole, num, den | manual key sequences | — |
+| 76 | Pol / Rec | results go to X and Y (two-line models use E and F) | manual | to implement |
+| 77 | Constants | CODATA 2007 on the 1st edition guide; 2nd edition may use newer values | printed guide | verify on device |
+| 78 | Edition differences | 1st (silver) and 2nd (black) editions behave the same; body, key colours and cursor pad differ | official manual (2nd ed.) + photos | verify on device |
+| 79 | SOLVE L−R | we show the 15-digit residual (e.g. −1×10⁻¹⁴ for X²−2); the guide's example shows 0 | guide example | verify on device |
+| 80 | Function brackets | sin(30)A = sin(30)·A: a bracketed function or template is one unit on textbook models | guide priority table | — |
