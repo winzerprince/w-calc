@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
+import '../app/calc_model.dart';
 import 'keypad_layout.dart';
 import 'legend.dart';
 import 'skin.dart';
@@ -96,6 +97,7 @@ class _KeyButtonState extends State<KeyButton> {
   Widget build(BuildContext context) {
     final spec = widget.spec;
     final skin = CalcSkin.of(context);
+    final model = ModelScope.of(context);
     final (base, fg) = switch (spec.style) {
       KeyStyle.modifier => (skin.modifierKey, skin.modifierText),
       KeyStyle.function => (skin.functionKey, skin.functionText),
@@ -112,14 +114,32 @@ class _KeyButtonState extends State<KeyButton> {
         children: [
           SizedBox(
             height: _stripHeight,
-            child: LegendStrip(labels: spec.above, below: false),
+            child: LegendStrip(
+              labels: [
+                for (final l in spec.above)
+                  if (model.showsLegend(spec.key, l)) l,
+              ],
+              below: false,
+            ),
           ),
           const SizedBox(height: 1),
-          Expanded(child: _cap(spec, cap, fg)),
+          Expanded(
+            child: Opacity(
+              // Keys without a function on this model are drawn faded.
+              opacity: model.keyEnabled(spec.key) ? 1 : 0.35,
+              child: _cap(spec, cap, fg),
+            ),
+          ),
           if (widget.reserveBelow)
             SizedBox(
               height: _stripHeight,
-              child: LegendStrip(labels: spec.below, below: true),
+              child: LegendStrip(
+                labels: [
+                  for (final l in spec.below)
+                    if (model.showsLegend(spec.key, l)) l,
+                ],
+                below: true,
+              ),
             ),
         ],
       ),

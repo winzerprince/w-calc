@@ -6,6 +6,7 @@ import 'display_state.dart';
 import 'eval/evaluator.dart';
 import 'eqn/solvers.dart';
 import 'eval/solve.dart';
+import 'features.dart';
 import 'format/number_format.dart';
 import 'format/value_format.dart';
 import 'input/token.dart';
@@ -38,14 +39,57 @@ class _Menu {
   final Map<int, String> marks;
 }
 
-const _modePages = [
-  _Menu('COMP CMPLX', {1: '1', 7: '2'}),
-  _Menu('SD REG BASE', {1: '1', 4: '2', 8: '3'}),
-  _Menu('EQN MAT VCT', {1: '1', 5: '2', 9: '3'}),
-  _Menu('Deg Rad Gra', {1: '1', 5: '2', 9: '3'}),
-  _Menu('Fix Sci Norm', {1: '1', 5: '2', 9: '3'}),
-  _Menu('Disp ◀CONT▶', {1: '1'}),
-];
+const _anglePage = _Menu('Deg Rad Gra', {1: '1', 5: '2', 9: '3'});
+const _formatPage = _Menu('Fix Sci Norm', {1: '1', 5: '2', 9: '3'});
+const _dispPage = _Menu('Disp ◀CONT▶', {1: '1'});
+
+/// Calculation-mode menu labels, in the device's page order.
+const _modeLabels = {
+  CalcMode.comp: 'COMP',
+  CalcMode.cmplx: 'CMPLX',
+  CalcMode.sd: 'SD',
+  CalcMode.reg: 'REG',
+  CalcMode.base: 'BASE',
+  CalcMode.eqn: 'EQN',
+  CalcMode.mat: 'MAT',
+  CalcMode.vct: 'VCT',
+};
+
+/// Mode-selection pages for [features]: the reference groups
+/// (COMP CMPLX / SD REG BASE / EQN MAT VCT) with unavailable modes left out;
+/// small models pack their modes onto pages of up to three.
+List<(_Menu, List<CalcMode>)> _buildModePages(CalcFeatures features) {
+  const groups = [
+    [CalcMode.comp, CalcMode.cmplx],
+    [CalcMode.sd, CalcMode.reg, CalcMode.base],
+    [CalcMode.eqn, CalcMode.mat, CalcMode.vct],
+  ];
+  final available = [
+    for (final g in groups) ...g.where(features.modes.contains),
+  ];
+  final full = features.modes.length == CalcMode.values.length;
+  final pages = full
+      ? groups
+      : [
+          for (var i = 0; i < available.length; i += 3)
+            available.sublist(i, (i + 3).clamp(0, available.length)),
+        ];
+  return [
+    for (final page in pages)
+      () {
+        final text = StringBuffer();
+        final marks = <int, String>{};
+        for (final (i, mode) in page.indexed) {
+          if (i > 0) text.write(' ');
+          final label = _modeLabels[mode]!;
+          marks[text.length + (label.length >= 5 ? 2 : 1)] = '${i + 1}';
+          text.write(label);
+        }
+        return (_Menu(text.toString(), marks), page);
+      }(),
+  ];
+}
+
 const _drgMenu = _Menu(' D   R   G', {1: '1', 5: '2', 9: '3'});
 const _fixPrompt = _Menu('Fix 0~9?', {});
 const _sciPrompt = _Menu('Sci 0~9?', {});
@@ -172,9 +216,6 @@ const _complexPage = _Menu('a+bi r∠θ', {1: '1', 6: '2'});
 const _fractionPage = _Menu('ab/c d/c', {1: '1', 6: '2'});
 const _commaPage = _Menu('Dot Comma', {1: '1', 5: '2'});
 
-/// Calculation modes implemented so far.
-enum CalcMode { comp, cmplx, sd, reg, base, eqn, mat, vct }
-
 /// CLR confirmations (press = to execute, AC to cancel).
 const _clrMcl = _Menu('Mcl', {});
 const _clrMode = _Menu('Mode', {});
@@ -228,7 +269,22 @@ class _EquationSession {
 
 /// Key-driven calculator state machine (COMP mode so far).
 class Calculator {
-  Calculator({math.Random? random}) : _random = random ?? math.Random();
+  Calculator({math.Random? random, this.features = CalcFeatures.full})
+    : _random = random ?? math.Random(),
+      _modeMenus = _buildModePages(features);
+
+  /// What this calculator model offers.
+  final CalcFeatures features;
+
+  final List<(_Menu, List<CalcMode>)> _modeMenus;
+
+  /// All MODE pages: calculation modes, then angle, format and Disp setup.
+  List<_Menu> get _modePages => [
+    for (final (menu, _) in _modeMenus) menu,
+    _anglePage,
+    _formatPage,
+    _dispPage,
+  ];
 
   /// Maximum input steps per expression.
   static const int maxSteps = 79;
@@ -592,6 +648,10 @@ class Calculator {
       _modifier = modifier == pressed ? _Modifier.none : pressed;
       return;
     }
+    if (!features.allows(key, shift: modifier == _Modifier.shift)) {
+      _modifier = _Modifier.none; // Not on this calculator model.
+      return;
+    }
     if (_mode == CalcMode.eqn) {
       _modifier = _Modifier.none;
       _pressEqn(key, modifier);
@@ -716,12 +776,22 @@ class Calculator {
       default:
         final tok = _mode == CalcMode.cmplx
             ? (_complexToken(key, modifier) ??
-                  _tokenFor(key, modifier, hyp, engOn: _settings.engOn))
+                  _tokenFor(
+                    key,
+                    modifier,
+                    hyp,
+                    engOn: _settings.engOn && features.engSymbols,
+                  ))
             : _linearMode &&
                   modifier == _Modifier.shift &&
                   key == CalcKey.closeParen
             ? Tok.cAbs
-            : _tokenFor(key, modifier, hyp, engOn: _settings.engOn);
+            : _tokenFor(
+                key,
+                modifier,
+                hyp,
+                engOn: _settings.engOn && features.engSymbols,
+              );
         if (tok != null) _enter(tok);
     }
   }
@@ -1147,7 +1217,7 @@ class Calculator {
       if (key == CalcKey.right) _contrast = (_contrast + 1).clamp(-5, 5);
       return;
     }
-    if (identical(menu, _modePages.last) && key == CalcKey.right) {
+    if (identical(menu, _dispPage) && key == CalcKey.right) {
       _menu = _contrastPage;
       return;
     }
@@ -1260,38 +1330,45 @@ class Calculator {
       _menu = null;
       return;
     }
-    switch ((_modePages.indexOf(menu), d)) {
-      case (0, 1 || 2): // COMP, CMPLX
-        _setMode(d == 1 ? CalcMode.comp : CalcMode.cmplx);
-      case (1, 1): // SD
-        _setMode(CalcMode.sd);
-      case (2, 2 || 3): // MAT, VCT
-        _setMode(d == 2 ? CalcMode.mat : CalcMode.vct);
-      case (2, 1): // EQN
+    for (final (page, modes) in _modeMenus) {
+      if (!identical(page, menu)) continue;
+      if (d < 1 || d > modes.length) return;
+      _selectMode(modes[d - 1]);
+      return;
+    }
+    if (_mode == CalcMode.base) {
+      return; // Angle and display setup are fixed in BASE.
+    }
+    switch ((menu, d)) {
+      case (_anglePage, 1 || 2 || 3):
+        _angle = AngleUnit.values[d - 1];
+        _menu = null;
+      case (_formatPage, 1):
+        _menu = _fixPrompt;
+      case (_formatPage, 2):
+        _menu = _sciPrompt;
+      case (_formatPage, 3):
+        _menu = _normPrompt;
+      case (_dispPage, 1):
+        _menu = _engPage;
+      default:
+        break;
+    }
+  }
+
+  void _selectMode(CalcMode mode) {
+    switch (mode) {
+      case CalcMode.eqn:
         _setMode(CalcMode.eqn);
         _eqnKind = null;
         _menu = _unknownsPage;
-      case (1, 3): // BASE
+      case CalcMode.base:
         _setMode(CalcMode.base);
         _base = 10;
-      case (3 || 4 || 5, _) when _mode == CalcMode.base:
-        break; // Angle unit and display setup are fixed in BASE mode.
-      case (1, 2): // REG → regression type
-        _menu = _regPages.first;
-      case (3, 1 || 2 || 3):
-        _angle = AngleUnit.values[d - 1];
-        _menu = null;
-      case (4, 1):
-        _menu = _fixPrompt;
-      case (4, 2):
-        _menu = _sciPrompt;
-      case (4, 3):
-        _menu = _normPrompt;
-      case (5, 1):
-        _menu = _engPage;
+      case CalcMode.reg:
+        _menu = _regPages.first; // regression type first
       default:
-        // CMPLX, SD, REG, BASE, EQN, MAT, VCT, Disp: later milestones.
-        break;
+        _setMode(mode);
     }
   }
 
@@ -2528,7 +2605,11 @@ class Calculator {
         polarComplex: state['polar'] == true,
       );
       final mode = state['mode'];
-      if (mode is String) _mode = CalcMode.values.byName(mode);
+      if (mode is String) {
+        final restored = CalcMode.values.byName(mode);
+        // A state saved by a bigger model falls back to COMP.
+        _mode = features.modes.contains(restored) ? restored : CalcMode.comp;
+      }
       final linear = state['linear'];
       if (linear is Map) {
         _linear.clear();

@@ -8,15 +8,17 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 class StateStore {
   static const _key = 'wcalc.state.v1';
 
-  static Future<void> load(Calculator calc) async {
+  /// The saved state, or null when there is none or storage is unavailable.
+  static Future<Map<String, Object?>?> read() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_key);
-      if (raw == null) return;
+      if (raw == null) return null;
       final decoded = jsonDecode(raw);
-      if (decoded is Map<String, Object?>) calc.restoreState(decoded);
+      return decoded is Map<String, Object?> ? decoded : null;
     } on Object {
       // Storage unavailable (private mode, blocked): start fresh.
+      return null;
     }
   }
 

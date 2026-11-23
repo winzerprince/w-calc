@@ -93,4 +93,35 @@ void main() {
     expect((b.vibration, b.keySound, b.skinId), (false, true, 'ivory'));
     expect(a.skinId, 'ivory');
   });
+
+  testWidgets('switching to the basic model keeps memory and gates keys', (
+    tester,
+  ) async {
+    final settings = await openApp(tester);
+    // Store 7 in A on the full model.
+    for (final k in ['d7', 'shift', 'rcl', 'negative']) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    await openMenuItem(tester, 'Calculator model');
+    await tester.tap(find.byKey(const Key('model-basic')));
+    await settle(tester);
+    expect(settings.modelId, 'basic');
+    await tester.pageBack();
+    await settle(tester);
+    // Close the menu overlay if still open.
+    final close = find.byKey(const Key('app-menu-close'));
+    if (close.evaluate().isNotEmpty) {
+      await tester.tap(close);
+      await settle(tester);
+    }
+    expect(find.text('SCIENTIFIC BASIC'), findsOneWidget);
+    expect(find.text('CONV'), findsNothing);
+    // CONST is inert; the memory survived the switch.
+    for (final k in ['ac', 'constant', 'rcl', 'negative']) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    expect(lcd(tester, 'lower'), '7.');
+  });
 }

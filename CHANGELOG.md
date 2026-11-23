@@ -2,6 +2,13 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [Unreleased]
+
+### Added
+- Calculator models: choose *Scientific Plus* (all modes) or *Scientific Basic* (COMP, SD, REG) in
+  Menu ▸ Calculator model. Memories and data carry over; keys a model lacks are faded and inert.
+- Busy display during long calculations, landscape layout and app icon.
+
 ## [0.1.0-beta] - 2026-11-23
 
 All calculation modes of the reference calculator, plus app settings and themes.
