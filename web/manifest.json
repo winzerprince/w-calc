@@ -4,7 +4,7 @@
     "start_url": ".",
     "display": "standalone",
     "background_color": "#15171C",
-    "theme_color": "#1C2470",
+    "theme_color": "#1E2620",
     "description": "Free scientific calculators that look and work like the ones used in class.",
     "orientation": "any",
     "prefer_related_applications": false,

@@ -4,6 +4,10 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Changed
+- Website: blackboard look — chalk handwriting, faint maths that is now and then wiped and
+  rewritten, a chalk tray; the privacy page matches.
+
 ## [0.13.0-beta] - 2026-11-23
 
 Snappier neon themes, the website, and graph keypad fixes.
