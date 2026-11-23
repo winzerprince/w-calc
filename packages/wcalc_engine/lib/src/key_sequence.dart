@@ -36,6 +36,13 @@ const _digits = [
 ];
 
 const _names = <String, List<CalcKey>>{
+  // Textbook-display keys.
+  'S<>D': [CalcKey.sd],
+  'S⇔D': [CalcKey.sd],
+  'frac': [CalcKey.fraction],
+  '□/□': [CalcKey.fraction],
+  'logb': [CalcKey.logBase],
+  'log□': [CalcKey.logBase],
   '+': [CalcKey.add],
   'plus': [CalcKey.add],
   'minus': [CalcKey.subtract],

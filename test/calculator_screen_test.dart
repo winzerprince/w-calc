@@ -97,7 +97,7 @@ void main() {
     await tester.tap(find.byKey(const Key('app-menu-button')));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byKey(const Key('app-menu')), findsOneWidget);
-    for (final title in ['Settings', 'Theme', 'User guide', 'About W-Calc']) {
+    for (final title in ['Settings', 'Theme', 'Manual', 'About W-Calc']) {
       expect(find.text(title), findsOneWidget);
     }
 
