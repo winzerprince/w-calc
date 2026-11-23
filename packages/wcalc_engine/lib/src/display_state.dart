@@ -21,6 +21,13 @@ enum Indicator {
   scrollUp,
   scrollDown,
   disp,
+
+  /// CMPLX: the shown part is the imaginary part (i) / the angle (∠).
+  imaginary,
+  angleMark,
+
+  /// CMPLX results in polar format (r∠θ setting).
+  polar,
 }
 
 /// Cursor shapes on the upper line.

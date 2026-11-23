@@ -205,7 +205,7 @@ void main() {
       expect(calc.display.lower, '14.286');
     });
     test('unimplemented mode choices are ignored', () {
-      expect(press('MODE 2').upper, 'COMP CMPLX');
+      expect(press('MODE MODE 1').upper, 'SD REG BASE');
     });
     test('COMP closes the menu', () {
       expect(press('MODE 1').upper, '');
