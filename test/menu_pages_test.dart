@@ -241,4 +241,18 @@ void main() {
     }
     expect(find.text('TEXTBOOK PLUS II'), findsOneWidget);
   });
+
+  testWidgets('model preview shows the body and can choose it', (tester) async {
+    final settings = await openApp(tester);
+    await openMenuItem(tester, 'Calculator model');
+    await tester.ensureVisible(find.byKey(const Key('preview-textbook2')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('preview-textbook2')));
+    await settle(tester);
+    expect(find.byKey(const Key('model-preview-large')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('use-model')));
+    await settle(tester);
+    expect(settings.modelId, 'textbook2');
+    expect(settings.skinId, 'black');
+  });
 }

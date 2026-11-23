@@ -13,7 +13,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ### Added
 - Finishes (Menu ▸ Theme ▸ Finish): glossy plastic, soft-touch matte, rubber keys or metallic,
   for keys, cursor pad and body; the body is now a shaded shell with a rim and curved lower edge.
-- Model picker shows a miniature of each calculator (its real keypad and colours).
+- Model picker shows a miniature of each calculator (its real keypad and colours); tap it for a
+  large preview with a "Use this model" button.
 - Focus mode: tap the solar panel to show the calculator full screen (system bars hidden, or
   browser full screen); tap again to return.
 
