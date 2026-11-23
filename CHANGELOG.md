@@ -4,6 +4,12 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Added
+- Website w-calc.0xwinzer.com: on wide screens W-Calc sits in a phone frame beside a short
+  introduction with download (itch.io), Ko-fi and source links; full screen on phones; loading
+  screen, link previews and a privacy page. The website may show ads; the apps never do.
+- About (web): “Get the Android app”.
+
 ## [0.12.0-beta] - 2026-11-23
 
 Open source (MIT), a new graph screen with typeset maths and sliders, and a Ko-fi button.
