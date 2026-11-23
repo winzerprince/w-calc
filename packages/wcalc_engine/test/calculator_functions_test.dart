@@ -162,7 +162,7 @@ void main() {
       expect(press('MODE').upper, 'EQN MAT VCT');
       expect(press('MODE').upper, 'Deg Rad Gra');
       expect(press('MODE').upper, 'Fix Sci Norm');
-      expect(press('MODE').upper, 'Disp');
+      expect(press('MODE').upper, 'Disp ◀CONT▶');
       final d = press('MODE');
       expect(d.upper, '7+');
       expect(d.menuMarks, isNull);
@@ -205,7 +205,7 @@ void main() {
       expect(calc.display.lower, '14.286');
     });
     test('unimplemented mode choices are ignored', () {
-      expect(press('MODE MODE MODE MODE MODE MODE 2').upper, 'Disp');
+      expect(press('MODE MODE MODE MODE MODE MODE 2').upper, 'Disp ◀CONT▶');
     });
     test('COMP closes the menu', () {
       expect(press('MODE 1').upper, '');

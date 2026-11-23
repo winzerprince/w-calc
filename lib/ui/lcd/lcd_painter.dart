@@ -109,13 +109,20 @@ class LcdPainter extends CustomPainter {
           [0, 0.25, 1],
         ),
     );
-    _paintIndicators(canvas);
-    _paintUpper(canvas);
-    _paintLower(canvas);
+    if (!display.isOff) {
+      _paintIndicators(canvas);
+      _paintUpper(canvas);
+      _paintLower(canvas);
+    }
     canvas.restore();
   }
 
-  Paint get _inkPaint => Paint()..color = palette.ink;
+  /// Ink darkness follows the contrast setting (−5 light … +5 dark).
+  Color get _ink => palette.ink.withValues(
+    alpha: (1.0 + display.contrast * 0.11).clamp(0.4, 1.0),
+  );
+
+  Paint get _inkPaint => Paint()..color = _ink;
 
   void _paintIndicators(Canvas canvas) {
     const style = TextStyle(
@@ -130,7 +137,7 @@ class LcdPainter extends CustomPainter {
         TextPainter(
           text: TextSpan(
             text: label,
-            style: style.copyWith(color: palette.ink),
+            style: style.copyWith(color: _ink),
           ),
           textDirection: TextDirection.ltr,
         )..layout(),
@@ -178,7 +185,7 @@ class LcdPainter extends CustomPainter {
           canvas.drawRect(
             rect,
             Paint()
-              ..color = palette.ink
+              ..color = _ink
               ..style = PaintingStyle.stroke
               ..strokeWidth = 3,
           );
@@ -204,7 +211,10 @@ class LcdPainter extends CustomPainter {
   }
 
   void _paintLower(Canvas canvas) {
-    final ghost = Paint()..color = palette.ink.withValues(alpha: 0.05);
+    final ghost = Paint()
+      ..color = palette.ink.withValues(
+        alpha: 0.05 + (display.contrast > 0 ? display.contrast * 0.012 : 0),
+      );
     final ink = _inkPaint;
     // Ghost segments for every digit position (unlit LCD look).
     for (var i = 0; i < _mantissaCells; i++) {
