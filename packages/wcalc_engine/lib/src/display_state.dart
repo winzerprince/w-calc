@@ -20,6 +20,10 @@ enum Indicator {
   reIm,
   scrollUp,
   scrollDown,
+
+  /// MAT / VCT editors: more elements to the left / right.
+  scrollLeft,
+  scrollRight,
   disp,
 
   /// CMPLX: the shown part is the imaginary part (i) / the angle (∠).

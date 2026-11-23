@@ -72,3 +72,7 @@ how to verify on the device, result.
 | 65 | EQN screens | `Unknowns?→` (2 3) and `←Degree?` (2 3); prompts `a1?`… / `a?`…; typing shows the name without `?`; answers `x= y= z=` / `x1= x2= x3=`; ▲▼ indicators | MODE ×3 1 | to verify |
 | 66 | EQN coefficient input | numbers only (digits, ., (−), EXP) | | to verify whether expressions are allowed |
 | 67 | Cubic root order | three real roots in trigonometric order k = 0, 2, 1 (matches manual: 2, −1, 1); one real root first, then complex pair with +i first | | to verify more cases |
+| 68 | MAT / VCT pickers | after Dim / Edit: ` A   B   C`; after Mat / Vct: `A  B  C  Ans` | SHIFT 4 1 | to verify text |
+| 69 | Matrix editor | `MatA₁₂` with ▲▼←→ indicators; `=` stores and moves along the row, then to the next row; any other key leaves the editor | | to verify |
+| 70 | MAT / VCT history | calculation history not kept in MAT / VCT (manual lists COMP, CMPLX, BASE only) | | — |
+| 71 | Matrix stack | the 2-level matrix stack limit (Stack ERROR) is not enforced | | to do |

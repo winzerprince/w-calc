@@ -7,6 +7,7 @@ import '../number/dec.dart';
 import '../number/constants.dart';
 import '../number/frac.dart';
 import '../number/functions.dart';
+import '../number/linalg.dart';
 import '../number/value.dart';
 import '../number/wide.dart';
 import '../stats/stats.dart';
@@ -29,6 +30,9 @@ abstract final class Priority {
 
   /// nPr, nCr.
   static const permutation = 8;
+
+  /// Vector dot product.
+  static const dotProduct = 9;
 
   static const multiplyDivide = 10;
   static const addSubtract = 11;
@@ -55,6 +59,7 @@ class EvalContext {
     this.store,
     this.stats,
     this.base,
+    this.linear = const {},
     math.Random? random,
   }) : ans = ans ?? Value.zero,
        random = random ?? math.Random();
@@ -76,6 +81,9 @@ class EvalContext {
 
   /// BASE mode number system (10, 16, 2, 8), or null outside BASE mode.
   final int? base;
+
+  /// MAT / VCT variables by name (MatA … VctAns); missing = not dimensioned.
+  final Map<String, Value> linear;
 
   /// Receives values functions write to variables (Pol/Rec → E, F).
   final void Function(String name, Value value)? store;
@@ -186,11 +194,13 @@ Value _mul(Value a, Value b) => a * b;
 /// Wraps a real function as a value function; complex arguments are a
 /// Math ERROR (the device only has arithmetic, Abs, arg, Conjg for them).
 Value Function(Value) _d1(Dec Function(Dec) f) => (a) {
-  if (a.isComplex) throw const CalcError(CalcErrorKind.math);
+  if (a.isComplex || a.isLinear) throw const CalcError(CalcErrorKind.math);
   return Value.dec(f(a.dec));
 };
 Value Function(Value, Value) _d2(Dec Function(Dec, Dec) f) => (a, b) {
-  if (a.isComplex || b.isComplex) throw const CalcError(CalcErrorKind.math);
+  if (a.isComplex || b.isComplex || a.isLinear || b.isLinear) {
+    throw const CalcError(CalcErrorKind.math);
+  }
   return Value.dec(f(a.dec, b.dec));
 };
 
@@ -456,6 +466,8 @@ class _Evaluator {
     Tok.pi => Value.dec(piConstant),
     Tok.e => Value.dec(eConstant),
     Tok.imagUnit => Value.imaginaryUnit,
+    _ when tok.name.startsWith('mat') || tok.name.startsWith('vct') =>
+      ctx.linear[tok.text] ?? (throw const CalcError(CalcErrorKind.dim)),
     _ when tok.name.startsWith('stat') || tok.name.startsWith('reg') =>
       Value.dec(_statValue(tok)),
     Tok.ran => Value.dec(Dec(BigInt.from(ctx.random.nextInt(1000)), -3)),
@@ -656,7 +668,20 @@ class _Evaluator {
       Tok.sqrt => _d1(sqrtDec),
       Tok.cbrt => _d1(cbrtDec),
       Tok.rnd => _d1((a) => roundForDisplay(a, ctx.format)),
-      Tok.cAbs => (a) => Value.dec(a.magnitude()),
+      Tok.cAbs =>
+        (a) => a.isMatrix
+            ? Value.matrix(matAbs(a.matrix!))
+            : a.isVector
+            ? Value.dec(vecAbs(a.vector!))
+            : Value.dec(a.magnitude()),
+      Tok.det =>
+        (a) => a.isMatrix
+            ? Value.dec(matDet(a.matrix!))
+            : throw const CalcError(CalcErrorKind.math),
+      Tok.trn =>
+        (a) => a.isMatrix
+            ? Value.matrix(matTranspose(a.matrix!))
+            : throw const CalcError(CalcErrorKind.math),
       Tok.cArg => (a) => Value.dec(a.argument(u)),
       Tok.conjg => (a) => a.conjugate(),
       _ => throw ArgumentError('not a prefix token: $tok'),
@@ -769,6 +794,10 @@ class _Evaluator {
   }
 
   _Op _decimalOp(Tok tok, int pos) => switch (tok) {
+    Tok.dot => _Op(_OpType.binary, Priority.dotProduct, pos, (a, b) {
+      if (!a.isVector || !b.isVector) throw const CalcError(CalcErrorKind.math);
+      return Value.dec(vecDot(a.vector!, b.vector!));
+    }),
     Tok.angle => _Op(_OpType.binary, Priority.permutation, pos, (r, theta) {
       if (r.isComplex || theta.isComplex) {
         throw const CalcError(CalcErrorKind.math);
