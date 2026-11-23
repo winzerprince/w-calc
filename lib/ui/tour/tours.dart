@@ -99,7 +99,7 @@ final graphTour = [
   ),
   TourStep(
     TourKeys.graphList,
-    'Type functions of x here —\ntry 2x+1 or sin(x)',
+    'Tap a row and type with the keypad —\ntry x² or sin x; letters make sliders',
   ),
 ];
 

@@ -19,3 +19,5 @@ export 'src/graph/graph_math.dart';
 export 'src/input/token.dart' show Tok;
 export 'src/number/constants.dart' show constantValues;
 export 'src/number/dec.dart';
+export 'src/graph/gx_eval.dart';
+export 'src/graph/gx_input.dart';
