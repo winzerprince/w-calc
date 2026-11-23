@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'coffee_link.dart';
 import 'graph/graph_page.dart';
 import 'haptics.dart';
 import 'pages/about_page.dart';
@@ -175,6 +176,11 @@ class _AppMenuState extends State<AppMenu> {
                         children: [
                           for (final entry in menuEntries)
                             _MenuTile(entry: entry, onTap: () => _open(entry)),
+                          const SizedBox(height: 8),
+                          const Align(
+                            alignment: Alignment.centerLeft,
+                            child: CoffeeLink(),
+                          ),
                         ],
                       ),
                     ),

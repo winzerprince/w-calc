@@ -5,6 +5,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Changed
+- “Buy me a coffee” moved to a quiet line at the bottom of the menu, with a small steaming cup;
+  removed from Settings.
 - Website: blackboard look — chalk handwriting, faint maths that is now and then wiped and
   rewritten, a chalk tray; the privacy page matches.
 
