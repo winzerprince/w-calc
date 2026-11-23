@@ -42,7 +42,13 @@ class FormattedNumber {
 /// Total digit positions on the result line (excluding sign and exponent).
 const int displayDigits = 10;
 
-FormattedNumber formatNumber(Dec value, DisplayFormat format) {
+/// [leadingZeroCounts]: the two-line LCD spends one of its 10 digits on the
+/// `0` of `0.xxx`; textbook-display models show 10 significant digits.
+FormattedNumber formatNumber(
+  Dec value,
+  DisplayFormat format, {
+  bool leadingZeroCounts = true,
+}) {
   switch (format.mode) {
     case DisplayMode.sci:
       return _exponential(
@@ -64,7 +70,11 @@ FormattedNumber formatNumber(Dec value, DisplayFormat format) {
       if (r.exponent10 >= displayDigits || r.exponent10 < lowerLimit) {
         return _exponential(value, displayDigits, keepZeros: false);
       }
-      final places = displayDigits - (r.exponent10 < 0 ? 1 : r.exponent10 + 1);
+      final places = r.exponent10 < 0
+          ? (leadingZeroCounts
+                ? displayDigits - 1
+                : displayDigits - 1 - r.exponent10)
+          : displayDigits - (r.exponent10 + 1);
       final fixed = value.roundDecimals(places);
       if (fixed.abs().exponent10 >= displayDigits) {
         return _exponential(value, displayDigits, keepZeros: false);

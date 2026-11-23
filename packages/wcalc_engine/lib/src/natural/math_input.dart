@@ -74,7 +74,10 @@ final class TokItem extends MathItem {
   TokItem copy() => TokItem(tok, paren: paren);
 
   @override
-  String toString() => paren ? '${tok.text.trimRight()}(' : tok.text;
+  String toString() {
+    final t = tok == Tok.fracSep ? '⌟' : tok.text;
+    return paren ? '${t.trimRight()}(' : t;
+  }
 }
 
 /// A template with its slots.
@@ -231,7 +234,9 @@ final class MathEditor {
 
   static bool _isNumberPart(MathItem i) =>
       i is TokItem &&
-      (i.tok.kind == TokKind.digit || i.tok.kind == TokKind.point);
+      (i.tok.kind == TokKind.digit ||
+          i.tok.kind == TokKind.point ||
+          i.tok == Tok.ans);
 
   /// DEL: removes the item left of the cursor. At the start of a template's
   /// first slot it removes the template and keeps the slot contents.

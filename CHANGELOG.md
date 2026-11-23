@@ -2,6 +2,14 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [Unreleased]
+
+### Added
+- Engine groundwork for the textbook-display models (silver / black units): 2-D input editor
+  (fractions, roots, powers, log base, Abs, ∫, d/dx, Σ), full-dot 96×31 screen rendering,
+  COMP calculations with exact fraction results, S⇔D, SETUP / MODE / CLR / hyp / DRG menus,
+  memories, errors with Goto. Not yet selectable in the app.
+
 ## [0.2.0-beta] - 2026-11-23
 
 Calculator models, accessibility and tablet layout.

@@ -66,6 +66,7 @@ class EvalContext {
     this.stats,
     this.base,
     this.linear = const {},
+    this.polRecVars = const ('E', 'F'),
     math.Random? random,
   }) : ans = ans ?? Value.zero,
        random = random ?? math.Random();
@@ -90,6 +91,10 @@ class EvalContext {
 
   /// MAT / VCT variables by name (MatA … VctAns); missing = not dimensioned.
   final Map<String, Value> linear;
+
+  /// Variables Pol/Rec write their two results to (E, F on two-line models;
+  /// X, Y on textbook-display models).
+  final (String, String) polRecVars;
 
   /// Receives values functions write to variables (Pol/Rec → E, F).
   final void Function(String name, Value value)? store;
@@ -492,8 +497,8 @@ class _Evaluator {
         final (a, b) = f == Tok.pol
             ? polarDec(args[0].dec, args[1].dec, ctx.angle)
             : rectangularDec(args[0].dec, args[1].dec, ctx.angle);
-        ctx.store?.call('E', Value.dec(a));
-        ctx.store?.call('F', Value.dec(b));
+        ctx.store?.call(ctx.polRecVars.$1, Value.dec(a));
+        ctx.store?.call(ctx.polRecVars.$2, Value.dec(b));
         return Value.dec(a);
       case Tok.distP || Tok.distQ || Tok.distR:
         if (args.length != 1) _syntax(pos);
@@ -784,6 +789,8 @@ class _Evaluator {
       Tok.degMark => _d1((a) => convertAngle(a, AngleUnit.deg, u)),
       Tok.radMark => _d1((a) => convertAngle(a, AngleUnit.rad, u)),
       Tok.graMark => _d1((a) => convertAngle(a, AngleUnit.gra, u)),
+      // Textbook-display %: x% = x ÷ 100 (exact for fractions).
+      Tok.percentOf => (a) => a.fractionOver(Value.dec(Dec.fromInt(100))),
       _ => throw ArgumentError('not a postfix token: $tok'),
     };
   }

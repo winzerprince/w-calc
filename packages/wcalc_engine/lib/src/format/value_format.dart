@@ -11,7 +11,11 @@ class DisplaySettings {
     this.improperFractions = false,
     this.decimalComma = false,
     this.polarComplex = false,
+    this.leadingZeroCounts = true,
   });
+
+  /// See [formatNumber]: false on textbook-display models.
+  final bool leadingZeroCounts;
 
   final DisplayFormat format;
 
@@ -39,6 +43,7 @@ class DisplaySettings {
     improperFractions: improperFractions ?? this.improperFractions,
     decimalComma: decimalComma ?? this.decimalComma,
     polarComplex: polarComplex ?? this.polarComplex,
+    leadingZeroCounts: leadingZeroCounts,
   );
 }
 
@@ -95,7 +100,7 @@ FormattedNumber _decimal(Dec x, DisplaySettings s) {
     final e = engExponentFor(x);
     if (engSymbols.containsKey(e)) return _eng(x, e, true);
   }
-  return formatNumber(x, s.format);
+  return formatNumber(x, s.format, leadingZeroCounts: s.leadingZeroCounts);
 }
 
 FormattedNumber _fraction(Frac f, DisplaySettings s, Dec fallback) {

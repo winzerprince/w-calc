@@ -211,6 +211,7 @@ enum Tok {
   sigma('Σ(', TokKind.function),
   logBase('log(', TokKind.function),
   ranInt('RanInt#(', TokKind.function),
+  percentOf('%', TokKind.postfix),
   // Scientific constants (CONST 01-40) and metric conversions (CONV 01-40).
   const01('mₚ', TokKind.constant),
   const02('mₙ', TokKind.constant),
