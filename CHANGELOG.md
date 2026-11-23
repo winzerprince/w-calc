@@ -5,6 +5,7 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Added
+- LCD glass: a soft shadow under the display window's top edge and a faint reflection.
 - Graph: plot functions (typed like 2x+1, sin(x), sqrt(x)), pan and pinch to zoom, tap to trace,
   roots, extrema and y-intercepts marked, Rad/Deg. A graph button appears next to the logo when
   the calculation uses X; Menu ▸ Graph opens graph mode. Intersections are marked too; a short

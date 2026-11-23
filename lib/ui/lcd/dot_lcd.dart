@@ -129,11 +129,15 @@ class _DotLcdPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, Radius.circular(size.height * 0.04)),
-      Paint()..color = palette.glass,
+    final glass = RRect.fromRectAndRadius(
+      rect,
+      Radius.circular(size.height * 0.04),
     );
-    if (screen.isOff) return;
+    canvas.drawRRect(glass, Paint()..color = palette.glass);
+    if (screen.isOff) {
+      paintGlassOverlay(canvas, glass);
+      return;
+    }
     final ink = palette.ink.withValues(
       alpha: (1.0 + screen.contrast * 0.11).clamp(0.4, 1.0),
     );
@@ -195,6 +199,7 @@ class _DotLcdPainter extends CustomPainter {
         lit,
       );
     }
+    paintGlassOverlay(canvas, glass);
   }
 
   @override
