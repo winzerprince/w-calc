@@ -4,6 +4,13 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+## [0.11.0-beta] - 2026-11-23
+
+Neon themes, history per model, light/dark pages and text size, a cleaner header and new icon.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
 ### Added
 - Neon themes: Neon Blue, Green, Red and Rainbow. Glowing outlines and display; a light runs
   round each key you press and then round the display; Rainbow's colours drift slowly.
@@ -12,14 +19,12 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 - History (Menu ▸ History or the clock button): every calculation with its time and answer,
   kept separately per model; tap to copy; clear per model. "Save history on this device" is on
   by default — switching it off stops saving and removes what was stored.
+- Graph: mouse wheel / trackpad scroll zooms around the pointer (web).
 
 ### Changed
 - Header: W-Calc sits top left above the menu icon; history and graph buttons have fixed slots,
   so nothing shifts when they appear; solar panel and model name top right.
 - New app icon: indigo tile, bright display, white keys with an orange accent.
-
-### Added
-- Graph: mouse wheel / trackpad scroll zooms around the pointer (web).
 
 ## [0.10.0-beta] - 2026-11-23
 

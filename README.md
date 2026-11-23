@@ -17,12 +17,12 @@ testing.
 - **Graphs** — functions, equations and statistics data; trace, roots, extrema, intersections,
   tables.
 - **Manual** — searchable, filtered to the model in use; every example is replayed by a test.
-- **Look and feel** — 11 themes, 8 key finishes, focus (full-screen) mode, first-start tours,
+- **Look and feel** — 15 themes (incl. neon), 8 key finishes, focus (full-screen) mode, first-start tours,
   long-press key hints, key vibration.
 - **Private** — no network, no data collected ([`docs/PRIVACY.md`](docs/PRIVACY.md)).
 
 ## Status
-Beta (v0.9.x). Plan: [`docs/PLAN.md`](docs/PLAN.md) · changes: [`CHANGELOG.md`](CHANGELOG.md) ·
+Beta (v0.11.x). Plan: [`docs/PLAN.md`](docs/PLAN.md) · changes: [`CHANGELOG.md`](CHANGELOG.md) ·
 device questions: [`docs/behaviour-notes.md`](docs/behaviour-notes.md) · known issues:
 [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md).
 
