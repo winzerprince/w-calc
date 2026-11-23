@@ -15,6 +15,7 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
   (curves, roots, turning points, intersections).
 
 ### Changed
+- Smaller download: the bundled fonts are subset to the characters W-Calc uses (−285 KB).
 - Dot displays draw in two batched calls (lighter on battery and older phones).
 - Scientific View and Two-View: menus show option names in rows; ◀ ▶ move the highlight and
   enter chooses (numbers still work).
