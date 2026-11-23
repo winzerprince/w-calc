@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_settings.dart';
 import 'page_scaffold.dart';
 
+/// Product information: version, purpose, independence and legal notices.
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
@@ -12,37 +13,25 @@ class AboutPage extends StatelessWidget {
       title: 'About W-Calc',
       children: [
         const Padding(
-          padding: EdgeInsets.fromLTRB(20, 24, 20, 4),
+          padding: EdgeInsets.fromLTRB(20, 24, 20, 0),
           child: Text(
             'W-Calc',
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800),
           ),
         ),
-        const PageText('Two-line scientific calculator for students.'),
-        PageText('Version $appVersion'),
-        const PageSection('Independence'),
+        PageText('Scientific calculator · Version $appVersion'),
         const PageText(
-          'W-Calc is keystroke-compatible with classic two-line scientific calculators. '
-          'It is an independent project and is not affiliated with or endorsed by any '
-          'calculator manufacturer. All calculation code is original.',
+          'Practise with the calculator you use in class: familiar keys, '
+          'displays and results, on your phone.',
         ),
-        const PageSection('Accuracy'),
+        const PageSection('Notice'),
         const PageText(
-          'Calculations use 15 significant digits internally (24 during functions) and show '
-          '10, like the calculators it follows. Results are checked against a high-precision '
-          'reference library.',
+          'W-Calc is an independent product and is not affiliated with, '
+          'endorsed by or sponsored by any calculator manufacturer. Most '
+          'examinations do not allow phones; use an approved calculator there.',
         ),
-        const PageSection('Exams'),
-        const PageText(
-          'Phones are not allowed in most exams. Use W-Calc to learn and practise; take your '
-          'own approved calculator into the exam room.',
-        ),
-        const PageSection('Licence'),
-        const PageText(
-          '© 2026 winzerprince. All rights reserved. '
-          'Fonts: Barlow (SIL Open Font License 1.1) and a subset of Noto Sans Math (SIL OFL 1.1); '
-          'Flutter and Dart packages under their own licences.',
-        ),
+        const PageSection('Legal'),
+        const PageText('© 2026 winzerprince. All rights reserved.'),
         ListTile(
           leading: const Icon(Icons.description_outlined),
           title: const Text('Third-party licences'),

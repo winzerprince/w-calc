@@ -1,5 +1,5 @@
 name: w_calc
-description: "W-Calc: two-line scientific calculator"
+description: "W-Calc: scientific calculator"
 publish_to: 'none'
 
 # Release version. Bump on `dev` via PR; merging to `main` creates tag v<version-without-build>.
