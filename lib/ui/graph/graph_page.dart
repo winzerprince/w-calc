@@ -223,6 +223,65 @@ class _GraphPageState extends State<GraphPage> {
     setState(() => _trace = best == null ? null : (best, x));
   }
 
+  /// x / f(x) table around the visible part of the graph, one column per
+  /// visible curve; tapping a row traces that point.
+  void _showTable() {
+    final shown = [
+      for (final (i, c) in _curves.indexed)
+        if (c.visible && c.function != null) (i, c),
+    ];
+    if (shown.isEmpty) return;
+    final step = _GraphPainter._step(_scale) / 2;
+    final from = (_toWorld(Offset.zero).dx / step).ceil() * step;
+    final xs = [for (var k = 0; k < 21; k++) from + k * step];
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheet) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+          child: DataTable(
+            key: const Key('graph-values'),
+            headingRowHeight: 36,
+            dataRowMinHeight: 32,
+            dataRowMaxHeight: 36,
+            columnSpacing: 20,
+            columns: [
+              const DataColumn(label: Text('x')),
+              for (final (_, c) in shown)
+                DataColumn(
+                  label: Text(
+                    'y = ${c.text}',
+                    style: TextStyle(color: c.color),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            rows: [
+              for (final x in xs)
+                DataRow(
+                  onSelectChanged: (_) {
+                    Navigator.pop(sheet);
+                    setState(() => _trace = (shown.first.$1, x));
+                  },
+                  cells: [
+                    DataCell(Text(_fmt(x))),
+                    for (final (_, c) in shown)
+                      DataCell(
+                        Text(switch (c.function!.at(x)) {
+                          final y? => _fmt(y),
+                          null => '—',
+                        }),
+                      ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   static String _fmt(double v) {
     if (v == 0) return '0';
     final a = v.abs();
@@ -257,6 +316,12 @@ class _GraphPageState extends State<GraphPage> {
                     _angle == AngleUnit.deg ? AngleUnit.deg : AngleUnit.rad,
                   },
                   onSelectionChanged: (s) => _setAngle(s.first),
+                ),
+                IconButton(
+                  key: const Key('graph-table'),
+                  tooltip: 'Table of values',
+                  icon: const Icon(Icons.table_chart_outlined),
+                  onPressed: _showTable,
                 ),
                 IconButton(
                   tooltip: 'Back to the origin',

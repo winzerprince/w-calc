@@ -59,4 +59,16 @@ void main() {
     await settle(tester);
     expect(find.textContaining('Unexpected'), findsOneWidget);
   });
+
+  testWidgets('table of values', (tester) async {
+    await open(tester);
+    await tester.tap(find.byKey(const Key('app-menu-button')));
+    await settle(tester);
+    await tester.tap(find.text('Graph'));
+    await settle(tester);
+    await tester.tap(find.byKey(const Key('graph-table')));
+    await settle(tester);
+    expect(find.byKey(const Key('graph-values')), findsOneWidget);
+    expect(find.text('y = x^2'), findsOneWidget);
+  });
 }
