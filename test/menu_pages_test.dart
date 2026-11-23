@@ -49,6 +49,17 @@ void main() {
     expect(settings.skinId, 'midnight');
   });
 
+  testWidgets('settings offer the Ko-fi support link', (tester) async {
+    await openApp(tester);
+    await openMenuItem(tester, 'Settings');
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('setting-kofi')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Buy me a coffee'), findsOneWidget);
+  });
+
   testWidgets('vibration can be switched off', (tester) async {
     final settings = await openApp(tester);
     await openMenuItem(tester, 'Settings');
