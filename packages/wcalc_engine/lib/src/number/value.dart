@@ -151,6 +151,19 @@ final class Value {
     return Value.complex(re.toDec(), im.toDec());
   }
 
+  /// Fraction bar of the textbook display: exact when both sides are
+  /// integers or fractions, otherwise ordinary division.
+  Value fractionOver(Value o) {
+    if (!isLinear && !o.isLinear && !isComplex && !o.isComplex) {
+      final a = _exact, b = o._exact;
+      if (a != null && b != null) {
+        if (b.n == BigInt.zero) throw const CalcError(CalcErrorKind.math);
+        return Value.frac(a / b);
+      }
+    }
+    return this / o;
+  }
+
   /// Fraction view of this value if it may take part in exact arithmetic:
   /// fractions, and integers (an integer combined with a fraction stays a fraction).
   Frac? get _exact =>
