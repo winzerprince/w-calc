@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_settings.dart';
 import '../../app/calc_model.dart';
 import '../haptics.dart';
+import '../model_thumbnail.dart';
 import '../skin.dart';
 import 'page_scaffold.dart';
 
@@ -42,11 +43,13 @@ class ModelPage extends StatelessWidget {
                 RadioListTile<String>(
                   key: Key('model-${model.id}'),
                   value: model.id,
+                  isThreeLine: true,
                   title: Text(
                     model.name,
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   subtitle: Text(model.description),
+                  secondary: ModelThumbnail(model: model, width: 60),
                 ),
             ],
           ),

@@ -5,6 +5,7 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Added
+- Model picker shows a miniature of each calculator (its real keypad and colours).
 - Focus mode: tap the solar panel to show the calculator full screen (system bars hidden, or
   browser full screen); tap again to return.
 
