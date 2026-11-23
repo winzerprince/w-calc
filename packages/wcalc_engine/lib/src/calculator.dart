@@ -2377,6 +2377,20 @@ class Calculator {
     _browse = null;
   }
 
+  /// Factory reset (app Settings ▸ Reset): like CLR All, plus COMP mode,
+  /// contrast and every mode's data.
+  void resetAll() {
+    _setMode(CalcMode.comp);
+    _clear(_clrAll);
+    _linear.clear();
+    _contrast = 0;
+    _base = 10;
+    for (final list in _eqnCoefficients.values) {
+      list.fillRange(0, list.length, Dec.zero);
+    }
+    _powerOn();
+  }
+
   /// ON: clears the screen and calculation history; memories stay.
   void _powerOn() {
     _equation = null;

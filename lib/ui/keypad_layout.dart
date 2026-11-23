@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
 /// Colour family of a legend, by meaning:
@@ -408,26 +407,3 @@ const numberRows = [
     ),
   ],
 ];
-
-/// W-Calc "Classic" palette: our own colours, same meaning per legend family.
-class WCalcColors {
-  static const background = Color(0xFF15171C);
-  static const bodyTop = Color(0xFF353A4A);
-  static const body = Color(0xFF262A36);
-  static const bezel = Color(0xFF1B1E26);
-  static const functionKey = Color(0xFF1A1C22);
-  static const digitKey = Color(0xFF9DA2AA);
-  static const operatorKey = Color(0xFF8E939C);
-  static const clearKey = Color(0xFFB4505A);
-  static const modifierKey = Color(0xFFD9D6CF);
-
-  static Color label(LabelKind kind) => switch (kind) {
-    LabelKind.shift => const Color(0xFFF2A33A),
-    LabelKind.alpha => const Color(0xFFE5506A),
-    LabelKind.complex => const Color(0xFFB98AE8),
-    LabelKind.stat => const Color(0xFF6FA8F0),
-    LabelKind.base => const Color(0xFF5CC77A),
-    LabelKind.plain => const Color(0xFFB9BDC6),
-    LabelKind.neutral => const Color(0xFF8D93A0),
-  };
-}

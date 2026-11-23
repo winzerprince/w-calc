@@ -23,7 +23,7 @@ void main() {
     tester.view.devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const WCalcApp());
+    await tester.pumpWidget(WCalcApp());
     expect(lcdText(tester, 'upper'), '');
     expect(lcdText(tester, 'lower'), '0.');
   });
@@ -33,7 +33,7 @@ void main() {
     tester.view.devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const WCalcApp());
+    await tester.pumpWidget(WCalcApp());
     await tapKey(tester, 'd1');
     await tapKey(tester, 'd2');
     expect(lcdText(tester, 'upper'), '12');
@@ -49,7 +49,7 @@ void main() {
     tester.view.devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const WCalcApp());
+    await tester.pumpWidget(WCalcApp());
     for (final k in [
       'd2',
       'divide',
@@ -72,7 +72,7 @@ void main() {
     tester.view.devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const WCalcApp());
+    await tester.pumpWidget(WCalcApp());
     await tester.pump(const Duration(milliseconds: 100));
     for (final k in ['d4', 'd2', 'shift', 'rcl', 'negative']) {
       await tapKey(tester, k);
@@ -81,7 +81,7 @@ void main() {
 
     // New app instance reads the saved state.
     await tester.pumpWidget(const SizedBox());
-    await tester.pumpWidget(const WCalcApp());
+    await tester.pumpWidget(WCalcApp());
     await tester.pump(const Duration(milliseconds: 50));
     await tapKey(tester, 'rcl');
     await tapKey(tester, 'negative');
@@ -93,7 +93,7 @@ void main() {
     tester.view.devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const WCalcApp());
+    await tester.pumpWidget(WCalcApp());
     await tester.tap(find.byKey(const Key('app-menu-button')));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byKey(const Key('app-menu')), findsOneWidget);
@@ -102,8 +102,14 @@ void main() {
     }
 
     await tester.tap(find.text('Theme'));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Theme is coming in a later update.'), findsOneWidget);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key('theme-midnight')), findsOneWidget);
+    await tester.pageBack();
+    for (var i = 0; i < 4; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+    }
+    expect(find.byKey(const Key('theme-midnight')), findsNothing);
 
     await tester.tap(find.byKey(const Key('app-menu-close')));
     await tester.pump();
@@ -117,7 +123,7 @@ void main() {
     tester.view.devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const WCalcApp());
+    await tester.pumpWidget(WCalcApp());
     await tester.tap(find.byKey(const Key('app-menu-button')));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -130,7 +136,7 @@ void main() {
     tester.view.devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const WCalcApp());
+    await tester.pumpWidget(WCalcApp());
     await tapKey(tester, 'shift');
     expect(lcdText(tester, 'indicators'), contains('shift'));
   });
