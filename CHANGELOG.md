@@ -2,23 +2,26 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
-## [Unreleased]
+## [0.8.0-beta] - 2026-11-23
+
+Graphs from equations and statistics, TI-style menus, a smaller and lighter app.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
 
 ### Added
 - More graph shortcuts: the graph button also appears for quadratic / cubic equations (their
   polynomial) and for paired statistics data (scatter plot with the regression curve), on the
   two-line models' REG mode too.
-
-### Added
 - Graph mode remembers the functions you typed.
 - Graph in landscape keeps the function list beside the plot; screen readers hear a summary
   (curves, roots, turning points, intersections).
+- Scientific View and Two-View: menus show option names in rows; ◀ ▶ move the highlight and
+  enter chooses (numbers still work).
 
 ### Changed
 - Smaller download: the bundled fonts are subset to the characters W-Calc uses (−285 KB).
 - Dot displays draw in two batched calls (lighter on battery and older phones).
-- Scientific View and Two-View: menus show option names in rows; ◀ ▶ move the highlight and
-  enter chooses (numbers still work).
 
 ## [0.7.0-beta] - 2026-11-23
 
