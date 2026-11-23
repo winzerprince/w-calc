@@ -65,3 +65,7 @@ how to verify on the device, result.
 | 58 | Data screens | `x1=`, `y1=`, `Freq1=` (Freq only when ≠ 1); typing + `=` replaces, typing + DT adds | ▲ in SD | to verify labels |
 | 59 | DT after `n=` | repeats the last item (DT DT = same value twice) | `53 DT DT` | — |
 | 60 | CL | deletes the last item (or the shown item in data view) | `SHIFT M+` | to verify |
+| 61 | LOGIC pages | `And Or Xnor` / `Xor Not Neg` / `d h b o` (order taken from manual key sequences: Xnor = LOGIC 3, Xor = LOGIC LOGIC 1) | x⁻¹ in BASE | to verify |
+| 62 | Logic operator text | shown as ` and `, ` or `, ` xor `, ` xnor ` with spaces; `Not `, `Neg ` | | to verify |
+| 63 | Digits outside the base | accepted while typing, Syntax ERROR on `=` (e.g. `2` in BIN) | `BIN 12 =` | to verify |
+| 64 | BASE keys | (−) °′″ hyp sin cos tan type A-F; scientific keys do nothing; decimals are cut off | | to verify |

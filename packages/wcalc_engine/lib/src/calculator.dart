@@ -51,6 +51,18 @@ const _sciPrompt = _Menu('Sci 0~9?', {});
 const _normPrompt = _Menu('Norm 1~2?', {});
 const _clrMenu = _Menu('Mcl Mode All', {1: '1', 5: '2', 10: '3'});
 const _sclMenu = _Menu('Scl Mode All', {1: '1', 5: '2', 10: '3'});
+
+/// BASE LOGIC menu (x⁻¹ repeatedly pages through).
+const _logicPages = [
+  _Menu('And Or Xnor', {1: '1', 4: '2', 8: '3'}),
+  _Menu('Xor Not Neg', {1: '1', 4: '2', 8: '3'}),
+  _Menu(' d  h  b  o', {1: '1', 4: '2', 7: '3', 10: '4'}),
+];
+const _logicTokens = [
+  [Tok.logicAnd, Tok.logicOr, Tok.logicXnor],
+  [Tok.logicXor, Tok.logicNot, Tok.logicNeg],
+  [Tok.baseD, Tok.baseH, Tok.baseB, Tok.baseO],
+];
 const _clrScl = _Menu('Scl', {});
 
 /// REG type selection (MODE MODE 2), paged with ◀ ▶.
@@ -97,7 +109,7 @@ const _fractionPage = _Menu('ab/c d/c', {1: '1', 6: '2'});
 const _commaPage = _Menu('Dot Comma', {1: '1', 5: '2'});
 
 /// Calculation modes implemented so far.
-enum CalcMode { comp, cmplx, sd, reg }
+enum CalcMode { comp, cmplx, sd, reg, base }
 
 /// CLR confirmations (press = to execute, AC to cancel).
 const _clrMcl = _Menu('Mcl', {});
@@ -201,6 +213,11 @@ class Calculator {
 
   CalcMode _mode = CalcMode.comp;
 
+  /// BASE mode number system: 10, 16, 2 or 8.
+  int _base = 10;
+
+  static const _baseLetters = {10: 'd', 16: 'h', 2: 'b', 8: 'o'};
+
   /// SD/REG statistical memory.
   final StatData _stats = StatData();
 
@@ -265,6 +282,15 @@ class Calculator {
 
   FormattedNumber get _result {
     final v = _resultValue;
+    if (_mode == CalcMode.base) {
+      final letter = _baseLetters[_base];
+      if (v == null) return FormattedNumber('0.', null, letter);
+      try {
+        return FormattedNumber('${baseOutput(v.dec, _base)}.', null, letter);
+      } on CalcError {
+        return FormattedNumber('', null, letter);
+      }
+    }
     if (v == null) return const FormattedNumber('0.');
     if (_mode == CalcMode.cmplx && (v.isComplex || _polarShown)) {
       final part = _complexPart == 1
@@ -462,6 +488,7 @@ class Calculator {
       return;
     }
 
+    if (_mode == CalcMode.base && _pressBase(key, modifier)) return;
     switch ((modifier, key)) {
       case (_Modifier.none, CalcKey.mPlus) when _statMode:
         _registerData();
@@ -825,6 +852,7 @@ class Calculator {
     improperFractions: _settings.improperFractions,
     store: (name, value) => _vars[name] = value,
     stats: _statMode ? _stats : null,
+    base: _mode == CalcMode.base ? _base : null,
     random: _random,
   );
 
@@ -965,6 +993,20 @@ class Calculator {
       _menu = next < _modePages.length ? _modePages[next] : null;
       return;
     }
+    if (_logicPages.contains(menu)) {
+      final i = _logicPages.indexOf(menu);
+      if (key == CalcKey.reciprocal) {
+        _menu = _logicPages[(i + 1) % _logicPages.length];
+        return;
+      }
+      final d = key.digit;
+      final tokens = _logicTokens[i];
+      if (d != null && d >= 1 && d <= tokens.length) {
+        _menu = null;
+        _enter(tokens[d - 1]);
+      }
+      return;
+    }
     if (_regPages.contains(menu)) {
       final i = _regPages.indexOf(menu);
       if (key == CalcKey.right && i == 0) _menu = _regPages[1];
@@ -1050,6 +1092,11 @@ class Calculator {
         _setMode(d == 1 ? CalcMode.comp : CalcMode.cmplx);
       case (1, 1): // SD
         _setMode(CalcMode.sd);
+      case (1, 3): // BASE
+        _setMode(CalcMode.base);
+        _base = 10;
+      case (3 || 4 || 5, _) when _mode == CalcMode.base:
+        break; // Angle unit and display setup are fixed in BASE mode.
       case (1, 2): // REG → regression type
         _menu = _regPages.first;
       case (3, 1 || 2 || 3):
@@ -1190,6 +1237,82 @@ class Calculator {
     _resultValue = null;
     _history.clear();
     _clearStats();
+  }
+
+  // ------------------------------------------------------------------ BASE
+
+  /// BASE-mode key meanings. Returns true when the key was handled here
+  /// (including keys that do nothing in BASE mode).
+  bool _pressBase(CalcKey key, _Modifier modifier) {
+    if (modifier == _Modifier.none) {
+      final newBase = switch (key) {
+        CalcKey.square => 10,
+        CalcKey.power => 16,
+        CalcKey.log => 2,
+        CalcKey.ln => 8,
+        _ => null,
+      };
+      if (newBase != null) {
+        _setBase(newBase);
+        return true;
+      }
+      if (key == CalcKey.reciprocal) {
+        _menu = _logicPages.first;
+        return true;
+      }
+      final hex = switch (key) {
+        CalcKey.negative => Tok.hexA,
+        CalcKey.degMinSec => Tok.hexB,
+        CalcKey.hyp => Tok.hexC,
+        CalcKey.sin => Tok.hexD,
+        CalcKey.cos => Tok.hexE,
+        CalcKey.tan => Tok.hexF,
+        _ => null,
+      };
+      if (hex != null) {
+        _enter(hex);
+        return true;
+      }
+      // Scientific functions, fractions, ENG, CONST … do nothing in BASE mode.
+      const ignored = {
+        CalcKey.sqrt,
+        CalcKey.fraction,
+        CalcKey.eng,
+        CalcKey.constant,
+        CalcKey.exp,
+        CalcKey.calc,
+        CalcKey.integrate,
+        CalcKey.comma,
+      };
+      return ignored.contains(key);
+    }
+    if (modifier == _Modifier.shift) {
+      // Only STO, INS, CLR, OFF-like keys keep their SHIFT meaning here.
+      const allowed = {
+        CalcKey.rcl,
+        CalcKey.del,
+        CalcKey.mode,
+        CalcKey.mPlus,
+        CalcKey.ac,
+      };
+      return !allowed.contains(key);
+    }
+    return false;
+  }
+
+  /// DEC/HEX/BIN/OCT: switches the number system; a shown result is converted.
+  void _setBase(int base) {
+    final v = _resultValue;
+    if (_phase == _Phase.result && v != null) {
+      try {
+        baseOutput(v.dec, base);
+      } on CalcError catch (e) {
+        _base = base;
+        _showError(e);
+        return;
+      }
+    }
+    _base = base;
   }
 
   // ------------------------------------------------------------------ SD / REG
@@ -1684,6 +1807,7 @@ class Calculator {
     'polar': _settings.polarComplex,
     'mode': _mode.name,
     'regression': _stats.type.name,
+    'base': _base,
     'stats': [for (final i in _stats.items) '${i.x}|${i.y ?? ''}|${i.freq}'],
     'editLimit': _editLimit,
     'improper': _settings.improperFractions,
@@ -1741,6 +1865,8 @@ class Calculator {
       );
       final mode = state['mode'];
       if (mode is String) _mode = CalcMode.values.byName(mode);
+      final base = state['base'];
+      if (base is int && const [10, 16, 2, 8].contains(base)) _base = base;
       final regression = state['regression'];
       if (regression is String) {
         _stats.type = RegressionType.values.byName(regression);
