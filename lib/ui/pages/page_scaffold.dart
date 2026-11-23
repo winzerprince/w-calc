@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../reading_theme.dart';
+
 /// Shared look for menu pages: the menu's black, white text, back arrow.
 class MenuPageScaffold extends StatelessWidget {
   const MenuPageScaffold({
@@ -13,14 +15,9 @@ class MenuPageScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData.dark(useMaterial3: true).copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0B0B0D),
-        textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Barlow'),
-      ),
+    return AppPageTheme(
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0B0B0D),
           title: Text(
             title,
             style: const TextStyle(fontWeight: FontWeight.w700),
@@ -53,8 +50,8 @@ class PageSection extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
     child: Text(
       text.toUpperCase(),
-      style: const TextStyle(
-        color: Colors.white54,
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.primary,
         fontSize: 12,
         letterSpacing: 1.2,
         fontWeight: FontWeight.w700,
@@ -74,7 +71,11 @@ class PageText extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
     child: Text(
       text,
-      style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
+      style: TextStyle(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        fontSize: 15,
+        height: 1.4,
+      ),
     ),
   );
 }

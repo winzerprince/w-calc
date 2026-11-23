@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app/app_settings.dart';
 import 'keypad_layout.dart';
 import 'skin.dart';
 
@@ -7,7 +8,11 @@ import 'skin.dart';
 /// dark ones, so it feels like part of the same device.
 ThemeData readingTheme(BuildContext context) {
   final skin = CalcSkin.of(context);
-  final dark = skin.body.computeLuminance() < 0.3;
+  final dark = switch (SettingsScope.maybeOf(context)?.appearance) {
+    'light' => false,
+    'dark' => true,
+    _ => MediaQuery.platformBrightnessOf(context) == Brightness.dark,
+  };
   final seeded = ColorScheme.fromSeed(
     seedColor: skin.label(LabelKind.shift),
     brightness: dark ? Brightness.dark : Brightness.light,
@@ -42,4 +47,25 @@ ThemeData readingTheme(BuildContext context) {
       surfaceTintColor: Colors.transparent,
     ),
   );
+}
+
+/// Every menu page: the reading theme (System / Light / Dark from settings)
+/// and the chosen text size. The calculator itself is not affected.
+class AppPageTheme extends StatelessWidget {
+  const AppPageTheme({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = SettingsScope.maybeOf(context)?.textScale ?? 1.0;
+    return Theme(
+      data: readingTheme(context),
+      child: MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(scale)),
+        child: child,
+      ),
+    );
+  }
 }

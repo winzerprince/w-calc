@@ -4,6 +4,7 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 import '../app/calc_model.dart';
 import 'keypad_layout.dart';
 import 'legend.dart';
+import 'neon.dart';
 import 'finish.dart';
 import 'skin.dart';
 import 'tour/tours.dart';
@@ -116,8 +117,21 @@ class KeyButton extends StatefulWidget {
   State<KeyButton> createState() => _KeyButtonState();
 }
 
-class _KeyButtonState extends State<KeyButton> {
+class _KeyButtonState extends State<KeyButton>
+    with SingleTickerProviderStateMixin {
   bool _down = false;
+
+  /// Neon themes: light running once round the key after a press.
+  late final AnimationController _snake = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 460),
+  );
+
+  @override
+  void dispose() {
+    _snake.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -215,6 +229,14 @@ class _KeyButtonState extends State<KeyButton> {
     final model = ModelScope.of(context);
     final finish = CalcFinish.of(context);
     final base = cap;
+    final skin = CalcSkin.of(context);
+    // Neon: glow colour (rainbow spreads hues gently across the keypad).
+    final neon = skin.isNeon
+        ? neonColor(context, offset: spec.key.index / 90)
+        : null;
+    final radius = neon != null
+        ? (spec.style == KeyStyle.modifier ? 20.0 : 10.0)
+        : finish.keyRadius(spec.style == KeyStyle.modifier ? 20 : 9);
     final enabled = model.keyEnabled(spec.key);
     final extras = [
       for (final l in [...spec.above, ...spec.below])
@@ -232,46 +254,79 @@ class _KeyButtonState extends State<KeyButton> {
         key: Key('key-${spec.key.name}'),
         onPointerDown: (_) {
           setState(() => _down = true);
+          if (CalcSkin.of(context).isNeon) _snake.forward(from: 0);
           widget.onPress(spec.key);
         },
         onPointerUp: (_) => setState(() => _down = false),
         onPointerCancel: (_) => setState(() => _down = false),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 60),
-          transform: Matrix4.translationValues(0, _down ? 1.5 : 0, 0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(
-              finish.keyRadius(spec.style == KeyStyle.modifier ? 20 : 9),
-            ),
-            gradient: finish.keyGradient(base, down: _down),
-            border: finish.keyBorder(base),
-            boxShadow: finish.keyShadow(down: _down),
-          ),
-          foregroundDecoration: finish.keySheen() == null
-              ? null
-              : BoxDecoration(
-                  borderRadius: BorderRadius.circular(
-                    finish.keyRadius(spec.style == KeyStyle.modifier ? 20 : 9),
+        child: AnimatedBuilder(
+          animation: _snake,
+          builder: (context, child) => CustomPaint(
+            foregroundPainter: neon == null
+                ? null
+                : NeonSnakePainter(
+                    progress: _snake.value,
+                    color: neon,
+                    radius: radius,
                   ),
-                  gradient: finish.keySheen(),
-                ),
-          alignment: Alignment.center,
-          child: FittedBox(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Text.rich(
-                TextSpan(
-                  children: legendSpans(
-                    spec.main,
-                    TextStyle(
-                      color: fg,
-                      fontWeight: FontWeight.w700,
-                      fontSize: switch (spec.style) {
-                        KeyStyle.digit => 24,
-                        KeyStyle.operator => 26,
-                        KeyStyle.modifier => 13,
-                        _ => 16,
-                      },
+            child: child,
+          ),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 60),
+            transform: Matrix4.translationValues(0, _down ? 1.5 : 0, 0),
+            decoration: neon != null
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(radius),
+                    color: Color.lerp(base, neon, _down ? 0.22 : 0.04),
+                    border: Border.all(
+                      color: neon.withValues(alpha: _down ? 1 : 0.8),
+                      width: 1.3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: neon.withValues(alpha: _down ? 0.7 : 0.35),
+                        blurRadius: _down ? 14 : 7,
+                      ),
+                    ],
+                  )
+                : BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      finish.keyRadius(
+                        spec.style == KeyStyle.modifier ? 20 : 9,
+                      ),
+                    ),
+                    gradient: finish.keyGradient(base, down: _down),
+                    border: finish.keyBorder(base),
+                    boxShadow: finish.keyShadow(down: _down),
+                  ),
+            foregroundDecoration: neon != null || finish.keySheen() == null
+                ? null
+                : BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      finish.keyRadius(
+                        spec.style == KeyStyle.modifier ? 20 : 9,
+                      ),
+                    ),
+                    gradient: finish.keySheen(),
+                  ),
+            alignment: Alignment.center,
+            child: FittedBox(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text.rich(
+                  TextSpan(
+                    children: legendSpans(
+                      spec.main,
+                      TextStyle(
+                        color: fg,
+                        fontWeight: FontWeight.w700,
+                        fontSize: switch (spec.style) {
+                          KeyStyle.digit => 24,
+                          KeyStyle.operator => 26,
+                          KeyStyle.modifier => 13,
+                          _ => 16,
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -488,12 +543,25 @@ class _ArrowKeyState extends State<_ArrowKey> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 60),
           margin: const EdgeInsets.all(1.5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(finish.keyRadius(10)),
-            gradient: finish.keyGradient(widget.color, down: _down),
-            border: finish.keyBorder(widget.color),
-            boxShadow: finish.keyShadow(down: _down),
-          ),
+          decoration: CalcSkin.of(context).isNeon
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: widget.color,
+                  border: Border.all(color: neonColor(context), width: 1.3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: neonColor(context)
+                          .withValues(alpha: _down ? 0.7 : 0.35),
+                      blurRadius: _down ? 14 : 7,
+                    ),
+                  ],
+                )
+              : BoxDecoration(
+                  borderRadius: BorderRadius.circular(finish.keyRadius(10)),
+                  gradient: finish.keyGradient(widget.color, down: _down),
+                  border: finish.keyBorder(widget.color),
+                  boxShadow: finish.keyShadow(down: _down),
+                ),
           child: FractionallySizedBox(
             widthFactor: 0.45,
             heightFactor: 0.45,

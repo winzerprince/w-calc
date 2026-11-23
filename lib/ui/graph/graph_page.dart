@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
@@ -351,8 +352,7 @@ class _GraphPageState extends State<GraphPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: readingTheme(context),
+    return AppPageTheme(
       child: Builder(
         builder: (context) {
           final scheme = Theme.of(context).colorScheme;
@@ -410,56 +410,68 @@ class _GraphPageState extends State<GraphPage> {
                       }
                       return Stack(
                         children: [
-                          GestureDetector(
-                            key: const Key('graph-canvas'),
-                            onScaleStart: (d) {
-                              _startCenter = _center;
-                              _startScale = _scale;
-                              _startFocal = d.localFocalPoint;
+                          Listener(
+                            // Mouse wheel / trackpad scroll zooms (web).
+                            onPointerSignal: (e) {
+                              if (e is PointerScrollEvent) {
+                                _zoom(
+                                  e.scrollDelta.dy > 0 ? 1 / 1.15 : 1.15,
+                                  e.localPosition,
+                                );
+                              }
                             },
-                            onScaleUpdate: (d) {
-                              setState(() {
-                                _scale = (_startScale * d.scale).clamp(
-                                  1e-3,
-                                  1e6,
-                                );
-                                // Keep the world point under the fingers.
-                                final w0 = Offset(
-                                  _startCenter.dx +
-                                      (_startFocal.dx - _size.width / 2) /
-                                          _startScale,
-                                  _startCenter.dy -
-                                      (_startFocal.dy - _size.height / 2) /
-                                          _startScale,
-                                );
-                                _center = Offset(
-                                  w0.dx -
-                                      (d.localFocalPoint.dx - _size.width / 2) /
-                                          _scale,
-                                  w0.dy +
-                                      (d.localFocalPoint.dy -
-                                              _size.height / 2) /
-                                          _scale,
-                                );
-                              });
-                            },
-                            onScaleEnd: (_) => _schedulePoi(),
-                            onTapUp: (d) => _onTap(d.localPosition),
-                            onDoubleTapDown: (d) => _zoom(2, d.localPosition),
-                            child: Semantics(
-                              label: _summary(),
-                              child: CustomPaint(
-                                key: TourKeys.graphCanvas,
-                                size: Size.infinite,
-                                painter: _GraphPainter(
-                                  points: _points,
-                                  center: _center,
-                                  scale: _scale,
-                                  curves: _curves,
-                                  poi: _poi,
-                                  trace: _trace,
-                                  paper: scheme.surface,
-                                  ink: scheme.onSurface,
+                            child: GestureDetector(
+                              key: const Key('graph-canvas'),
+                              onScaleStart: (d) {
+                                _startCenter = _center;
+                                _startScale = _scale;
+                                _startFocal = d.localFocalPoint;
+                              },
+                              onScaleUpdate: (d) {
+                                setState(() {
+                                  _scale = (_startScale * d.scale).clamp(
+                                    1e-3,
+                                    1e6,
+                                  );
+                                  // Keep the world point under the fingers.
+                                  final w0 = Offset(
+                                    _startCenter.dx +
+                                        (_startFocal.dx - _size.width / 2) /
+                                            _startScale,
+                                    _startCenter.dy -
+                                        (_startFocal.dy - _size.height / 2) /
+                                            _startScale,
+                                  );
+                                  _center = Offset(
+                                    w0.dx -
+                                        (d.localFocalPoint.dx -
+                                                _size.width / 2) /
+                                            _scale,
+                                    w0.dy +
+                                        (d.localFocalPoint.dy -
+                                                _size.height / 2) /
+                                            _scale,
+                                  );
+                                });
+                              },
+                              onScaleEnd: (_) => _schedulePoi(),
+                              onTapUp: (d) => _onTap(d.localPosition),
+                              onDoubleTapDown: (d) => _zoom(2, d.localPosition),
+                              child: Semantics(
+                                label: _summary(),
+                                child: CustomPaint(
+                                  key: TourKeys.graphCanvas,
+                                  size: Size.infinite,
+                                  painter: _GraphPainter(
+                                    points: _points,
+                                    center: _center,
+                                    scale: _scale,
+                                    curves: _curves,
+                                    poi: _poi,
+                                    trace: _trace,
+                                    paper: scheme.surface,
+                                    ink: scheme.onSurface,
+                                  ),
                                 ),
                               ),
                             ),

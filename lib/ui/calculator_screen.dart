@@ -4,14 +4,17 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 
 import '../app/app_settings.dart';
 import '../app/calc_model.dart';
+import '../app/history_store.dart';
 import 'app_menu.dart';
 import 'finish.dart';
 import 'fullscreen.dart';
 import 'graph/graph_page.dart';
 import 'haptics.dart';
+import 'pages/history_page.dart';
 import 'keyboard_shortcuts.dart';
 import 'keypad.dart';
 import 'keypad_layout.dart' show LabelKind;
+import 'neon.dart';
 import 'lcd.dart';
 import 'lcd/dot_lcd.dart';
 import 'skin.dart';
@@ -26,7 +29,14 @@ class CalculatorScreen extends StatefulWidget {
   State<CalculatorScreen> createState() => _CalculatorScreenState();
 }
 
-class _CalculatorScreenState extends State<CalculatorScreen> {
+class _CalculatorScreenState extends State<CalculatorScreen>
+    with SingleTickerProviderStateMixin {
+  /// Neon themes: the display ring after a key press.
+  late final AnimationController _ring = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+
   CalcEngine _calc = Calculator();
   CalcModel? _model;
 
@@ -120,8 +130,33 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   /// A long computation (∫dx, d/dx, SOLVE) is running.
   bool _busy = false;
 
+  /// Records a calculation the engine just finished in [HistoryStore].
+  void _recordHistory(List<({String input, String result})> before) {
+    final after = _calc.historyEntries;
+    if (after.isEmpty) return;
+    final grew = after.length > before.length;
+    final shifted =
+        after.length == before.length &&
+        before.isNotEmpty &&
+        after.last != before.last;
+    if (grew || shifted) {
+      HistoryStore.instance.add(
+        _model!.id,
+        after.last.input,
+        after.last.result,
+      );
+    }
+  }
+
   Future<void> _press(CalcKey key) async {
     if (_busy) return;
+    if (CalcSkin.of(context).isNeon) {
+      // After the key's own light, a lap round the display.
+      Future<void>.delayed(const Duration(milliseconds: 140), () {
+        if (mounted) _ring.forward(from: 0);
+      });
+    }
+    final historyBefore = _calc.historyEntries;
     final settings = SettingsScope.maybeOf(context);
     if (settings?.vibration ?? true) keyVibration();
     if (settings?.keySound ?? false) SystemSound.play(SystemSoundType.click);
@@ -135,6 +170,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     } else {
       setState(() => _calc.press(key));
     }
+    _recordHistory(historyBefore);
     StateStore.save(_calc, _stateKey);
   }
 
@@ -184,50 +220,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   VoidCallback? _historyAction() =>
       _calc.historyEntries.isEmpty ? null : _openHistory;
 
-  /// Earlier calculations, newest first; tap one to copy its answer.
+  /// The History page for the model in use.
   void _openHistory() {
     keyVibration();
-    final entries = _calc.historyEntries.reversed.toList();
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheet) => SafeArea(
-        child: ListView(
-          key: const Key('history-list'),
-          shrinkWrap: true,
-          children: [
-            const ListTile(
-              title: Text(
-                'Earlier calculations',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: Text('Tap one to copy its answer'),
-            ),
-            for (final e in entries)
-              ListTile(
-                title: Text(e.input),
-                trailing: Text(
-                  e.result,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                  ),
-                ),
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: e.result));
-                  Navigator.pop(sheet);
-                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                    SnackBar(
-                      content: Text('Copied ${e.result}'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-              ),
-          ],
-        ),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(SoftRoute<void>(builder: (_) => HistoryPage(modelId: _model?.id)));
   }
 
   VoidCallback? _graphAction() {
@@ -278,6 +276,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   @override
   void dispose() {
     calculatorTourRequest.removeListener(replayTour);
+    _ring.dispose();
     if (_focusMode) setFullscreen(false);
     _focus.dispose();
     super.dispose();
@@ -302,6 +301,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               final landscape = box.maxWidth > box.maxHeight * 1.15;
               final lcd = _Bezel(
                 key: TourKeys.lcd,
+                ring: _ring,
                 child: GestureDetector(
                   key: const Key('lcd-copy'),
                   onLongPress: _copyResult,
@@ -393,108 +393,111 @@ class _Header extends StatelessWidget {
   final bool focus;
   final VoidCallback onFocus;
 
-  /// Shown when the calculation can be graphed (it uses X).
+  /// Shown when the calculation can be graphed.
   final VoidCallback? onGraph;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
+    final skin = CalcSkin.of(context);
+    // Fixed height and fixed slots: nothing moves when contextual
+    // commands appear or disappear.
+    return SizedBox(
+      height: 52,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // W-Calc above the menu icon, top left.
+          Align(
+            alignment: Alignment.topLeft,
+            child: KeyedSubtree(
+              key: TourKeys.menu,
+              child: _MenuButton(onReset: onReset),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Align(
             alignment: Alignment.bottomLeft,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                KeyedSubtree(
-                  key: TourKeys.menu,
-                  child: _MenuButton(onReset: onReset),
+                _ContextSlot(
+                  buttonKey: const Key('history-button'),
+                  icon: Icons.history,
+                  tooltip: 'Earlier calculations',
+                  color: skin.brandText,
+                  onTap: onHistory,
                 ),
-                // Contextual command: earlier calculations.
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, a) =>
-                      ScaleTransition(scale: a, child: child),
-                  child: onHistory == null
-                      ? const SizedBox(key: ValueKey('no-history'), width: 0)
-                      : IconButton(
-                          key: const Key('history-button'),
-                          tooltip: 'Earlier calculations',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: onHistory,
-                          icon: Icon(
-                            Icons.history,
-                            color: CalcSkin.of(context).brandText
-                                .withValues(alpha: 0.8),
-                          ),
-                        ),
-                ),
-                // Contextual command: graph the expression in X.
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, a) =>
-                      ScaleTransition(scale: a, child: child),
-                  child: onGraph == null
-                      ? const SizedBox(key: ValueKey('no-graph'), width: 0)
-                      : IconButton(
-                          key: const Key('graph-button'),
-                          tooltip: 'Graph this',
-                          visualDensity: VisualDensity.compact,
-                          onPressed: onGraph,
-                          icon: Icon(
-                            Icons.show_chart,
-                            color: CalcSkin.of(context).label(LabelKind.shift),
-                          ),
-                        ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  ModelScope.of(context).name.toUpperCase(),
-                  style: TextStyle(
-                    color: CalcSkin.of(context).brandText
-                        .withValues(alpha: 0.55),
-                    fontSize: 9,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w600,
-                  ),
+                const SizedBox(width: 4),
+                _ContextSlot(
+                  buttonKey: const Key('graph-button'),
+                  icon: Icons.show_chart,
+                  tooltip: 'Graph this',
+                  color: skin.label(LabelKind.shift),
+                  onTap: onGraph,
                 ),
               ],
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        // The solar panel toggles focus (full-screen) mode.
-        Tooltip(
-          message: focus ? 'Exit full screen' : 'Full screen',
-          child: Semantics(
-            button: true,
-            toggled: focus,
-            label: 'Full screen',
-            excludeSemantics: true,
-            child: GestureDetector(
-              key: const Key('solar-panel'),
-              behavior: HitTestBehavior.opaque,
-              onTap: onFocus,
-              child: Padding(
-                key: TourKeys.solar,
-                padding: const EdgeInsets.all(4),
-                child: _solar(context),
+          Expanded(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.topRight,
+                child: SizedBox(
+                  height: 52,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // The solar panel toggles focus (full-screen) mode.
+                      Tooltip(
+                        message: focus ? 'Exit full screen' : 'Full screen',
+                        child: Semantics(
+                          button: true,
+                          toggled: focus,
+                          label: 'Full screen',
+                          excludeSemantics: true,
+                          child: GestureDetector(
+                            key: const Key('solar-panel'),
+                            behavior: HitTestBehavior.opaque,
+                            onTap: onFocus,
+                            child: Padding(
+                              key: TourKeys.solar,
+                              padding: const EdgeInsets.fromLTRB(4, 2, 0, 2),
+                              child: _solar(context),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        ModelScope.of(context).name.toUpperCase(),
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: skin.brandText.withValues(alpha: 0.6),
+                          fontSize: 9,
+                          letterSpacing: 1.2,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _solar(BuildContext context) {
+    final skin = CalcSkin.of(context);
     return Container(
-      width: 92,
-      height: 22,
+      width: 84,
+      height: 20,
       decoration: BoxDecoration(
-        color: CalcSkin.of(context).solarStrip,
+        color: skin.solarStrip,
         borderRadius: BorderRadius.circular(3),
         border: Border.all(color: Colors.black54),
       ),
@@ -504,11 +507,7 @@ class _Header extends StatelessWidget {
             Expanded(
               child: Container(
                 margin: const EdgeInsets.all(1.5),
-                color: Color.lerp(
-                  CalcSkin.of(context).solarStrip,
-                  Colors.white,
-                  0.08,
-                ),
+                color: Color.lerp(skin.solarStrip, Colors.white, 0.08),
               ),
             ),
         ],
@@ -517,21 +516,96 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _Bezel extends StatelessWidget {
-  const _Bezel({super.key, required this.child});
+/// A contextual command in a fixed slot: always takes its space, fades and
+/// scales in when available, ignores taps when not.
+class _ContextSlot extends StatelessWidget {
+  const _ContextSlot({
+    required this.buttonKey,
+    required this.icon,
+    required this.tooltip,
+    required this.color,
+    required this.onTap,
+  });
 
-  final Widget child;
+  final Key buttonKey;
+  final IconData icon;
+  final String tooltip;
+  final Color color;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final on = onTap != null;
+    return SizedBox.square(
+      dimension: 32,
+      child: AnimatedOpacity(
+        opacity: on ? 1 : 0,
+        duration: const Duration(milliseconds: 200),
+        child: AnimatedScale(
+          scale: on ? 1 : 0.6,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutBack,
+          child: IgnorePointer(
+            ignoring: !on,
+            child: on
+                ? IconButton(
+                    key: buttonKey,
+                    tooltip: tooltip,
+                    padding: EdgeInsets.zero,
+                    iconSize: 22,
+                    onPressed: onTap,
+                    icon: Icon(icon, color: color),
+                  )
+                : Icon(icon, color: color, size: 22),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Bezel extends StatelessWidget {
+  const _Bezel({super.key, required this.child, this.ring});
+
+  final Widget child;
+
+  /// Neon themes: light travelling once round the display after a press.
+  final Animation<double>? ring;
+
+  @override
+  Widget build(BuildContext context) {
+    final skin = CalcSkin.of(context);
+    final neon = skin.isNeon ? neonColor(context) : null;
+    final box = Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: CalcSkin.of(context).bezel,
+        color: skin.bezel,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.black45, width: 1.5),
+        border: Border.all(
+          color: neon?.withValues(alpha: 0.55) ?? Colors.black45,
+          width: 1.5,
+        ),
+        boxShadow: neon == null
+            ? null
+            : [BoxShadow(color: neon.withValues(alpha: 0.28), blurRadius: 12)],
       ),
       child: child,
+    );
+    final r = ring;
+    if (neon == null || r == null) return box;
+    return AnimatedBuilder(
+      animation: r,
+      builder: (context, child) => CustomPaint(
+        foregroundPainter: NeonSnakePainter(
+          progress: r.value,
+          color: neon,
+          radius: 14,
+          length: 0.22,
+          width: 3,
+        ),
+        child: child,
+      ),
+      child: box,
     );
   }
 }
@@ -559,24 +633,25 @@ class _MenuButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             onTap: () => showAppMenu(context, onReset: onReset),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(4, 2, 8, 2),
-              child: Row(
+              padding: const EdgeInsets.fromLTRB(2, 0, 8, 2),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    Icons.menu,
-                    color: brand.withValues(alpha: 0.75),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 6),
                   Text(
                     'W-Calc',
                     style: TextStyle(
                       color: brand,
-                      fontSize: 20,
+                      fontSize: 18,
+                      height: 1.1,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,
                     ),
+                  ),
+                  Icon(
+                    Icons.menu,
+                    color: brand.withValues(alpha: 0.8),
+                    size: 22,
                   ),
                 ],
               ),

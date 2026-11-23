@@ -143,7 +143,7 @@ class _SkinPreview extends StatelessWidget {
         decoration: BoxDecoration(
           color: skin.body,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.white24),
+          border: Border.all(color: Colors.black26),
         ),
         child: Column(
           children: [

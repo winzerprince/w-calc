@@ -3,5 +3,5 @@
     <!-- Launch screen background: the app's dark backdrop (no white flash). -->
     <color name="launch_background">#15171C</color>
     <!-- Adaptive icon background: the calculator body colour. -->
-    <color name="ic_launcher_background">#2D3240</color>
+    <color name="ic_launcher_background">#1C2470</color>
 </resources>

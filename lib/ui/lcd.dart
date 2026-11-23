@@ -89,11 +89,14 @@ class _LcdState extends State<Lcd> {
           ),
           AspectRatio(
             aspectRatio: LcdPainter.aspectRatio,
-            child: CustomPaint(
-              painter: LcdPainter(
-                display: d,
-                cursorVisible: _cursorOn,
-                palette: CalcSkin.of(context).lcd,
+            child: glowingLcd(
+              CalcSkin.of(context).lcd,
+              CustomPaint(
+                painter: LcdPainter(
+                  display: d,
+                  cursorVisible: _cursorOn,
+                  palette: CalcSkin.of(context).lcd,
+                ),
               ),
             ),
           ),

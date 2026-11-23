@@ -45,3 +45,35 @@ Assumptions waiting for confirmation are listed in [`behaviour-notes.md`](behavi
 Append `?keys=` with comma-separated keys to the web URL to replay them on load, e.g.
 `http://<ip>:8080/?keys=56,times,(,neg,12,),=`. Add `&skin=midnight` (classic, midnight, high-contrast, ivory) to preview a theme. In URLs write `+` as `%2B` (a bare `+` means space) and the comma key as `comma`. Names: digits, `plus minus times div neg`,
 `( ) EXP Ans = AC DEL INS SHIFT ALPHA MODE hyp < > up down`, functions `sin cos tan log ln sqrt x2 x-1 pow`, shortcuts `asin acos atan 10^ e^ e cbrt x3 xroot fact nPr nCr pi Ran# Rnd DRG`.
+
+## On-device checklist (v0.10+)
+
+Install the newest `…-arm64-v8a.apk` from GitHub Releases (uninstall first to see the first-start
+tour again). Tick each line; report anything that differs from your real calculators with the
+keys you pressed and what each showed.
+
+**Start and look**
+- [ ] Dark launch screen with the W-Calc icon; launcher icon fills its shape (no white frame).
+- [ ] First-start tour: notes and arrows over a dark scrim; tap moves on; *skip* closes.
+- [ ] Tap the solar panel: full screen; tap again: back.
+- [ ] Long-press `sin`: bubble lists SHIFT ▸ sin⁻¹ and ALPHA ▸ D.
+- [ ] Every key vibrates (Settings ▸ Vibrate on key press).
+- [ ] Menu ▸ Theme ▸ Finish: Classic, Raised, Soft, Metallic look different.
+
+**Models** (Menu ▸ Calculator model; tap a picture to preview)
+- [ ] Scientific Plus: `2 ab/c 3 + 1 ab/c 2 =` → `1┘1┘6`.
+- [ ] Textbook Plus II: `2 □/□ 3 ▶ + 1 □/□ 2 =` → 7/6; `S⇔D` → 1.166666667.
+- [ ] Textbook Plus: `MODE 5 3`, `1 = 1 = 3 □/□ 4 = =` → X1 = −1/2 + √2/2 i.
+- [ ] Scientific View: `1 + 1 enter`, `2 n/d 3 ▶ + 1 n/d 2 enter` → both answers stay on screen.
+- [ ] Scientific Two-View: `5 n/d 6 + 1 n/d 10 enter` → 14/15; `◄►` → 0.933333333.
+- [ ] Scientific Max: `MODE 6 4 4 4` opens a 4×4 MatD editor.
+- [ ] Textbook Basic: ∫, CALC and CONST are faded and do nothing.
+
+**Graph, history, manual**
+- [ ] Type `X² − 4` (ALPHA `)` gives X): chart icon appears; graph shows roots at ±2.
+- [ ] Textbook: `MODE 5 3`, `1 = −3 = 2 =` then chart icon: curve crosses at 1 and 2.
+- [ ] Clock icon lists earlier calculations; tap one copies its answer.
+- [ ] Menu ▸ Manual: search "speed of light"; open the constants list and filter "gas".
+
+**Questions for your real units** — see `docs/behaviour-notes.md` (open items #73, #79, #81,
+#83, #84 and the older "verify on device" rows).
