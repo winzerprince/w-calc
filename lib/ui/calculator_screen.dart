@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
+import '../app/app_settings.dart';
 import 'app_menu.dart';
 import 'haptics.dart';
 import 'keyboard_shortcuts.dart';
 import 'keypad.dart';
-import 'keypad_layout.dart';
 import 'lcd.dart';
+import 'skin.dart';
 import 'state_store.dart';
 
 class CalculatorScreen extends StatefulWidget {
@@ -43,8 +44,16 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   void _press(CalcKey key) {
-    keyVibration();
+    final settings = SettingsScope.maybeOf(context);
+    if (settings?.vibration ?? true) keyVibration();
+    if (settings?.keySound ?? false) SystemSound.play(SystemSoundType.click);
     setState(() => _calc.press(key));
+    StateStore.save(_calc);
+  }
+
+  /// Settings ▸ Reset calculator.
+  void _reset() {
+    setState(_calc.resetAll);
     StateStore.save(_calc);
   }
 
@@ -67,8 +76,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final skin = CalcSkin.of(context);
     return Scaffold(
-      backgroundColor: WCalcColors.background,
+      backgroundColor: skin.background,
       body: Focus(
         focusNode: _focus,
         autofocus: true,
@@ -82,10 +92,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(28),
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [WCalcColors.bodyTop, WCalcColors.body],
+                    colors: [skin.bodyTop, skin.body],
                   ),
                   boxShadow: const [
                     BoxShadow(
@@ -97,7 +107,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                 ),
                 child: Column(
                   children: [
-                    const _Header(),
+                    _Header(onReset: _reset),
                     const SizedBox(height: 8),
                     _Bezel(child: Lcd(display: _calc.display)),
                     const SizedBox(height: 12),
@@ -114,7 +124,9 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({required this.onReset});
+
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -128,12 +140,13 @@ class _Header extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const _MenuButton(),
+                _MenuButton(onReset: onReset),
                 const SizedBox(width: 8),
                 Text(
                   'TWO-LINE SCIENTIFIC',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.55),
+                    color: CalcSkin.of(context).brandText
+                        .withValues(alpha: 0.55),
                     fontSize: 9,
                     letterSpacing: 1.2,
                     fontWeight: FontWeight.w600,
@@ -149,7 +162,7 @@ class _Header extends StatelessWidget {
           width: 92,
           height: 22,
           decoration: BoxDecoration(
-            color: const Color(0xFF3A2A22),
+            color: CalcSkin.of(context).solarStrip,
             borderRadius: BorderRadius.circular(3),
             border: Border.all(color: Colors.black54),
           ),
@@ -159,7 +172,11 @@ class _Header extends StatelessWidget {
                 Expanded(
                   child: Container(
                     margin: const EdgeInsets.all(1.5),
-                    color: const Color(0xFF4A3529),
+                    color: Color.lerp(
+                      CalcSkin.of(context).solarStrip,
+                      Colors.white,
+                      0.08,
+                    ),
                   ),
                 ),
             ],
@@ -180,7 +197,7 @@ class _Bezel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: WCalcColors.bezel,
+        color: CalcSkin.of(context).bezel,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.black45, width: 1.5),
       ),
@@ -192,10 +209,13 @@ class _Bezel extends StatelessWidget {
 /// The brand name doubles as the menu button: menu icon + ripple + tooltip
 /// make it clearly tappable.
 class _MenuButton extends StatelessWidget {
-  const _MenuButton();
+  const _MenuButton({required this.onReset});
+
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
+    final brand = CalcSkin.of(context).brandText;
     return Tooltip(
       message: 'Menu',
       child: Semantics(
@@ -207,18 +227,22 @@ class _MenuButton extends StatelessWidget {
           child: InkWell(
             key: const Key('app-menu-button'),
             borderRadius: BorderRadius.circular(8),
-            onTap: () => showAppMenu(context),
-            child: const Padding(
-              padding: EdgeInsets.fromLTRB(4, 2, 8, 2),
+            onTap: () => showAppMenu(context, onReset: onReset),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(4, 2, 8, 2),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.menu, color: Colors.white70, size: 20),
-                  SizedBox(width: 6),
+                  Icon(
+                    Icons.menu,
+                    color: brand.withValues(alpha: 0.75),
+                    size: 20,
+                  ),
+                  const SizedBox(width: 6),
                   Text(
                     'W-Calc',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: brand,
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5,

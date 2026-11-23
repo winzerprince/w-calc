@@ -3,6 +3,7 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 
 import 'keypad_layout.dart';
 import 'legend.dart';
+import 'skin.dart';
 
 /// Height of one printed legend strip.
 const double _stripHeight = 13;
@@ -94,12 +95,13 @@ class _KeyButtonState extends State<KeyButton> {
   @override
   Widget build(BuildContext context) {
     final spec = widget.spec;
+    final skin = CalcSkin.of(context);
     final (base, fg) = switch (spec.style) {
-      KeyStyle.modifier => (WCalcColors.modifierKey, const Color(0xFF22252C)),
-      KeyStyle.function => (WCalcColors.functionKey, Colors.white),
-      KeyStyle.digit => (WCalcColors.digitKey, Colors.white),
-      KeyStyle.operator => (WCalcColors.operatorKey, Colors.white),
-      KeyStyle.clear => (WCalcColors.clearKey, Colors.white),
+      KeyStyle.modifier => (skin.modifierKey, skin.modifierText),
+      KeyStyle.function => (skin.functionKey, skin.functionText),
+      KeyStyle.digit => (skin.digitKey, skin.digitText),
+      KeyStyle.operator => (skin.operatorKey, skin.digitText),
+      KeyStyle.clear => (skin.clearKey, skin.clearText),
     };
     final cap = Color.lerp(base, Colors.black, _down ? 0.25 : 0)!;
 
@@ -234,12 +236,13 @@ class LegendText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final skin = CalcSkin.of(context);
     final text = Text.rich(
       TextSpan(
         children: legendSpans(
           label.text,
           TextStyle(
-            color: WCalcColors.label(label.kind),
+            color: skin.label(label.kind),
             fontSize: 10,
             fontWeight: FontWeight.w700,
             height: 1.1,
@@ -250,7 +253,7 @@ class LegendText extends StatelessWidget {
     final bracket = label.bracket;
     if (bracket == null) return text;
     return CustomPaint(
-      painter: _BracketPainter(WCalcColors.label(bracket), openDown: !below),
+      painter: _BracketPainter(skin.label(bracket), openDown: !below),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: text,
@@ -299,20 +302,21 @@ class CursorDisc extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final skin = CalcSkin.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
       child: Center(
         child: AspectRatio(
           aspectRatio: 1.3,
           child: DecoratedBox(
-            decoration: const ShapeDecoration(
+            decoration: ShapeDecoration(
               shape: OvalBorder(),
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFFECE9E2), WCalcColors.modifierKey],
+                colors: [Color.lerp(skin.disc, Colors.white, 0.12)!, skin.disc],
               ),
-              shadows: [
+              shadows: const [
                 BoxShadow(
                   color: Colors.black54,
                   blurRadius: 3,
@@ -322,15 +326,14 @@ class CursorDisc extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                _zone(CalcKey.up, Alignment.topCenter, AxisDirection.up),
-                _zone(CalcKey.down, Alignment.bottomCenter, AxisDirection.down),
-                _zone(CalcKey.left, Alignment.centerLeft, AxisDirection.left),
-                _zone(
-                  CalcKey.right,
-                  Alignment.centerRight,
-                  AxisDirection.right,
-                ),
-                const Center(
+                for (final (key, align, dir) in const [
+                  (CalcKey.up, Alignment.topCenter, AxisDirection.up),
+                  (CalcKey.down, Alignment.bottomCenter, AxisDirection.down),
+                  (CalcKey.left, Alignment.centerLeft, AxisDirection.left),
+                  (CalcKey.right, Alignment.centerRight, AxisDirection.right),
+                ])
+                  _zone(key, align, dir, skin.discMark),
+                Center(
                   child: IgnorePointer(
                     child: Text(
                       'REPLAY',
@@ -338,7 +341,7 @@ class CursorDisc extends StatelessWidget {
                         fontSize: 10,
                         letterSpacing: 0.8,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF8A877F),
+                        color: skin.discMark,
                       ),
                     ),
                   ),
@@ -351,7 +354,12 @@ class CursorDisc extends StatelessWidget {
     );
   }
 
-  Widget _zone(CalcKey key, Alignment alignment, AxisDirection dir) {
+  Widget _zone(
+    CalcKey key,
+    Alignment alignment,
+    AxisDirection dir,
+    Color color,
+  ) {
     final vertical = dir == AxisDirection.up || dir == AxisDirection.down;
     return Align(
       alignment: alignment,
@@ -365,7 +373,7 @@ class CursorDisc extends StatelessWidget {
             key: Key('key-${key.name}'),
             behavior: HitTestBehavior.opaque,
             onPointerDown: (_) => onPress(key),
-            child: CustomPaint(painter: _TrianglePainter(dir)),
+            child: CustomPaint(painter: _TrianglePainter(dir, color)),
           ),
         ),
       ),
@@ -374,9 +382,10 @@ class CursorDisc extends StatelessWidget {
 }
 
 class _TrianglePainter extends CustomPainter {
-  _TrianglePainter(this.dir);
+  _TrianglePainter(this.dir, this.color);
 
   final AxisDirection dir;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -404,9 +413,10 @@ class _TrianglePainter extends CustomPainter {
           ..lineTo(c.dx - s * 0.6, c.dy - s)
           ..lineTo(c.dx - s * 0.6, c.dy + s),
     };
-    canvas.drawPath(path..close(), Paint()..color = const Color(0xFF8A877F));
+    canvas.drawPath(path..close(), Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(_TrianglePainter old) => old.dir != dir;
+  bool shouldRepaint(_TrianglePainter old) =>
+      old.dir != dir || old.color != color;
 }
