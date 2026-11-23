@@ -156,4 +156,19 @@ void main() {
     expect(lcd(tester, 'upper'), '5');
     handle.dispose();
   });
+
+  testWidgets('grid model shows arrow keys instead of the disc', (
+    tester,
+  ) async {
+    final settings = await openApp(tester);
+    settings.update(modelId: 'grid');
+    await settle(tester);
+    expect(find.text('SCIENTIFIC GRID'), findsOneWidget);
+    expect(find.text('2nd'), findsWidgets);
+    for (final k in ['d4', 'left', 'right', 'd2', 'equals']) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    expect(lcd(tester, 'lower'), '42.');
+  });
 }

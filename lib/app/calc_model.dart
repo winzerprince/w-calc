@@ -14,6 +14,7 @@ class CalcModel {
     required this.features,
     this.hiddenLegends = const {},
     this.hideEngineeringSymbols = false,
+    this.layout = twoLineLayout,
   });
 
   final String id;
@@ -26,6 +27,9 @@ class CalcModel {
 
   /// Hide the k, M, G … legends on the digit keys.
   final bool hideEngineeringSymbols;
+
+  /// Physical arrangement of the keys.
+  final KeypadLayout layout;
 
   static const plus = CalcModel(
     id: 'plus',
@@ -64,7 +68,16 @@ class CalcModel {
     hideEngineeringSymbols: true,
   );
 
-  static const all = [plus, basic];
+  static const grid = CalcModel(
+    id: 'grid',
+    name: 'Scientific Grid',
+    description: 'Square key grid with arrow keys and a 2nd key; complex, statistics, base-n and equations',
+    features: CalcFeatures.standard,
+    hiddenLegends: {'MAT', 'VCT'},
+    layout: gridLayout,
+  );
+
+  static const all = [plus, grid, basic];
 
   static CalcModel byId(String? id) =>
       all.firstWhere((m) => m.id == id, orElse: () => plus);

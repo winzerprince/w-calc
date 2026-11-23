@@ -60,8 +60,9 @@ class AppSettings extends ChangeNotifier {
   }
 
   /// Applies a skin without saving it (web `?skin=` links).
-  void preview({required String skinId}) {
-    this.skinId = skinId;
+  void preview({String? skinId, String? modelId}) {
+    this.skinId = skinId ?? this.skinId;
+    this.modelId = modelId ?? this.modelId;
     notifyListeners();
   }
 

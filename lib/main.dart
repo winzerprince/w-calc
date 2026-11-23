@@ -12,9 +12,11 @@ void main() {
   final settings = AppSettings();
   runApp(WCalcApp(settings: settings));
   settings.load().then((_) {
-    // Web: ?skin=midnight previews a theme without saving it.
-    final skin = Uri.base.queryParameters['skin'];
-    if (skin != null) settings.preview(skinId: skin);
+    // Web: ?skin=midnight&model=grid previews a theme / model without saving.
+    final q = Uri.base.queryParameters;
+    if (q['skin'] != null || q['model'] != null) {
+      settings.preview(skinId: q['skin'], modelId: q['model']);
+    }
   });
 }
 
