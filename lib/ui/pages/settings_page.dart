@@ -83,7 +83,54 @@ class SettingsPage extends StatelessWidget {
           value: settings.keySound,
           onChanged: (v) => settings.update(keySound: v),
         ),
-        const PageSection('Appearance'),
+        const PageSection('App appearance'),
+        const PageText(
+          'Menus and pages only. The calculator keeps its own theme '
+          '(Calculator look below).',
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: SegmentedButton<String>(
+            key: const Key('setting-appearance'),
+            segments: const [
+              ButtonSegment(
+                value: 'system',
+                icon: Icon(Icons.brightness_auto_outlined),
+                label: Text('System'),
+              ),
+              ButtonSegment(
+                value: 'light',
+                icon: Icon(Icons.light_mode_outlined),
+                label: Text('Light'),
+              ),
+              ButtonSegment(
+                value: 'dark',
+                icon: Icon(Icons.dark_mode_outlined),
+                label: Text('Dark'),
+              ),
+            ],
+            selected: {settings.appearance},
+            onSelectionChanged: (s) {
+              keyVibration();
+              settings.update(appearance: s.first);
+            },
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.format_size),
+          title: const Text('Text size'),
+          subtitle: Slider(
+            key: const Key('setting-text-size'),
+            min: 0.85,
+            max: 1.5,
+            divisions: 13,
+            value: settings.textScale,
+            label: '${(settings.textScale * 100).round()} %',
+            onChanged: (v) => settings.update(textScale: v),
+          ),
+          trailing: Text('${(settings.textScale * 100).round()} %'),
+        ),
+        const PageSection('Calculator look'),
         ListTile(
           leading: const Icon(Icons.palette_outlined),
           title: const Text('Theme'),
@@ -146,10 +193,13 @@ class SettingsPage extends StatelessWidget {
         ),
         ListTile(
           key: const Key('setting-reset'),
-          leading: const Icon(Icons.restart_alt, color: Color(0xFFFF8A8A)),
-          title: const Text(
+          leading: Icon(
+            Icons.restart_alt,
+            color: Theme.of(context).colorScheme.error,
+          ),
+          title: Text(
             'Reset calculator',
-            style: TextStyle(color: Color(0xFFFF8A8A)),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
           subtitle: const Text('Clear all memories, data and setup'),
           onTap: () => _confirmReset(context),

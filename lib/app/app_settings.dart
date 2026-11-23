@@ -12,7 +12,16 @@ class AppSettings extends ChangeNotifier {
     this.modelId = 'plus',
     this.finishId = 'classic',
     this.saveHistory = true,
+    this.appearance = 'system',
+    this.textScale = 1.0,
   });
+
+  /// Menus and pages: 'system', 'light' or 'dark' (calculator themes are
+  /// separate).
+  String appearance;
+
+  /// Text size of menus and pages (0.85–1.5).
+  double textScale;
 
   /// Keep calculation history on the device between sessions.
   bool saveHistory;
@@ -72,6 +81,10 @@ class AppSettings extends ChangeNotifier {
       final finish = m['finish'];
       if (finish is String) finishId = finish;
       saveHistory = m['saveHistory'] != false;
+      final ap = m['appearance'];
+      if (ap is String) appearance = ap;
+      final ts = m['textScale'];
+      if (ts is num) textScale = ts.toDouble().clamp(0.85, 1.5);
       final tours = m['tours'];
       if (tours is List) seenTours.addAll(tours.whereType<String>());
       loaded = true;
@@ -89,6 +102,8 @@ class AppSettings extends ChangeNotifier {
     String? modelId,
     String? finishId,
     bool? saveHistory,
+    String? appearance,
+    double? textScale,
   }) {
     this.vibration = vibration ?? this.vibration;
     this.keySound = keySound ?? this.keySound;
@@ -96,6 +111,8 @@ class AppSettings extends ChangeNotifier {
     this.modelId = modelId ?? this.modelId;
     this.finishId = finishId ?? this.finishId;
     this.saveHistory = saveHistory ?? this.saveHistory;
+    this.appearance = appearance ?? this.appearance;
+    this.textScale = textScale ?? this.textScale;
     notifyListeners();
     _save();
   }
@@ -120,6 +137,8 @@ class AppSettings extends ChangeNotifier {
           'finish': finishId,
           'tours': seenTours.toList(),
           'saveHistory': saveHistory,
+          'appearance': appearance,
+          'textScale': textScale,
         }),
       );
     } on Object {

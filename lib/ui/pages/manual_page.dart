@@ -44,8 +44,7 @@ class _ManualPageState extends State<ManualPage> {
     final hits = searchManual(chapters, model, _query);
     runTourOnce(context, Tours.manual, () => manualTour, force: _tourOnce);
     _tourOnce = false;
-    return Theme(
-      data: readingTheme(context),
+    return AppPageTheme(
       child: Builder(
         builder: (context) {
           final scheme = Theme.of(context).colorScheme;
@@ -230,8 +229,7 @@ class ArticlePage extends StatelessWidget {
     final i = articles.indexWhere((a) => a.id == article.id);
     final prev = i > 0 ? articles[i - 1] : null;
     final next = i >= 0 && i < articles.length - 1 ? articles[i + 1] : null;
-    return Theme(
-      data: readingTheme(context),
+    return AppPageTheme(
       child: Builder(
         builder: (context) {
           final text = Theme.of(context).textTheme;
