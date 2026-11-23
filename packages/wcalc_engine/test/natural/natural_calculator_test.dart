@@ -329,4 +329,52 @@ void main() {
       expect(calc.statItems, isEmpty);
     });
   });
+
+  group('EQN', () {
+    String sol() {
+      final t = calc.screen.text;
+      return t.substring(t.indexOf('= ') + 2);
+    }
+
+    test('x + 2y = 3, 2x + 3y = 4: X = −1, Y = 2', () {
+      expect(press('MODE 5'), contains('1:anX+bnY=cn'));
+      press('1 1 = 2 = 3 = 2 = 3 = 4 = =');
+      expect(calc.screen.text, 'X= -1');
+      press('down');
+      expect(calc.screen.text, 'Y= 2');
+    });
+    test('three unknowns: 1, 2, 3', () {
+      press('MODE 5 2');
+      press('1 = (-) 1 = 1 = 2 = 1 = 1 = (-) 1 = 0 = (-) 1 = 1 = 1 = 4 = =');
+      expect(sol(), '1');
+      press('down');
+      expect(sol(), '2');
+      press('down');
+      expect(sol(), '3');
+    });
+    test('x² + x + 3/4: X1 = −1/2 + √2/2 i', () {
+      press('MODE 5 3 1 = 1 = 3 frac 4 = =');
+      expect(calc.screen.text, 'X1= -fraction{1|2}+fraction{sqrt{2}|2}i');
+      press('down');
+      expect(calc.screen.text, 'X2= -fraction{1|2}-fraction{sqrt{2}|2}i');
+    });
+    test('x² − 2√2 x + 2: single root X = √2', () {
+      press('MODE 5 3 1 = (-) 2 √ 2 > = 2 = =');
+      expect(calc.screen.text, 'X= sqrt{2}');
+    });
+    test('x³ − 2x² − x + 2: −1, 2, 1', () {
+      press('MODE 5 4 1 = (-) 2 = (-) 1 = 2 = =');
+      expect(sol(), '-1');
+      press('=');
+      expect(sol(), '2');
+      press('=');
+      expect(sol(), '1');
+      press('='); // back to the Coefficient Editor
+      expect(calc.screen.text, startsWith('EQN cubic'));
+    });
+    test('AC clears the coefficients', () {
+      press('MODE 5 3 5 = AC');
+      expect(calc.screen.text, contains('| 0 0 0'));
+    });
+  });
 }
