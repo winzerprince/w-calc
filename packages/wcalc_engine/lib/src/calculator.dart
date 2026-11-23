@@ -78,6 +78,41 @@ const _eqnNames = {
   'poly3': ['a', 'b', 'c', 'd'],
 };
 
+/// MAT / VCT menus (SHIFT 4 / SHIFT 5).
+const _matPages = [
+  _Menu('Dim Edit Mat→', {0: '1', 4: '2', 9: '3'}),
+  _Menu('←Det Trn', {1: '1', 5: '2'}),
+];
+const _vctPages = [
+  _Menu('Dim Edit Vct→', {0: '1', 4: '2', 9: '3'}),
+  _Menu('←Dot', {1: '1'}),
+];
+const _pickABC = _Menu(' A   B   C', {1: '1', 5: '2', 9: '3'});
+const _pickABCAns = _Menu('A  B  C  Ans', {0: '1', 3: '2', 6: '3', 10: '4'});
+
+/// Subscript digits for element positions (MatA₁₂, VctB₃).
+String _sub(int n) => const ['₁', '₂', '₃'][n];
+
+/// Editing one MAT/VCT variable ([readOnly] for the MatAns / VctAns screen).
+class _LinearEditor {
+  _LinearEditor(this.name, {this.readOnly = false});
+
+  final String name;
+  final bool readOnly;
+  int row = 0;
+  int col = 0;
+  List<Tok> typed = [];
+}
+
+/// Dimension prompts after Dim: m (rows / size), then n (columns, MAT only).
+class _LinearDim {
+  _LinearDim(this.name);
+
+  final String name;
+  int? rows;
+  List<Tok> typed = [];
+}
+
 /// BASE LOGIC menu (x⁻¹ repeatedly pages through).
 const _logicPages = [
   _Menu('And Or Xnor', {1: '1', 4: '2', 8: '3'}),
@@ -135,7 +170,7 @@ const _fractionPage = _Menu('ab/c d/c', {1: '1', 6: '2'});
 const _commaPage = _Menu('Dot Comma', {1: '1', 5: '2'});
 
 /// Calculation modes implemented so far.
-enum CalcMode { comp, cmplx, sd, reg, base, eqn }
+enum CalcMode { comp, cmplx, sd, reg, base, eqn, mat, vct }
 
 /// CLR confirmations (press = to execute, AC to cancel).
 const _clrMcl = _Menu('Mcl', {});
@@ -238,6 +273,17 @@ class Calculator {
   _EquationSession? _equation;
 
   CalcMode _mode = CalcMode.comp;
+
+  /// MAT / VCT variables: MatA … MatAns, VctA … VctAns.
+  final Map<String, Value> _linear = {};
+  _LinearEditor? _linEditor;
+  _LinearDim? _linDim;
+
+  /// What the A/B/C menu is for: 'dim', 'edit' or 'var'.
+  String _linPick = 'var';
+
+  bool get _linearMode => _mode == CalcMode.mat || _mode == CalcMode.vct;
+  String get _linPrefix => _mode == CalcMode.mat ? 'Mat' : 'Vct';
 
   // EQN mode: chosen equation type, coefficients per type, prompt / answers.
   String? _eqnKind;
@@ -370,6 +416,8 @@ class Calculator {
       if (_mode == CalcMode.cmplx) Indicator.cmplx,
       if (_mode == CalcMode.sd) Indicator.sd,
       if (_mode == CalcMode.reg) Indicator.reg,
+      if (_mode == CalcMode.mat) Indicator.mat,
+      if (_mode == CalcMode.vct) Indicator.vct,
       if (_mode == CalcMode.cmplx && _settings.polarComplex) Indicator.polar,
       if (_phase == _Phase.result && _hasSecondPart && !_midMulti) ...[
         Indicator.reIm,
@@ -377,6 +425,10 @@ class Calculator {
           _polarShown ? Indicator.angleMark : Indicator.imaginary,
       ],
     };
+    if (_menu == null && _phase != _Phase.error) {
+      final linear = _linearDisplay(indicators);
+      if (linear != null) return linear;
+    }
     final kind = _eqnKind;
     if (_mode == CalcMode.eqn &&
         kind != null &&
@@ -511,6 +563,11 @@ class Calculator {
       _pressEqn(key, modifier);
       return;
     }
+    if ((_linEditor != null || _linDim != null) &&
+        _pressLinear(key, modifier)) {
+      _modifier = _Modifier.none;
+      return;
+    }
     if (_pending != _Pending.none) {
       _pressPending(key);
       return;
@@ -539,6 +596,10 @@ class Calculator {
 
     if (_mode == CalcMode.base && _pressBase(key, modifier)) return;
     switch ((modifier, key)) {
+      case (_Modifier.shift, CalcKey.d4) when _mode == CalcMode.mat:
+        _menu = _matPages.first;
+      case (_Modifier.shift, CalcKey.d5) when _mode == CalcMode.vct:
+        _menu = _vctPages.first;
       case (_Modifier.none, CalcKey.mPlus) when _statMode:
         _registerData();
       case (_Modifier.shift, CalcKey.mPlus) when _statMode:
@@ -622,6 +683,10 @@ class Calculator {
         final tok = _mode == CalcMode.cmplx
             ? (_complexToken(key, modifier) ??
                   _tokenFor(key, modifier, hyp, engOn: _settings.engOn))
+            : _linearMode &&
+                  modifier == _Modifier.shift &&
+                  key == CalcKey.closeParen
+            ? Tok.cAbs
             : _tokenFor(key, modifier, hyp, engOn: _settings.engOn);
         if (tok != null) _enter(tok);
     }
@@ -902,6 +967,7 @@ class Calculator {
     store: (name, value) => _vars[name] = value,
     stats: _statMode ? _stats : null,
     base: _mode == CalcMode.base ? _base : null,
+    linear: _linear,
     random: _random,
   );
 
@@ -1042,6 +1108,7 @@ class Calculator {
       _menu = next < _modePages.length ? _modePages[next] : null;
       return;
     }
+    if (_linearMode && _pressLinearMenu(menu, key)) return;
     if (identical(menu, _unknownsPage) || identical(menu, _degreePage)) {
       final simul = identical(menu, _unknownsPage);
       if (key == CalcKey.right && simul) _menu = _degreePage;
@@ -1155,6 +1222,8 @@ class Calculator {
         _setMode(d == 1 ? CalcMode.comp : CalcMode.cmplx);
       case (1, 1): // SD
         _setMode(CalcMode.sd);
+      case (2, 2 || 3): // MAT, VCT
+        _setMode(d == 2 ? CalcMode.mat : CalcMode.vct);
       case (2, 1): // EQN
         _setMode(CalcMode.eqn);
         _eqnKind = null;
@@ -1304,6 +1373,274 @@ class Calculator {
     _resultValue = null;
     _history.clear();
     _clearStats();
+  }
+
+  // ------------------------------------------------------------------ MAT / VCT
+
+  /// Rows × columns of a MAT/VCT variable (vectors are 1 × n), or null.
+  (int, int)? _linearSize(String name) {
+    final v = _linear[name];
+    if (v == null) return null;
+    if (v.isMatrix) return (v.matrix!.length, v.matrix!.first.length);
+    return (1, v.vector!.length);
+  }
+
+  Dec _linearElement(String name, int r, int c) {
+    final v = _linear[name]!;
+    return v.isMatrix ? v.matrix![r][c] : v.vector![c];
+  }
+
+  DisplayState? _linearDisplay(Set<Indicator> indicators) {
+    final dim = _linDim;
+    if (dim != null) {
+      final mat = dim.name.startsWith('Mat');
+      final stage = mat ? (dim.rows == null ? 'm' : 'n') : 'm';
+      final typed = dim.typed.map((t) => t.text).join();
+      return DisplayState(
+        upper: mat ? '${dim.name}(m×n) $stage?' : '${dim.name}(m) m?',
+        lower: typed.isEmpty ? '0.' : '$typed.',
+        indicators: indicators,
+      );
+    }
+    final ed = _linEditor;
+    if (ed == null) return null;
+    final size = _linearSize(ed.name);
+    if (size == null) return null;
+    final (rows, cols) = size;
+    final mat = ed.name.startsWith('Mat');
+    final arrows = {
+      if (ed.row > 0) Indicator.scrollUp,
+      if (ed.row < rows - 1) Indicator.scrollDown,
+      if (ed.col > 0) Indicator.scrollLeft,
+      if (ed.col < cols - 1) Indicator.scrollRight,
+    };
+    final upper = mat
+        ? '${ed.name}${_sub(ed.row)}${_sub(ed.col)}'
+        : '${ed.name}${_sub(ed.col)}';
+    if (ed.typed.isNotEmpty) {
+      final typed = ed.typed.map((t) => t.text).join();
+      return DisplayState(
+        upper: upper,
+        lower: typed.contains('.') || typed.contains('E') ? typed : '$typed.',
+        indicators: {...indicators, ...arrows},
+      );
+    }
+    final f = formatValue(
+      Value.dec(_linearElement(ed.name, ed.row, ed.col)),
+      _settings,
+    );
+    return DisplayState(
+      upper: upper,
+      lower: f.mantissa,
+      exponent: f.exponent,
+      indicators: {...indicators, ...arrows},
+    );
+  }
+
+  /// Number typed into a prompt/editor, or null when the key is not one.
+  static Tok? _numberToken(CalcKey key) {
+    final d = key.digit;
+    if (d != null) return Tok.digits[d];
+    return switch (key) {
+      CalcKey.dot => Tok.point,
+      CalcKey.exp => Tok.exp,
+      CalcKey.negative => Tok.negative,
+      _ => null,
+    };
+  }
+
+  Dec? _typedNumber(List<Tok> typed) {
+    try {
+      final v = evaluateValue(typed, EvalContext(ans: _ans));
+      if (v.isComplex) throw const CalcError(CalcErrorKind.math);
+      return v.dec;
+    } on CalcError catch (e) {
+      _linEditor = null;
+      _linDim = null;
+      _showError(CalcError(e.kind));
+      return null;
+    }
+  }
+
+  /// Keys in the dimension prompts and element editors. False: not handled
+  /// here (the editor has been left and the key is processed normally).
+  bool _pressLinear(CalcKey key, _Modifier modifier) {
+    if (key == CalcKey.shift || key == CalcKey.alpha) return false;
+    final dim = _linDim;
+    if (dim != null) {
+      final number = modifier == _Modifier.none ? _numberToken(key) : null;
+      if (number != null) {
+        if (dim.typed.length < 3) dim.typed.add(number);
+      } else if (key == CalcKey.del && dim.typed.isNotEmpty) {
+        dim.typed.removeLast();
+      } else if (key == CalcKey.ac) {
+        _linDim = null;
+      } else if (key != CalcKey.equals) {
+        _linDim = null;
+        return false;
+      } else if (dim.typed.isNotEmpty) {
+        final v = _typedNumber(dim.typed);
+        dim.typed = [];
+        if (v == null) return true;
+        final mat = dim.name.startsWith('Mat');
+        final ok =
+            v.isInteger &&
+            v >= Dec.one &&
+            v <= Dec.fromInt(3) &&
+            (mat || v >= Dec.fromInt(2));
+        if (!ok) return true;
+        final n = v.toInt();
+        if (mat && dim.rows == null) {
+          dim.rows = n;
+          return true;
+        }
+        _linear[dim.name] = mat
+            ? Value.matrix([
+                for (var r = 0; r < dim.rows!; r++)
+                  [for (var c = 0; c < n; c++) Dec.zero],
+              ])
+            : Value.vector([for (var c = 0; c < n; c++) Dec.zero]);
+        _linDim = null;
+        _linEditor = _LinearEditor(dim.name);
+      }
+      return true;
+    }
+    final ed = _linEditor!;
+    final size = _linearSize(ed.name);
+    if (size == null) {
+      _linEditor = null;
+      return false;
+    }
+    final (rows, cols) = size;
+    switch ((modifier, key)) {
+      case (_Modifier.none, CalcKey.up):
+        ed.typed = [];
+        if (ed.row > 0) ed.row--;
+      case (_Modifier.none, CalcKey.down):
+        ed.typed = [];
+        if (ed.row < rows - 1) ed.row++;
+      case (_Modifier.none, CalcKey.left):
+        ed.typed = [];
+        if (ed.col > 0) ed.col--;
+      case (_Modifier.none, CalcKey.right):
+        ed.typed = [];
+        if (ed.col < cols - 1) ed.col++;
+      case (_Modifier.none, CalcKey.ac):
+        _linEditor = null;
+        _clearInput();
+      case (_, _) when ed.readOnly:
+        // MatAns / VctAns screen: operators continue the calculation.
+        final continues = switch ((modifier, key)) {
+          (
+            _Modifier.none,
+            CalcKey.add ||
+                CalcKey.subtract ||
+                CalcKey.multiply ||
+                CalcKey.divide,
+          ) =>
+            true,
+          (_Modifier.none, CalcKey.reciprocal || CalcKey.square) =>
+            ed.name == 'MatAns',
+          (_Modifier.shift, CalcKey.square) => ed.name == 'MatAns',
+          _ => false,
+        };
+        if (!continues) return true;
+        _linEditor = null;
+        _clearInput();
+        _tokens.add(ed.name == 'MatAns' ? Tok.matAns : Tok.vctAns);
+        _cursor = 1;
+        return false; // The operator itself is entered by normal handling.
+      case (_Modifier.none, CalcKey.del):
+        if (ed.typed.isNotEmpty) ed.typed.removeLast();
+      case (_Modifier.none, CalcKey.equals):
+        if (ed.typed.isNotEmpty) {
+          final v = _typedNumber(ed.typed);
+          ed.typed = [];
+          if (v == null) return true;
+          final cur = _linear[ed.name]!;
+          if (cur.isMatrix) {
+            final m = [for (final r in cur.matrix!) List.of(r)];
+            m[ed.row][ed.col] = v;
+            _linear[ed.name] = Value.matrix(m);
+          } else {
+            final vec = List.of(cur.vector!);
+            vec[ed.col] = v;
+            _linear[ed.name] = Value.vector(vec);
+          }
+        }
+        // Advance row by row.
+        if (ed.col < cols - 1) {
+          ed.col++;
+        } else if (ed.row < rows - 1) {
+          ed.row++;
+          ed.col = 0;
+        }
+      default:
+        final number = modifier == _Modifier.none ? _numberToken(key) : null;
+        if (number == null) {
+          // Any other key (SHIFT 4, MODE, …) leaves the editor.
+          _linEditor = null;
+          _clearInput();
+          return false;
+        }
+        if (ed.typed.length < 20) ed.typed.add(number);
+    }
+    return true;
+  }
+
+  /// SHIFT 4 (MAT) / SHIFT 5 (VCT) menus and their A / B / C pickers.
+  bool _pressLinearMenu(_Menu menu, CalcKey key) {
+    final pages = _mode == CalcMode.mat ? _matPages : _vctPages;
+    if (pages.contains(menu)) {
+      final i = pages.indexOf(menu);
+      if (key == CalcKey.right && i == 0) _menu = pages[1];
+      if (key == CalcKey.left && i == 1) _menu = pages[0];
+      final d = key.digit;
+      if (i == 0 && d != null && d >= 1 && d <= 3) {
+        _linPick = const ['dim', 'edit', 'var'][d - 1];
+        _menu = d == 3 ? _pickABCAns : _pickABC;
+      } else if (i == 1 && d != null) {
+        final tok = _mode == CalcMode.mat
+            ? (d == 1
+                  ? Tok.det
+                  : d == 2
+                  ? Tok.trn
+                  : null)
+            : (d == 1 ? Tok.dot : null);
+        if (tok != null) {
+          _menu = null;
+          _enter(tok);
+        }
+      }
+      return true;
+    }
+    if (identical(menu, _pickABC) || identical(menu, _pickABCAns)) {
+      final d = key.digit;
+      final max = identical(menu, _pickABCAns) ? 4 : 3;
+      if (d == null || d < 1 || d > max) return true;
+      _menu = null;
+      final name = '$_linPrefix${const ['A', 'B', 'C', 'Ans'][d - 1]}';
+      switch (_linPick) {
+        case 'dim':
+          _linDim = _LinearDim(name);
+        case 'edit':
+          if (_linear.containsKey(name)) {
+            _linEditor = _LinearEditor(name);
+          } else {
+            _showError(const CalcError(CalcErrorKind.dim));
+          }
+        default:
+          final mat = _mode == CalcMode.mat;
+          _enter(switch (d) {
+            1 => mat ? Tok.matA : Tok.vctA,
+            2 => mat ? Tok.matB : Tok.vctB,
+            3 => mat ? Tok.matC : Tok.vctC,
+            _ => mat ? Tok.matAns : Tok.vctAns,
+          });
+      }
+      return true;
+    }
+    return false;
   }
 
   // ------------------------------------------------------------------ EQN
@@ -1822,6 +2159,13 @@ class Calculator {
     }
     try {
       final value = evaluateValue(_tokens.sublist(start, end), _context());
+      if (value.isLinear) {
+        final name = value.isMatrix ? 'MatAns' : 'VctAns';
+        _linear[name] = value;
+        _phase = _Phase.result;
+        _linEditor = _LinearEditor(name, readOnly: true);
+        return;
+      }
       _ans = value;
       _setResult(value);
       _polarCommand = polar;
@@ -1893,6 +2237,7 @@ class Calculator {
   // ------------------------------------------------------------------ history
 
   void _record(Value value) {
+    if (_linearMode || value.isLinear) return; // No history in MAT / VCT.
     _history.add(_Entry(List.of(_tokens), value));
     var bytes = _history.fold<int>(0, (s, e) => s + e.bytes);
     while (_history.length > 1 && bytes > historyBytes) {
@@ -2040,6 +2385,12 @@ class Calculator {
     'mode': _mode.name,
     'regression': _stats.type.name,
     'base': _base,
+    'linear': {
+      for (final e in _linear.entries)
+        e.key: e.value.isMatrix
+            ? 'm:${e.value.matrix!.length}:${[for (final r in e.value.matrix!) ...r].join(',')}'
+            : 'v:${e.value.vector!.join(',')}',
+    },
     'eqn': {
       for (final e in _eqnCoefficients.entries)
         e.key: [for (final v in e.value) v.toString()],
@@ -2101,6 +2452,27 @@ class Calculator {
       );
       final mode = state['mode'];
       if (mode is String) _mode = CalcMode.values.byName(mode);
+      final linear = state['linear'];
+      if (linear is Map) {
+        _linear.clear();
+        for (final MapEntry(:key, :value) in linear.entries) {
+          if (key is! String || value is! String) continue;
+          final parts = value.split(':');
+          if (parts.first == 'm') {
+            final rows = int.parse(parts[1]);
+            final all = parts[2].split(',').map(Dec.parse).toList();
+            final cols = all.length ~/ rows;
+            _linear[key] = Value.matrix([
+              for (var r = 0; r < rows; r++)
+                all.sublist(r * cols, (r + 1) * cols),
+            ]);
+          } else {
+            _linear[key] = Value.vector(
+              parts[1].split(',').map(Dec.parse).toList(),
+            );
+          }
+        }
+      }
       final eqn = state['eqn'];
       if (eqn is Map) {
         for (final MapEntry(:key, :value) in eqn.entries) {

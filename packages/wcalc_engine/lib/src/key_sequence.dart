@@ -91,6 +91,8 @@ const _names = <String, List<CalcKey>>{
   'CONST': [CalcKey.constant],
   'ab/c': [CalcKey.fraction],
   'Pol(': [CalcKey.shift, CalcKey.add],
+  'MAT': [CalcKey.shift, CalcKey.d4],
+  'VCT': [CalcKey.shift, CalcKey.d5],
   'DEC': [CalcKey.square],
   'HEX': [CalcKey.power],
   'BIN': [CalcKey.log],

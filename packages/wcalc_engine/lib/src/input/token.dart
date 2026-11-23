@@ -164,6 +164,18 @@ enum Tok {
   logicXnor(' xnor ', TokKind.binary),
   logicNot('Not ', TokKind.prefix),
   logicNeg('Neg ', TokKind.prefix),
+  // MAT / VCT variables and functions.
+  matA('MatA', TokKind.operand),
+  matB('MatB', TokKind.operand),
+  matC('MatC', TokKind.operand),
+  matAns('MatAns', TokKind.operand),
+  vctA('VctA', TokKind.operand),
+  vctB('VctB', TokKind.operand),
+  vctC('VctC', TokKind.operand),
+  vctAns('VctAns', TokKind.operand),
+  det('Det ', TokKind.prefix),
+  trn('Trn ', TokKind.prefix),
+  dot('•', TokKind.binary),
   // SD/REG statistics values (S-SUM / S-VAR) and estimates; x̄ ȳ x̂ ŷ use
   // private-use characters drawn by the LCD font.
   statSumX2('Σx²', TokKind.operand),

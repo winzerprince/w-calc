@@ -78,8 +78,10 @@ class LcdPainter extends CustomPainter {
     (Indicator.reIm, 'R⇔I'),
     (Indicator.imaginary, 'i'),
     (Indicator.angleMark, '∠'),
+    (Indicator.scrollLeft, '←'),
     (Indicator.scrollUp, '▲'),
     (Indicator.scrollDown, '▼'),
+    (Indicator.scrollRight, '→'),
     (Indicator.disp, 'Disp'),
   ];
 
