@@ -45,6 +45,12 @@ enum TokKind {
 
   /// `;` before a data frequency (SD/REG data input).
   dataSep,
+
+  /// BASE mode: hexadecimal digits A-F.
+  hexDigit,
+
+  /// BASE mode: number-system prefix of one literal (d h b o).
+  basePrefix,
 }
 
 /// One input step on the upper line. Each key press inserts one token, so
@@ -142,6 +148,22 @@ enum Tok {
   toPolar('▶r∠θ', TokKind.formatCommand),
   toRect('▶a+bi', TokKind.formatCommand),
   freqSep(';', TokKind.dataSep),
+  hexA('A', TokKind.hexDigit),
+  hexB('B', TokKind.hexDigit),
+  hexC('C', TokKind.hexDigit),
+  hexD('D', TokKind.hexDigit),
+  hexE('E', TokKind.hexDigit),
+  hexF('F', TokKind.hexDigit),
+  baseD('d', TokKind.basePrefix),
+  baseH('h', TokKind.basePrefix),
+  baseB('b', TokKind.basePrefix),
+  baseO('o', TokKind.basePrefix),
+  logicAnd(' and ', TokKind.binary),
+  logicOr(' or ', TokKind.binary),
+  logicXor(' xor ', TokKind.binary),
+  logicXnor(' xnor ', TokKind.binary),
+  logicNot('Not ', TokKind.prefix),
+  logicNeg('Neg ', TokKind.prefix),
   // SD/REG statistics values (S-SUM / S-VAR) and estimates; x̄ ȳ x̂ ŷ use
   // private-use characters drawn by the LCD font.
   statSumX2('Σx²', TokKind.operand),

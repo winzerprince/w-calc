@@ -32,6 +32,10 @@ abstract final class Priority {
 
   static const multiplyDivide = 10;
   static const addSubtract = 11;
+
+  /// BASE logic: and; or, xor, xnor.
+  static const logicAnd = 12;
+  static const logicOr = 13;
 }
 
 /// Numeric stack depth.
@@ -50,6 +54,7 @@ class EvalContext {
     this.improperFractions = false,
     this.store,
     this.stats,
+    this.base,
     math.Random? random,
   }) : ans = ans ?? Value.zero,
        random = random ?? math.Random();
@@ -68,6 +73,9 @@ class EvalContext {
 
   /// Statistical memory in SD/REG mode (null elsewhere).
   final StatData? stats;
+
+  /// BASE mode number system (10, 16, 2, 8), or null outside BASE mode.
+  final int? base;
 
   /// Receives values functions write to variables (Pol/Rec → E, F).
   final void Function(String name, Value value)? store;
@@ -237,6 +245,18 @@ class _Evaluator {
     while (i < tokens.length) {
       final tok = tokens[i];
       switch (tok.kind) {
+        case TokKind.digit ||
+                TokKind.point ||
+                TokKind.exp ||
+                TokKind.hexDigit ||
+                TokKind.basePrefix
+            when ctx.base != null:
+          if (!expectOperand) _syntax(i);
+          i = _baseLiteral(i);
+          expectOperand = false;
+          continue;
+        case TokKind.hexDigit || TokKind.basePrefix:
+          _syntax(i);
         case TokKind.digit || TokKind.point || TokKind.exp:
           if (!expectOperand) _syntax(i);
           i = _literal(i);
@@ -615,6 +635,8 @@ class _Evaluator {
     final u = ctx.angle;
     return switch (tok) {
       Tok.negative => (a) => -a,
+      Tok.logicNot => (a) => _int(~_toInt(a)),
+      Tok.logicNeg => (a) => _int(-_toInt(a)),
       Tok.sin => _d1((a) => sinDec(a, u)),
       Tok.cos => _d1((a) => cosDec(a, u)),
       Tok.tan => _d1((a) => tanDec(a, u)),
@@ -672,7 +694,81 @@ class _Evaluator {
     };
   }
 
-  _Op _binaryOp(Tok tok, int pos) => switch (tok) {
+  _Op _binaryOp(Tok tok, int pos) {
+    if (ctx.base != null) {
+      final op = _baseOp(tok, pos);
+      if (op != null) return op;
+    }
+    return _decimalOp(tok, pos);
+  }
+
+  /// BASE mode: 32-bit integer arithmetic and logic.
+  _Op? _baseOp(Tok tok, int pos) {
+    _Op op(int priority, int Function(int, int) f) => _Op(
+      _OpType.binary,
+      priority,
+      pos,
+      (a, b) => _int(f(_toInt(a), _toInt(b))),
+    );
+    return switch (tok) {
+      Tok.add => op(Priority.addSubtract, (a, b) => a + b),
+      Tok.subtract => op(Priority.addSubtract, (a, b) => a - b),
+      Tok.multiply => op(Priority.multiplyDivide, (a, b) => a * b),
+      Tok.divide => op(Priority.multiplyDivide, (a, b) {
+        if (b == 0) throw const CalcError(CalcErrorKind.math);
+        return a ~/ b;
+      }),
+      Tok.logicAnd => op(Priority.logicAnd, (a, b) => a & b),
+      Tok.logicOr => op(Priority.logicOr, (a, b) => a | b),
+      Tok.logicXor => op(Priority.logicOr, (a, b) => a ^ b),
+      Tok.logicXnor => op(Priority.logicOr, (a, b) => ~(a ^ b)),
+      _ => null,
+    };
+  }
+
+  /// Parses a BASE-mode literal: [d|h|b|o] digits (decimal part dropped).
+  int _baseLiteral(int start) {
+    var i = start;
+    var base = ctx.base!;
+    final prefix = tokens[i];
+    if (prefix.kind == TokKind.basePrefix) {
+      base = switch (prefix) {
+        Tok.baseH => 16,
+        Tok.baseB => 2,
+        Tok.baseO => 8,
+        _ => 10,
+      };
+      i++;
+    }
+    final digits = StringBuffer();
+    var sawPoint = false;
+    while (i < tokens.length) {
+      final t = tokens[i];
+      if (t == Tok.point) {
+        if (sawPoint) _syntax(i);
+        sawPoint = true;
+      } else if (t.kind == TokKind.digit || t.kind == TokKind.hexDigit) {
+        final v = t.kind == TokKind.digit
+            ? t.digit!
+            : 10 + t.index - Tok.hexA.index;
+        if (v >= base) _syntax(i);
+        if (!sawPoint) digits.write(v.toRadixString(16));
+      } else if (t == Tok.exp) {
+        _syntax(i);
+      } else {
+        break;
+      }
+      i++;
+    }
+    if (digits.isEmpty) _syntax(i);
+    _guard(
+      start,
+      () => _pushValue(baseInputValue(digits.toString(), base), start),
+    );
+    return i;
+  }
+
+  _Op _decimalOp(Tok tok, int pos) => switch (tok) {
     Tok.angle => _Op(_OpType.binary, Priority.permutation, pos, (r, theta) {
       if (r.isComplex || theta.isComplex) {
         throw const CalcError(CalcErrorKind.math);
@@ -765,4 +861,48 @@ Dec _derivative(Wide Function(Wide) f, Wide a, Dec? step) {
   Wide central(Wide h) => (f(a + h) - f(a - h)) / (Wide.two * h);
   final coarse = central(h), fine = central(h * Wide.half);
   return ((Wide.fromInt(4) * fine - coarse) / Wide.fromInt(3)).toDec();
+}
+
+/// 32-bit signed range of BASE mode.
+const int _baseMin = -2147483648;
+const int _baseMax = 2147483647;
+
+int _toInt(Value v) => v.dec.toInt();
+
+Value _int(int v) {
+  if (v < _baseMin || v > _baseMax) throw const CalcError(CalcErrorKind.math);
+  return Value.dec(Dec.fromInt(v));
+}
+
+/// Digits allowed per base and the two's-complement width used for display.
+const baseDigits = {2: 10, 8: 10, 16: 8, 10: 10};
+const _baseBits = {2: 10, 8: 30, 16: 32};
+
+/// Value of a typed BASE literal ([digits] in hex notation of each digit).
+Value baseInputValue(String digits, int base) {
+  final trimmed = digits.replaceFirst(RegExp('^0+(?=.)'), '');
+  if (trimmed.length > baseDigits[base]!) {
+    throw const CalcError(CalcErrorKind.math);
+  }
+  // Each character is one digit (0-9, a-f), valid in [base].
+  var v = int.parse(trimmed, radix: base);
+  if (base != 10) {
+    final bits = _baseBits[base]!;
+    if (v >= 1 << (bits - 1)) v -= 1 << bits;
+  }
+  return _int(v);
+}
+
+/// Shows [v] in [base] (two's complement for 2/8/16), or throws Math ERROR
+/// when it does not fit that base's range.
+String baseOutput(Dec v, int base) {
+  final x = v.toInt();
+  if (base == 10) return '$x';
+  final bits = _baseBits[base]!;
+  if (x < -(1 << (bits - 1)) || x >= 1 << (bits - 1)) {
+    throw const CalcError(CalcErrorKind.math);
+  }
+  final text = (x & ((1 << bits) - 1)).toRadixString(base).toUpperCase();
+  // Seven-segment style: b and d are lower case.
+  return text.replaceAll('B', 'b').replaceAll('D', 'd');
 }
