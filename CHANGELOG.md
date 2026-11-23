@@ -4,6 +4,13 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+## [0.13.1-beta] - 2026-11-23
+
+Ko-fi link in the menu; blackboard website.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
 ### Changed
 - “Buy me a coffee” moved to a quiet line at the bottom of the menu, with a small steaming cup;
   removed from Settings.
