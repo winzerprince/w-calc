@@ -18,6 +18,39 @@ class LcdPalette {
   );
 }
 
+/// Glass over an LCD: a soft shadow under the top edge of the window and a
+/// faint diagonal reflection, drawn over the digits.
+void paintGlassOverlay(Canvas canvas, RRect glass) {
+  final r = glass.outerRect;
+  canvas.save();
+  canvas.clipRRect(glass);
+  canvas.drawRect(
+    Rect.fromLTWH(r.left, r.top, r.width, r.height * 0.10),
+    Paint()
+      ..shader = ui.Gradient.linear(
+        r.topLeft,
+        Offset(r.left, r.top + r.height * 0.10),
+        const [Color(0x2E000000), Color(0x00000000)],
+      ),
+  );
+  final path = Path()
+    ..moveTo(r.left, r.top)
+    ..lineTo(r.left + r.width * 0.45, r.top)
+    ..lineTo(r.left + r.width * 0.20, r.bottom)
+    ..lineTo(r.left, r.bottom)
+    ..close();
+  canvas.drawPath(
+    path,
+    Paint()
+      ..shader = ui.Gradient.linear(
+        r.topLeft,
+        Offset(r.left + r.width * 0.45, r.bottom),
+        const [Color(0x16FFFFFF), Color(0x00FFFFFF)],
+      ),
+  );
+  canvas.restore();
+}
+
 /// Paints the whole two-line LCD in a fixed design space of
 /// [designWidth] × [designHeight], scaled to the widget size.
 class LcdPainter extends CustomPainter {
@@ -113,6 +146,7 @@ class LcdPainter extends CustomPainter {
       _paintUpper(canvas);
       _paintLower(canvas);
     }
+    paintGlassOverlay(canvas, glass);
     canvas.restore();
   }
 
