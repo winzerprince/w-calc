@@ -4,6 +4,7 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 import '../../app/calc_model.dart';
 import '../../manual/manual_content.dart';
 import '../../manual/manual_model.dart';
+import '../../manual/reference_data.dart';
 import '../keypad_layout.dart';
 import '../legend.dart';
 import '../skin.dart';
@@ -410,6 +411,8 @@ class ArticlePage extends StatelessWidget {
         );
       case Example():
         return _ExampleCard(example: b, model: model);
+      case RefTable(:final kind):
+        return _RefTableView(kind: kind);
     }
   }
 }
@@ -635,6 +638,112 @@ class KeyChips extends StatelessWidget {
           Text.rich(TextSpan(children: legendSpans(label, style))),
         ],
       ),
+    );
+  }
+}
+
+/// CONST / CONV list with its own filter box.
+class _RefTableView extends StatefulWidget {
+  const _RefTableView({required this.kind});
+
+  final RefKind kind;
+
+  @override
+  State<_RefTableView> createState() => _RefTableViewState();
+}
+
+class _RefTableViewState extends State<_RefTableView> {
+  String _filter = '';
+
+  /// 1.6726e-27 → "1.672621777 × 10^{-27}" (legend superscript markup).
+  static String _value(Dec v) {
+    final f = formatNumber(v, const DisplayFormat.norm1());
+    var m = f.mantissa;
+    if (m.endsWith('.')) m = m.substring(0, m.length - 1);
+    final e = f.exponent;
+    return e == null ? m : '$m × 10^{${int.parse(e)}}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final q = _filter.toLowerCase();
+    final rows =
+        <(int, String, String, String)>[
+              if (widget.kind == RefKind.constants)
+                for (final c in constantTable)
+                  (c.number, c.symbol, c.name, '${_value(c.value)}  ${c.unit}')
+              else
+                for (final c in conversionTable)
+                  (c.number, c.symbol, '${c.from} → ${c.to}', ''),
+            ]
+            .where(
+              (r) =>
+                  q.isEmpty ||
+                  '${r.$1} ${r.$2} ${r.$3}'.toLowerCase().contains(q),
+            )
+            .toList();
+    final style = TextStyle(color: scheme.onSurfaceVariant, fontSize: 15);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          key: Key('ref-filter-${widget.kind.name}'),
+          onChanged: (v) => setState(() => _filter = v),
+          decoration: InputDecoration(
+            isDense: true,
+            prefixIcon: const Icon(Icons.filter_list),
+            hintText: widget.kind == RefKind.constants
+                ? 'Filter: light, mass, gas …'
+                : 'Filter: inch, gallon, °C …',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final (n, symbol, title, value) in rows)
+          Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 34,
+                  child: Text(
+                    n.toString().padLeft(2, '0'),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      Text.rich(
+                        TextSpan(
+                          children: legendSpans(
+                            value.isEmpty ? symbol : '$symbol   $value',
+                            style,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (rows.isEmpty) Text('No match for “$_filter”.', style: style),
+      ],
     );
   }
 }

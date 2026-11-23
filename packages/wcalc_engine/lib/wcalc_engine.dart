@@ -15,4 +15,6 @@ export 'src/natural/dot_screen.dart';
 export 'src/natural/math_input.dart';
 export 'src/natural/math_render.dart' show CursorRect, MathLayout;
 export 'src/natural/natural_calculator.dart';
+export 'src/input/token.dart' show Tok;
+export 'src/number/constants.dart' show constantValues;
 export 'src/number/dec.dart';

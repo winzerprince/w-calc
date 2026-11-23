@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:w_calc/ui/legend.dart';
 import 'package:w_calc/ui/lcd/seven_segment.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
+
 // ignore: implementation_imports
-import 'package:wcalc_engine/src/input/token.dart';
 
 void main() {
   group('dot-matrix font', () {

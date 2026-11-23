@@ -5,6 +5,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Added
+- Manual: full lists of the 40 constants (name, symbol, value, unit) and 40 unit conversions,
+  with a filter box; values come straight from the calculator.
 - Key styles: Classic (the original W-Calc look, now the default), Flat, Raised and Soft join
   Glossy, Matte, Rubber and Metallic (Menu ▸ Theme ▸ Finish).
 
