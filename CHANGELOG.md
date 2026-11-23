@@ -2,7 +2,12 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
-## [Unreleased]
+## [0.10.0-beta] - 2026-11-23
+
+Ten models, history at a tap, INS wrapping, smoother pages.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
 
 ### Added
 - Textbook models: INS (SHIFT DEL) before a function wraps what follows the cursor into it, e.g.
