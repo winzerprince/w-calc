@@ -14,6 +14,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 - Textbook models: MATRIX and VECTOR modes (Dim / Data menus, grid editor, MatAns / VctAns
   screens that continue with an operator, det, Trn, inverse, powers, Abs, Dot, cross product).
   All eight textbook modes now work.
+- Textbook models remember the mode, BASE-N number system, STAT data and matrices / vectors
+  across restarts.
 - Textbook models: TABLE mode (f(X), Start / End / Step, up to 30 rows, Insufficient MEM).
 
 ## [0.3.0-beta] - 2026-11-23

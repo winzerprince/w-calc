@@ -496,4 +496,14 @@ void main() {
       expect(result('SHIFT cos Ans ) ='), '10.305');
     });
   });
+
+  test('mode, STAT data and matrices survive save / restore', () {
+    press('MODE 6 1 5 2 = 1 = 1 = 1 = AC');
+    press('MODE 3 2 1 = 2 = AC');
+    final other = NaturalCalculator()..restoreState(calc.saveState());
+    expect(other.mode, NaturalMode.stat);
+    expect(other.statType, StatType.lin);
+    expect(other.statItems, hasLength(2));
+    expect(other.linearVariables.keys, contains('MatA'));
+  });
 }
