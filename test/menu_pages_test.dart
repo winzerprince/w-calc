@@ -49,15 +49,16 @@ void main() {
     expect(settings.skinId, 'midnight');
   });
 
-  testWidgets('settings offer the Ko-fi support link', (tester) async {
+  testWidgets('the menu offers the Ko-fi link', (tester) async {
     await openApp(tester);
-    await openMenuItem(tester, 'Settings');
+    await tester.tap(find.byKey(const Key('app-menu-button')));
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.scrollUntilVisible(
-      find.byKey(const Key('setting-kofi')),
+      find.byKey(const Key('menu-kofi')),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find.byType(Scrollable).last,
     );
-    expect(find.text('Buy me a coffee'), findsOneWidget);
+    expect(find.text('Enjoying W-Calc? Buy me a coffee'), findsOneWidget);
   });
 
   testWidgets('vibration can be switched off', (tester) async {
