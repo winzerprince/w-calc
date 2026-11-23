@@ -69,3 +69,6 @@ how to verify on the device, result.
 | 62 | Logic operator text | shown as ` and `, ` or `, ` xor `, ` xnor ` with spaces; `Not `, `Neg ` | | to verify |
 | 63 | Digits outside the base | accepted while typing, Syntax ERROR on `=` (e.g. `2` in BIN) | `BIN 12 =` | to verify |
 | 64 | BASE keys | (−) °′″ hyp sin cos tan type A-F; scientific keys do nothing; decimals are cut off | | to verify |
+| 65 | EQN screens | `Unknowns?→` (2 3) and `←Degree?` (2 3); prompts `a1?`… / `a?`…; typing shows the name without `?`; answers `x= y= z=` / `x1= x2= x3=`; ▲▼ indicators | MODE ×3 1 | to verify |
+| 66 | EQN coefficient input | numbers only (digits, ., (−), EXP) | | to verify whether expressions are allowed |
+| 67 | Cubic root order | three real roots in trigonometric order k = 0, 2, 1 (matches manual: 2, −1, 1); one real root first, then complex pair with +i first | | to verify more cases |
