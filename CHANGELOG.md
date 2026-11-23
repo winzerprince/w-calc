@@ -9,6 +9,9 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
   polynomial) and for paired statistics data (scatter plot with the regression curve), on the
   two-line models' REG mode too.
 
+### Added
+- Graph mode remembers the functions you typed.
+
 ### Changed
 - Dot displays draw in two batched calls (lighter on battery and older phones).
 - Scientific View and Two-View: menus show option names in rows; ◀ ▶ move the highlight and
