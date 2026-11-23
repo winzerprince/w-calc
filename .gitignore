@@ -36,3 +36,6 @@ android/**/GeneratedPluginRegistrant.java
 android/app/debug
 android/app/profile
 android/app/release
+
+# Personal Claude Code settings
+.claude/settings.local.json

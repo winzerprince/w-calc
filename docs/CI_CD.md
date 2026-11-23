@@ -20,13 +20,18 @@ Merge style: **squash** into `dev` (one Conventional Commit per PR; sync PRs fro
 | Event | Workflow | Runs | Builds? | Time |
 |---|---|---|---|---|
 | Push to a feature branch | — | nothing | no | 0 |
-| PR → `dev` | `dev-checks` | format, analyze, engine tests, app tests | no | ~2–3 min |
+| PR → `dev` | `dev-checks` | placeholder only (required status); full local gates run before every PR | no | ~10 s |
 | PR → `main` | `main-gate` | source-branch rule (`dev`/`hotfix/*` only), all checks, engine coverage ≥ 90 %, release preview notice | no | ~4 min |
 | Push to `main` (merge) | `main-release` | tests → signed APKs (universal + per-ABI) + AAB → artifact (30 days) → release if new version → Play internal (if configured) | **yes** | ~10–15 min |
 | Manual | `main-release` (`workflow_dispatch`) | same as push to main | yes | |
 | Tag pushed by hand | — | nothing. Tags are created by CI only. | no | |
 
 Web is **not** built in CI. Test web locally: `tool/web.sh` (hot reload, LAN) or `tool/web.sh release`.
+
+## Release cadence
+
+`dev` → `main` (full gate + Android build + release) happens only after **6–10 significant merges**
+into `dev`, to save Actions minutes. Between releases, test from `dev` locally with `tool/web.sh`.
 
 ## Versions and tags
 
