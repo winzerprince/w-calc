@@ -2,9 +2,16 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
-## [Unreleased]
+## [0.9.0-beta] - 2026-11-23
+
+Store readiness: launch screen, adaptive icon, key hints, privacy policy, crash fuzzing.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
 
 ### Added
+- Crash testing: thousands of random key presses on every engine and model pass without
+  errors.
 - Adaptive launcher icon on Android 8+ (no white frame around the icon).
 - Launch screen: dark backdrop with the W-Calc icon (Android 12+ splash too); no white flash.
 - Long-press a key to see what else it does (SHIFT / 2nd, ALPHA and mode functions).
