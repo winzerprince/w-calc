@@ -20,7 +20,19 @@ class CalcModel {
     this.layout = twoLineLayout,
     this.family = CalcFamily.twoLine,
     this.skinId,
+    this.profile = NaturalProfile.textbook,
+    this.naturalModes,
+    this.indicatorLabels = const {},
   });
+
+  /// Textbook family: screen layout (single expression or four-line history).
+  final NaturalProfile profile;
+
+  /// Textbook family: modes on the MODE menu (null: all eight).
+  final Set<NaturalMode>? naturalModes;
+
+  /// LCD indicator texts that differ on this model (e.g. 2nd for SHIFT).
+  final Map<Indicator, String> indicatorLabels;
 
   /// Which engine (and LCD) the model uses.
   final CalcFamily family;
@@ -31,7 +43,10 @@ class CalcModel {
   /// A fresh engine for this model.
   CalcEngine createEngine() => switch (family) {
     CalcFamily.twoLine => Calculator(features: features),
-    CalcFamily.textbook => NaturalCalculator(),
+    CalcFamily.textbook => NaturalCalculator(
+      profile: profile,
+      modes: naturalModes,
+    ),
   };
 
   final String id;
@@ -118,7 +133,45 @@ class CalcModel {
     skinId: 'black',
   );
 
-  static const all = [plus, grid, basic, textbook, textbook2];
+  /// Four-line history display with textbook input; 2nd key.
+  static final view = CalcModel(
+    id: 'view',
+    name: 'Scientific View',
+    description:
+        'Four-line display that keeps earlier entries and answers on screen; '
+        'textbook input, ◄► answer toggle, statistics and tables',
+    features: CalcFeatures.full,
+    layout: viewLayout,
+    family: CalcFamily.textbook,
+    skinId: 'slate',
+    profile: NaturalProfile.multiLine,
+    naturalModes: {NaturalMode.comp, NaturalMode.stat, NaturalMode.table},
+    indicatorLabels: {Indicator.shift: '2nd'},
+  );
+
+  /// Four-line textbook display, 2ndF key, round cursor pad.
+  static final write = CalcModel(
+    id: 'write',
+    name: 'Scientific Write',
+    description:
+        'Four-line textbook display with a 2ndF key; calculations, complex '
+        'numbers, statistics, tables and equations',
+    features: CalcFeatures.full,
+    layout: writeLayout,
+    family: CalcFamily.textbook,
+    skinId: 'pearl',
+    profile: NaturalProfile.multiLine,
+    naturalModes: {
+      NaturalMode.comp,
+      NaturalMode.cmplx,
+      NaturalMode.stat,
+      NaturalMode.eqn,
+      NaturalMode.table,
+    },
+    indicatorLabels: {Indicator.shift: '2ndF'},
+  );
+
+  static final all = [plus, grid, basic, textbook, textbook2, view, write];
 
   static CalcModel byId(String? id) =>
       all.firstWhere((m) => m.id == id, orElse: () => plus);

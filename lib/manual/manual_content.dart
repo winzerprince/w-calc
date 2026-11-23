@@ -46,6 +46,27 @@ const manualChapters = <ManualChapter>[
         ],
       ),
       ManualArticle(
+        id: 'models',
+        title: 'Choosing a calculator model',
+        summary: 'Pick the calculator that looks and works like yours.',
+        keywords: ['model', 'calculator', 'choose', 'display', 'four-line'],
+        blocks: [
+          Para(
+            'Menu ▸ Calculator model lists every model with a picture; tap the '
+            'picture for a large preview. Two-line models (Scientific Plus, '
+            'Grid, Basic) show the calculation above a ten-digit result. '
+            'Textbook models (Textbook Plus, Plus II) show fractions, roots '
+            'and powers as written. Four-line models (Scientific View with a '
+            '2nd key, Scientific Write with 2ndF) keep earlier calculations and '
+            'answers on screen.',
+          ),
+          Tip(
+            'Each model shows only the modes and keys it has, and this manual '
+            'shows only the topics for the model in use.',
+          ),
+        ],
+      ),
+      ManualArticle(
         id: 'arithmetic',
         title: 'Basic arithmetic and priority',
         summary: 'Type calculations as written; × and ÷ come before + and −.',

@@ -258,7 +258,84 @@ class CalcSkin {
     solarStrip: Color(0xFF1A1512),
   );
 
-  static const all = [classic, midnight, highContrast, ivory, silver, black];
+  /// Slate: dark blue-grey body, blue 2nd key, light digit keys.
+  static const slate = CalcSkin(
+    id: 'slate',
+    name: 'Slate',
+    description: 'Dark slate body, blue 2nd key, light digit keys',
+    background: Color(0xFF11151C),
+    bodyTop: Color(0xFF3A4458),
+    body: Color(0xFF252D3B),
+    bezel: Color(0xFF151A23),
+    brandText: Color(0xFFE6ECF5),
+    modifierKey: Color(0xFF3C7BD8),
+    modifierText: Color(0xFFFFFFFF),
+    functionKey: Color(0xFF1B212C),
+    functionText: Color(0xFFF2F4F8),
+    digitKey: Color(0xFFE8EBF0),
+    digitText: Color(0xFF1A1F29),
+    operatorKey: Color(0xFFB8C1CF),
+    clearKey: Color(0xFF3C7BD8),
+    clearText: Color(0xFFFFFFFF),
+    disc: Color(0xFF4A5568),
+    discMark: Color(0xFFE6ECF5),
+    labels: {
+      LabelKind.shift: Color(0xFF7DB4FF),
+      LabelKind.alpha: Color(0xFF8FE0A0),
+      LabelKind.complex: Color(0xFFC9A3FF),
+      LabelKind.stat: Color(0xFF7DB4FF),
+      LabelKind.base: Color(0xFF8FE0A0),
+      LabelKind.plain: Color(0xFFE6ECF5),
+      LabelKind.neutral: Color(0xFFAAB4C3),
+    },
+    lcd: LcdPalette(glass: Color(0xFFC6D0C2), ink: Color(0xFF1A2420)),
+    solarStrip: Color(0xFF241D1A),
+  );
+
+  /// Pearl: white body, charcoal keys, orange 2ndF.
+  static const pearl = CalcSkin(
+    id: 'pearl',
+    name: 'Pearl',
+    description: 'Pearl-white body, charcoal keys, orange 2ndF',
+    background: Color(0xFFDCDDDF),
+    bodyTop: Color(0xFFFBFBFA),
+    body: Color(0xFFE6E7E8),
+    bezel: Color(0xFF2C3036),
+    brandText: Color(0xFF2A2E35),
+    modifierKey: Color(0xFFE2762A),
+    modifierText: Color(0xFFFFFFFF),
+    functionKey: Color(0xFF3A3F47),
+    functionText: Color(0xFFFFFFFF),
+    digitKey: Color(0xFF55595F),
+    digitText: Color(0xFFFFFFFF),
+    operatorKey: Color(0xFF6B7078),
+    clearKey: Color(0xFFD9433C),
+    clearText: Color(0xFFFFFFFF),
+    disc: Color(0xFF55595F),
+    discMark: Color(0xFFE6E7E8),
+    labels: {
+      LabelKind.shift: Color(0xFFD2691E),
+      LabelKind.alpha: Color(0xFF2E7D5B),
+      LabelKind.complex: Color(0xFF7A3FB8),
+      LabelKind.stat: Color(0xFF1F5FB8),
+      LabelKind.base: Color(0xFF1E7F3B),
+      LabelKind.plain: Color(0xFF2A2E35),
+      LabelKind.neutral: Color(0xFF5B6068),
+    },
+    lcd: LcdPalette(glass: Color(0xFFC3CCBC), ink: Color(0xFF1C221C)),
+    solarStrip: Color(0xFF3B2E27),
+  );
+
+  static const all = [
+    classic,
+    midnight,
+    highContrast,
+    ivory,
+    silver,
+    black,
+    slate,
+    pearl,
+  ];
 
   static CalcSkin byId(String? id) =>
       all.firstWhere((s) => s.id == id, orElse: () => classic);

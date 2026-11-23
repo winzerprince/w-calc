@@ -872,3 +872,128 @@ const textbookCrossLayout = KeypadLayout.disc(
   numberRows: _tbNumberRows,
   pad: PadStyle.cross,
 );
+
+// ---------------------------------------------------------------------------
+// Four-line models.
+
+KeySpec _k(
+  CalcKey key,
+  String main, {
+  String? shift,
+  String? alpha,
+  KeyStyle style = KeyStyle.function,
+}) => KeySpec(
+  key,
+  main,
+  above: [
+    if (shift != null)
+      KeyLabel(shift, _s, slot: alpha == null ? _m : LabelSlot.left),
+    if (alpha != null) KeyLabel(alpha, _a, slot: _r),
+  ],
+  style: style,
+);
+
+/// "Scientific View": five-column grid, 2nd key, ◄► answer toggle, enter.
+final viewLayout = KeypadLayout.grid(
+  id: 'view',
+  topRows: [
+    [
+      _k(CalcKey.shift, '2nd', style: KeyStyle.modifier),
+      _k(CalcKey.mode, 'mode', shift: 'setup', style: KeyStyle.modifier),
+      _k(CalcKey.del, 'delete', shift: 'insert', style: KeyStyle.modifier),
+      _k(CalcKey.left, '◀', style: KeyStyle.modifier),
+      _k(CalcKey.right, '▶', style: KeyStyle.modifier),
+    ],
+    [
+      _k(CalcKey.alpha, 'alpha', style: KeyStyle.modifier),
+      _k(CalcKey.calc, 'calc', shift: 'solve', alpha: '='),
+      _k(CalcKey.sd, '◄►', shift: 'U n/d', alpha: 'Y'),
+      _k(CalcKey.up, '▲', style: KeyStyle.modifier),
+      _k(CalcKey.down, '▼', style: KeyStyle.modifier),
+    ],
+  ],
+  functionRows: [
+    [
+      _k(CalcKey.logBase, 'log□', shift: 'Σ'),
+      _k(CalcKey.log, 'log', shift: '10^{□}'),
+      _k(CalcKey.ln, 'ln', shift: 'e^{□}'),
+      _k(CalcKey.power, 'x^{□}', shift: '^{x}√'),
+      _k(CalcKey.sqrt, '√', shift: '∛'),
+    ],
+    [
+      _k(CalcKey.reciprocal, 'x^{-1}', shift: 'x!'),
+      _k(CalcKey.square, 'x^{2}', shift: 'x^{3}'),
+      _k(CalcKey.sin, 'sin', shift: 'sin^{-1}', alpha: 'D'),
+      _k(CalcKey.cos, 'cos', shift: 'cos^{-1}', alpha: 'E'),
+      _k(CalcKey.tan, 'tan', shift: 'tan^{-1}', alpha: 'F'),
+    ],
+    [
+      _k(CalcKey.fraction, 'n/d', shift: 'U n/d'),
+      _k(CalcKey.degMinSec, '°′″', shift: '←', alpha: 'B'),
+      _k(CalcKey.hyp, 'hyp', shift: 'abs', alpha: 'C'),
+      _k(CalcKey.openParen, '(', shift: '%'),
+      _k(CalcKey.closeParen, ')', shift: ',', alpha: 'X'),
+    ],
+    [
+      _k(CalcKey.integrate, '∫', shift: 'd/dx', alpha: ':'),
+      _k(CalcKey.rcl, 'recall', shift: 'sto→'),
+      _k(CalcKey.eng, 'eng', shift: '←'),
+      _k(CalcKey.mPlus, 'M+', shift: 'M−', alpha: 'M'),
+      _k(CalcKey.divide, '÷', shift: 'nCr', style: KeyStyle.operator),
+    ],
+  ],
+  numberRows: [
+    [
+      _k(CalcKey.negative, '(−)', shift: '∠', alpha: 'A'),
+      _k(CalcKey.d7, '7', shift: 'const', style: KeyStyle.digit),
+      _k(CalcKey.d8, '8', shift: 'conv', style: KeyStyle.digit),
+      _k(CalcKey.d9, '9', shift: 'reset', style: KeyStyle.digit),
+      _k(CalcKey.multiply, '×', shift: 'nPr', style: KeyStyle.operator),
+    ],
+    [
+      _k(CalcKey.exp, '×10^{n}', shift: 'π', alpha: 'e'),
+      _k(CalcKey.d4, '4', style: KeyStyle.digit),
+      _k(CalcKey.d5, '5', style: KeyStyle.digit),
+      _k(CalcKey.d6, '6', style: KeyStyle.digit),
+      _k(CalcKey.subtract, '−', shift: 'Rec', style: KeyStyle.operator),
+    ],
+    [
+      _k(CalcKey.ans, 'ans', shift: 'DRG▸'),
+      _k(CalcKey.d1, '1', shift: 'stat', style: KeyStyle.digit),
+      _k(CalcKey.d2, '2', style: KeyStyle.digit),
+      _k(CalcKey.d3, '3', style: KeyStyle.digit),
+      _k(CalcKey.add, '+', shift: 'Pol', style: KeyStyle.operator),
+    ],
+    [
+      _k(CalcKey.ac, 'clear', shift: 'off', style: KeyStyle.clear),
+      _k(CalcKey.d0, '0', shift: 'rnd', style: KeyStyle.digit),
+      _k(
+        CalcKey.dot,
+        '.',
+        shift: 'rand',
+        alpha: 'randint',
+        style: KeyStyle.digit,
+      ),
+      _k(CalcKey.on, 'on', style: KeyStyle.modifier),
+      _k(CalcKey.equals, 'enter', style: KeyStyle.operator),
+    ],
+  ],
+);
+
+/// "Scientific Write": the textbook keys with a 2ndF modifier.
+final writeLayout = KeypadLayout.disc(
+  id: 'write',
+  topLeft: [
+    [
+      _k(CalcKey.shift, '2ndF', style: KeyStyle.modifier),
+      _k(CalcKey.alpha, 'ALPHA', style: KeyStyle.modifier),
+    ],
+    [
+      _k(CalcKey.calc, 'CALC', shift: 'SOLVE', alpha: '='),
+      _k(CalcKey.integrate, '∫□', shift: 'd/dx', alpha: ':'),
+    ],
+  ],
+  topRight: _tbTopRight,
+  functionRows: _tbFunctionRows,
+  numberRows: _tbNumberRows,
+);

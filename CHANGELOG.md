@@ -2,6 +2,15 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [Unreleased]
+
+### Added
+- Two four-line models: *Scientific View* (history display, 2nd key, ◄► answer toggle, enter;
+  COMP, STAT, TABLE) and *Scientific Write* (2ndF key, round pad; COMP, CMPLX, STAT, EQN, TABLE),
+  with new Slate and Pearl themes.
+- Textbook engine: display profiles (single expression or four-line history) and per-model
+  mode lists; model-specific LCD indicator names (2nd / 2ndF).
+
 ## [0.5.0-beta] - 2026-11-23
 
 Finishes and body shapes, model previews, focus mode, a fuller manual, and a proprietary licence.
