@@ -165,6 +165,16 @@ class NaturalCalculator implements CalcEngine {
   List<Value>? _solutions;
   int _solIndex = 0;
 
+  // TABLE
+  /// Start / End / Step prompt (0-2) while setting up the table.
+  int? _tablePrompt;
+  String _tableTyped = '';
+  final List<Dec> _tableRange = [Dec.one, Dec.fromInt(5), Dec.one];
+  List<(Dec, Value?)>? _table;
+  int _tRow = 0;
+  int _tCol = 0;
+  MathRow? _tableFn;
+
   // STAT
   StatType statType = StatType.oneVar;
   final StatData _stat = StatData();
@@ -245,6 +255,9 @@ class NaturalCalculator implements CalcEngine {
     if (_equation != null && _onEquationKey(key, shift: shift)) return;
     if (_editor && !shift && !alpha && _onEditorKey(key)) return;
     if (_eqnType != null && !shift && !alpha && _onEqnKey(key)) return;
+    if (mode == NaturalMode.table && !shift && !alpha && _onTableKey(key)) {
+      return;
+    }
     if (!shift && !alpha && key == CalcKey.calc) {
       _startEquation(solve: false);
       return;
@@ -969,6 +982,165 @@ class NaturalCalculator implements CalcEngine {
     _col = 0;
   }
 
+  // ------------------------------------------------------------- TABLE
+
+  static const _tableLabels = ['Start?', 'End?', 'Step?'];
+  static const maxTableRows = 30;
+
+  /// TABLE keys: = on f(X) starts the prompts; prompts and the table
+  /// screen take their own keys. False: normal editing of f(X).
+  bool _onTableKey(CalcKey key) {
+    if (_table != null) {
+      switch (key) {
+        case CalcKey.up:
+          if (_tRow > 0) _tRow--;
+        case CalcKey.down:
+          if (_tRow < _table!.length - 1) _tRow++;
+        case CalcKey.left:
+          _tCol = 0;
+        case CalcKey.right:
+          _tCol = 1;
+        case CalcKey.ac:
+          // Back to f(X), kept for editing.
+          _table = null;
+          _ed.load(_tableFn ?? MathRow());
+        default:
+          break;
+      }
+      return true;
+    }
+    final p = _tablePrompt;
+    if (p != null) {
+      final d = key.digit;
+      if (d != null) {
+        _tableTyped += '$d';
+        return true;
+      }
+      switch (key) {
+        case CalcKey.dot:
+          _tableTyped += '.';
+        case CalcKey.negative:
+          _tableTyped += '-';
+        case CalcKey.del:
+          if (_tableTyped.isNotEmpty) {
+            _tableTyped = _tableTyped.substring(0, _tableTyped.length - 1);
+          }
+        case CalcKey.ac:
+          _tablePrompt = null;
+          _tableTyped = '';
+        case CalcKey.equals:
+          if (_tableTyped.isNotEmpty) {
+            try {
+              _tableRange[p] = evaluateValue([
+                for (final c in _tableTyped.split(''))
+                  switch (c) {
+                    '.' => Tok.point,
+                    '-' => Tok.negative,
+                    _ => Tok.digits[int.parse(c)],
+                  },
+              ], _context()).dec;
+            } on CalcError catch (e) {
+              _tablePrompt = null;
+              _error = _errorText(e.kind);
+              return true;
+            }
+          }
+          _tableTyped = '';
+          if (p < 2) {
+            _tablePrompt = p + 1;
+          } else {
+            _tablePrompt = null;
+            _buildTable();
+          }
+        default:
+          break;
+      }
+      return true;
+    }
+    if (key == CalcKey.equals && !_ed.isEmpty) {
+      _tableFn = _ed.root.copy();
+      _tablePrompt = 0;
+      _tableTyped = '';
+      return true;
+    }
+    return false;
+  }
+
+  void _buildTable() {
+    final [start, end, step] = _tableRange;
+    if (end < start || step <= Dec.zero) {
+      _error = 'Math ERROR';
+      return;
+    }
+    final count = ((end - start) / step).roundSignificant(12).toIntFloor() + 1;
+    if (count > maxTableRows) {
+      _error = 'Insufficient MEM';
+      return;
+    }
+    final tokens = MathEditor(_tableFn!.copy()).linearize().tokens;
+    final rows = <(Dec, Value?)>[];
+    for (var k = 0; k < count; k++) {
+      final x = start + step * Dec.fromInt(k);
+      _vars['X'] = Value.dec(x);
+      Value? fx;
+      try {
+        fx = evaluateValue(tokens, _context());
+      } on CalcError {
+        fx = null; // shown as ERROR in that row
+      }
+      rows.add((x, fx));
+    }
+    _table = rows;
+    _tRow = 0;
+    _tCol = 1;
+  }
+
+  void _paintTable(DotBitmap bmp, StringBuffer text) {
+    final p = _tablePrompt;
+    if (p != null) {
+      bmp.text(0, 0, _tableLabels[p]);
+      final shown = _tableTyped.isNotEmpty
+          ? _tableTyped
+          : _plainDecimal(Value.dec(_tableRange[p]));
+      bmp.text(DotScreen.width - textWidth(shown) - 1, 24, shown);
+      text.write('${_tableLabels[p]} $shown');
+      return;
+    }
+    final rows = _table!;
+    const rowNumW = 9;
+    const colW = (DotScreen.width - rowNumW) ~/ 2;
+    bmp
+      ..smallText(rowNumW + colW ~/ 2 - 1, 0, 'X')
+      ..smallText(rowNumW + colW + colW ~/ 2 - 7, 0, 'F(X)');
+    String cell((Dec, Value?) r, int c) {
+      if (c == 0) return _plainDecimal(Value.dec(r.$1));
+      return r.$2 == null ? 'ERROR' : _plainDecimal(r.$2!);
+    }
+
+    final top = (_tRow - 1).clamp(0, rows.length);
+    const chars = (colW + 1) ~/ 6;
+    for (var k = 0; k < 2 && top + k < rows.length; k++) {
+      final r = top + k;
+      final y = 6 + k * 8;
+      bmp.smallText(0, y + 1, '${r + 1}');
+      for (var c = 0; c < 2; c++) {
+        var t = cell(rows[r], c);
+        if (t.length > chars) t = t.substring(0, chars);
+        final x0 = rowNumW + c * colW;
+        bmp.text(x0 + colW - textWidth(t) - 1, y, t);
+        if (r == _tRow && c == _tCol) {
+          bmp.invert(x0, y - 1, x0 + colW - 1, y + 7);
+        }
+      }
+    }
+    final full = cell(rows[_tRow], _tCol);
+    bmp.text(DotScreen.width - textWidth(full) - 1, 24, full);
+    text.write('TABLE');
+    for (final r in rows) {
+      text.write(' | ${cell(r, 0)} ${cell(r, 1)}');
+    }
+  }
+
   // ------------------------------------------------------------- EQN
 
   _Menu _eqnTypeMenu() => _Menu(
@@ -1663,6 +1835,8 @@ class NaturalCalculator implements CalcEngine {
     _editor = false;
     _eqnType = null;
     _solutions = null;
+    _table = null;
+    _tablePrompt = null;
     if (m == NaturalMode.stat) {
       _history.clear();
       _clearInput();
@@ -1918,6 +2092,10 @@ class NaturalCalculator implements CalcEngine {
       bmp.text(0, 24, 'L-R=');
       bmp.text(DotScreen.width - textWidth(lr) - 1, 24, lr);
       text.write('${eq.input} | X= $x | L-R= $lr');
+    } else if (mode == NaturalMode.table &&
+        _menu == null &&
+        (_tablePrompt != null || _table != null)) {
+      _paintTable(bmp, text);
     } else if (_eqnType != null && _menu == null) {
       _eqnCursor = null;
       _paintEqn(bmp, text);

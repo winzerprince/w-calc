@@ -377,4 +377,26 @@ void main() {
       expect(calc.screen.text, contains('| 0 0 0'));
     });
   });
+
+  group('TABLE', () {
+    test('f(X) = X² + 1/2 from −1 to 1 step 0.5', () {
+      press('MODE 7 ALPHA ) x2 + 1 frac 2 =');
+      expect(calc.screen.text, startsWith('Start? 1'));
+      press('(-) 1 = 1 = 0.5 =');
+      expect(
+        calc.screen.text,
+        'TABLE | -1 1.5 | -0.5 0.75 | 0 0.5 | 0.5 0.75 | 1 1.5',
+      );
+      press('AC');
+      expect(calc.screen.text, isNot(startsWith('TABLE')));
+    });
+    test('more than 30 rows: Insufficient MEM', () {
+      press('MODE 7 ALPHA ) = 1 = 100 = 1 =');
+      expect(calc.screen.text, startsWith('Insufficient MEM'));
+    });
+    test('defaults 1..5 step 1', () {
+      press('MODE 7 ALPHA ) x2 = = = =');
+      expect(calc.screen.text, 'TABLE | 1 1 | 2 4 | 3 9 | 4 16 | 5 25');
+    });
+  });
 }
