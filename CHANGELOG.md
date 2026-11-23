@@ -4,6 +4,9 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Fixed
+- MAT/VCT: at most two matrices or vectors may be pending in a calculation (Stack ERROR otherwise).
+
 ### Added
 - Calculator models: choose *Scientific Plus* (all modes) or *Scientific Basic* (COMP, SD, REG) in
   Menu ▸ Calculator model. Memories and data carry over; keys a model lacks are faded and inert.
