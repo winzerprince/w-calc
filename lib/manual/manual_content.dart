@@ -53,12 +53,15 @@ const manualChapters = <ManualChapter>[
         blocks: [
           Para(
             'Menu ▸ Calculator model lists every model with a picture; tap the '
-            'picture for a large preview. Two-line models (Scientific Plus, '
-            'Grid, Basic) show the calculation above a ten-digit result. '
-            'Textbook models (Textbook Plus, Plus II) show fractions, roots '
-            'and powers as written. Four-line models (Scientific View with a '
-            '2nd key, Scientific Write with 2ndF) keep earlier calculations and '
-            'answers on screen.',
+            'picture for a large preview.\n'
+            '• Two-line (Scientific Plus, Grid, Basic): the calculation above '
+            'a ten-digit result.\n'
+            '• Textbook (Textbook Plus, Plus II, Scientific Max): fractions, '
+            'roots and powers as written; Max adds 4×4 matrices and four '
+            'unknowns.\n'
+            '• Multi-line (Scientific Two-View, View, Write): a dot entry line '
+            'with the answer below, or four lines that keep earlier '
+            'calculations on screen; 2nd / 2ndF keys.',
           ),
           Tip(
             'Each model shows only the modes and keys it has, and this manual '

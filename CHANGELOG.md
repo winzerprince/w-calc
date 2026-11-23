@@ -9,6 +9,7 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 - Font licence texts are now bundled so the third-party licence page can show them.
 
 ### Added
+- Model picker grouped by display: two-line, textbook and multi-line.
 - *Scientific Max* model: textbook display with four matrices up to 4×4 (size typed as m?, n?),
   four vectors and equations with four unknowns; Ocean theme.
 - *Scientific Two-View* model: classic two-line dot display (entry line with / and *, tall answer
