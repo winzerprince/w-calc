@@ -4,6 +4,18 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Changed
+- Graph redesigned: expressions are typeset (fractions, powers, roots, |a|, Σ, ∫, d/dx) and typed
+  with a maths keypad (functions panel, letters page); numbered rows with colour buttons; add,
+  undo/redo, edit mode (table, duplicate, colour, delete all) and hide; wrench settings (grid,
+  axis numbers, minor gridlines, x/y ranges, linear or logarithmic axes, radians/degrees) and a
+  home button.
+
+### Added
+- Graph: sliders for variables (`b = 2`, play / loop), inequalities with shading (`y < sin x`),
+  x = g(y), implicit curves (`x² + y² = 25`), points, `f(x) = …` definitions and constant
+  expressions with their value; letters without a value offer “add slider”.
+
 ## [0.11.0-beta] - 2026-11-23
 
 Neon themes, history per model, light/dark pages and text size, a cleaner header and new icon.
