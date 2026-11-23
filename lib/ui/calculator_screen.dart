@@ -181,7 +181,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   }
 
   VoidCallback? _graphAction() {
-    if (_calc.graphTokens == null) return null;
+    if (_calc.graphSpec == null) return null;
     return _openGraph;
   }
 
@@ -190,7 +190,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) =>
-            GraphPage(tokens: _calc.graphTokens, angle: _calc.angleUnit),
+            GraphPage(spec: _calc.graphSpec, angle: _calc.angleUnit),
       ),
     );
   }

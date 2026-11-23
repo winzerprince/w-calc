@@ -31,36 +31,14 @@ class GraphCurve {
 /// Desmos-style graph: functions listed below, pan and pinch to move,
 /// tap to trace, points of interest marked.
 class GraphPage extends StatefulWidget {
-  const GraphPage({super.key, this.tokens, this.angle = AngleUnit.rad});
+  const GraphPage({super.key, this.spec, this.angle = AngleUnit.rad});
 
-  /// A function from the calculator (uses X), or null to start empty.
-  final List<Tok>? tokens;
+  /// What the calculator offers to draw, or null to start with y = x².
+  final GraphSpec? spec;
   final AngleUnit angle;
 
   @override
   State<GraphPage> createState() => _GraphPageState();
-}
-
-/// Readable formula text for calculator tokens.
-String formulaText(List<Tok> tokens) {
-  final b = StringBuffer();
-  for (final t in tokens) {
-    b.write(switch (t) {
-      Tok.varX => 'x',
-      Tok.negative || Tok.subtract => '−',
-      Tok.multiply => '×',
-      Tok.divide || Tok.fracDiv => '/',
-      Tok.power => '^',
-      Tok.square => '²',
-      Tok.cube => '³',
-      Tok.sqrt => '√',
-      Tok.cAbs => 'abs',
-      Tok.ePow => 'exp',
-      Tok.tenPow => '10^',
-      _ => t.text.trim(),
-    });
-  }
-  return b.toString();
 }
 
 class _GraphPageState extends State<GraphPage> {
@@ -90,18 +68,37 @@ class _GraphPageState extends State<GraphPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) runTourOnce(context, Tours.graph, () => graphTour);
     });
-    final t = widget.tokens;
-    if (t != null) {
+    final spec = widget.spec;
+    if (spec == null) {
+      _addCurve('x^2');
+      return;
+    }
+    for (final (label, f) in spec.curves) {
       _curves.add(
         GraphCurve(
-          text: formulaText(t),
-          function: GraphFunction(t, angle: _angle),
-          color: _palette[0],
+          text: label,
+          function: f,
+          color: _palette[_curves.length % _palette.length],
         ),
       );
-    } else {
-      _addCurve('x^2');
     }
+    _points = [for (final p in spec.points) Offset(p.x, p.y)];
+    if (_points.isNotEmpty) _fitPoints = true;
+  }
+
+  /// Data points from statistics (drawn as dots).
+  List<Offset> _points = const [];
+
+  /// Frame the data on the first layout.
+  bool _fitPoints = false;
+
+  void _fitToPoints() {
+    final xs = _points.map((p) => p.dx), ys = _points.map((p) => p.dy);
+    final minX = xs.reduce(math.min), maxX = xs.reduce(math.max);
+    final minY = ys.reduce(math.min), maxY = ys.reduce(math.max);
+    final w = math.max(maxX - minX, 1e-9), h = math.max(maxY - minY, 1e-9);
+    _center = Offset((minX + maxX) / 2, (minY + maxY) / 2);
+    _scale = math.min(_size.width / (w * 1.4), _size.height / (h * 1.4));
   }
 
   void _addCurve(String text) {
@@ -344,6 +341,10 @@ class _GraphPageState extends State<GraphPage> {
                     builder: (context, box) {
                       if (_size != box.biggest) {
                         _size = box.biggest;
+                        if (_fitPoints) {
+                          _fitPoints = false;
+                          _fitToPoints();
+                        }
                         _schedulePoi();
                       }
                       return Stack(
@@ -388,6 +389,7 @@ class _GraphPageState extends State<GraphPage> {
                               key: TourKeys.graphCanvas,
                               size: Size.infinite,
                               painter: _GraphPainter(
+                                points: _points,
                                 center: _center,
                                 scale: _scale,
                                 curves: _curves,
@@ -606,6 +608,7 @@ class _FunctionList extends StatelessWidget {
 
 class _GraphPainter extends CustomPainter {
   _GraphPainter({
+    required this.points,
     required this.center,
     required this.scale,
     required this.curves,
@@ -615,6 +618,7 @@ class _GraphPainter extends CustomPainter {
     required this.ink,
   });
 
+  final List<Offset> points;
   final Offset center;
   final double scale;
   final List<GraphCurve> curves;
@@ -737,6 +741,15 @@ class _GraphPainter extends CustomPainter {
         prevY = y;
       }
       canvas.drawPath(path, paint);
+    }
+
+    // Data points: rings in the first curve's colour.
+    final ring = Paint()
+      ..color = curves.isEmpty ? ink : curves.first.color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
+    for (final p in points) {
+      canvas.drawCircle(s(p.dx, p.dy), 5, ring);
     }
 
     // Points of interest: grey dots.
