@@ -44,7 +44,7 @@ const _modePages = [
   _Menu('EQN MAT VCT', {1: '1', 5: '2', 9: '3'}),
   _Menu('Deg Rad Gra', {1: '1', 5: '2', 9: '3'}),
   _Menu('Fix Sci Norm', {1: '1', 5: '2', 9: '3'}),
-  _Menu('Disp', {1: '1'}),
+  _Menu('Disp ◀CONT▶', {1: '1'}),
 ];
 const _drgMenu = _Menu(' D   R   G', {1: '1', 5: '2', 9: '3'});
 const _fixPrompt = _Menu('Fix 0~9?', {});
@@ -77,6 +77,9 @@ const _eqnNames = {
   'poly2': ['a', 'b', 'c'],
   'poly3': ['a', 'b', 'c', 'd'],
 };
+
+/// Contrast adjustment screen (Disp page, then ▶).
+const _contrastPage = _Menu('CONT ◀  ▶', {});
 
 /// MAT / VCT menus (SHIFT 4 / SHIFT 5).
 const _matPages = [
@@ -274,6 +277,11 @@ class Calculator {
 
   CalcMode _mode = CalcMode.comp;
 
+  bool _off = false;
+
+  /// LCD contrast −5 … +5.
+  int _contrast = 0;
+
   /// MAT / VCT variables: MatA … MatAns, VctA … VctAns.
   final Map<String, Value> _linear = {};
   _LinearEditor? _linEditor;
@@ -397,6 +405,25 @@ class Calculator {
   }
 
   DisplayState get display {
+    if (_off) return DisplayState.off;
+    final d = _display;
+    return _contrast == 0
+        ? d
+        : DisplayState(
+            upper: d.upper,
+            lower: d.lower,
+            exponent: d.exponent,
+            engSymbol: d.engSymbol,
+            decimalComma: d.decimalComma,
+            indicators: d.indicators,
+            cursor: d.cursor,
+            cursorStyle: d.cursorStyle,
+            menuMarks: d.menuMarks,
+            contrast: _contrast,
+          );
+  }
+
+  DisplayState get _display {
     final browse = _browse;
     final showScroll = _phase == _Phase.result && browse != null && !_midMulti;
     final indicators = {
@@ -539,7 +566,14 @@ class Calculator {
 
   void press(CalcKey key) {
     if (key == CalcKey.on) {
+      _off = false;
       _powerOn();
+      return;
+    }
+    if (_off) return;
+    if (_menu == null && _modifier == _Modifier.shift && key == CalcKey.ac) {
+      _modifier = _Modifier.none;
+      _off = true;
       return;
     }
     if (_codePrompt != null) {
@@ -1106,6 +1140,15 @@ class Calculator {
       // After the last setup page, MODE returns to the calculation screen.
       final next = _modePages.indexOf(menu) + 1;
       _menu = next < _modePages.length ? _modePages[next] : null;
+      return;
+    }
+    if (identical(menu, _contrastPage)) {
+      if (key == CalcKey.left) _contrast = (_contrast - 1).clamp(-5, 5);
+      if (key == CalcKey.right) _contrast = (_contrast + 1).clamp(-5, 5);
+      return;
+    }
+    if (identical(menu, _modePages.last) && key == CalcKey.right) {
+      _menu = _contrastPage;
       return;
     }
     if (_linearMode && _pressLinearMenu(menu, key)) return;
@@ -2385,6 +2428,7 @@ class Calculator {
     'mode': _mode.name,
     'regression': _stats.type.name,
     'base': _base,
+    'contrast': _contrast,
     'linear': {
       for (final e in _linear.entries)
         e.key: e.value.isMatrix
@@ -2487,6 +2531,8 @@ class Calculator {
           }
         }
       }
+      final contrast = state['contrast'];
+      if (contrast is int) _contrast = contrast.clamp(-5, 5);
       final base = state['base'];
       if (base is int && const [10, 16, 2, 8].contains(base)) _base = base;
       final regression = state['regression'];
