@@ -24,7 +24,11 @@ class CalcModel {
     this.naturalModes,
     this.indicatorLabels = const {},
     this.bigLinear = false,
+    this.listNames = false,
   });
+
+  /// Textbook family: statistics editor columns L1, L2, L3.
+  final bool listNames;
 
   /// Textbook family: MatA–MatD up to 4 × 4, VctA–VctD, four unknowns.
   final bool bigLinear;
@@ -51,6 +55,7 @@ class CalcModel {
       profile: profile,
       modes: naturalModes,
       bigLinear: bigLinear,
+      listNames: listNames,
     ),
   };
 
@@ -152,6 +157,7 @@ class CalcModel {
     profile: NaturalProfile.multiLine,
     naturalModes: {NaturalMode.comp, NaturalMode.stat, NaturalMode.table},
     indicatorLabels: {Indicator.shift: '2nd'},
+    listNames: true,
   );
 
   /// Four-line textbook display, 2ndF key, round cursor pad.
