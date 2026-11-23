@@ -5,6 +5,7 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Added
+- Adaptive launcher icon on Android 8+ (no white frame around the icon).
 - Launch screen: dark backdrop with the W-Calc icon (Android 12+ splash too); no white flash.
 - Long-press a key to see what else it does (SHIFT / 2nd, ALPHA and mode functions).
 - Store listing draft and privacy policy (no data collected); privacy line on the About page.
