@@ -75,5 +75,5 @@ how to verify on the device, result.
 | 68 | MAT / VCT pickers | after Dim / Edit: ` A   B   C`; after Mat / Vct: `A  B  C  Ans` | SHIFT 4 1 | to verify text |
 | 69 | Matrix editor | `MatA₁₂` with ▲▼←→ indicators; `=` stores and moves along the row, then to the next row; any other key leaves the editor | | to verify |
 | 70 | MAT / VCT history | calculation history not kept in MAT / VCT (manual lists COMP, CMPLX, BASE only) | | — |
-| 71 | Matrix stack | the 2-level matrix stack limit (Stack ERROR) is not enforced | | to do |
+| 71 | Matrix stack | at most 2 matrices/vectors pending at once, else Stack ERROR (A+B×A errors, A×B+A works) | verify on device | done |
 | 72 | OFF / contrast | SHIFT AC blanks the LCD until ON (memories kept); Disp page `Disp ◀CONT▶`, ▶ opens `CONT ◀  ▶`, ◀ ▶ adjust −5…+5, AC closes | | to verify screen text |

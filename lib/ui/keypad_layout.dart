@@ -407,3 +407,123 @@ const numberRows = [
     ),
   ],
 ];
+
+/// Arrangement of a calculator's keys. Every layout drives the same engine;
+/// only the physical look differs.
+class KeypadLayout {
+  /// Two-line reference look: modifier keys beside a round cursor disc.
+  const KeypadLayout.disc({
+    required this.id,
+    required this.topLeft,
+    required this.topRight,
+    required this.functionRows,
+    required this.numberRows,
+  }) : topRows = const [],
+       hasDisc = true;
+
+  /// Grid look: separate arrow keys, every key the same size.
+  const KeypadLayout.grid({
+    required this.id,
+    required this.topRows,
+    required this.functionRows,
+    required this.numberRows,
+  }) : topLeft = const [],
+       topRight = const [],
+       hasDisc = false;
+
+  final String id;
+  final bool hasDisc;
+
+  /// Disc layouts: rows left and right of the disc.
+  final List<List<KeySpec>> topLeft;
+  final List<List<KeySpec>> topRight;
+
+  /// Grid layouts: rows above the function block.
+  final List<List<KeySpec>> topRows;
+
+  final List<List<KeySpec>> functionRows;
+  final List<List<KeySpec>> numberRows;
+
+  /// Every key spec of this layout (tests, accessibility).
+  Iterable<KeySpec> get allKeys => [
+    ...topLeft,
+    ...topRight,
+    ...topRows,
+    ...functionRows,
+    ...numberRows,
+  ].expand((r) => r);
+}
+
+/// Two-line reference look.
+const twoLineLayout = KeypadLayout.disc(
+  id: 'two-line',
+  topLeft: [row0Left, row1Left],
+  topRight: [row0Right, row1Right],
+  functionRows: functionRows,
+  numberRows: numberRows,
+);
+
+/// Classic grid: "2nd" modifier, arrow keys in the top rows.
+const gridLayout = KeypadLayout.grid(
+  id: 'grid',
+  topRows: [
+    [
+      KeySpec(
+        CalcKey.shift,
+        '2nd',
+        above: [KeyLabel('2nd', _s, slot: _m)],
+        style: KeyStyle.modifier,
+      ),
+      KeySpec(
+        CalcKey.alpha,
+        'ALPHA',
+        above: [KeyLabel('ALPHA', _a, slot: _m)],
+        style: KeyStyle.modifier,
+      ),
+      KeySpec(CalcKey.up, '↑', style: KeyStyle.modifier),
+      KeySpec(CalcKey.down, '↓', style: KeyStyle.modifier),
+      KeySpec(
+        CalcKey.mode,
+        'MODE',
+        above: [KeyLabel('CLR', _s, slot: _m)],
+        style: KeyStyle.modifier,
+      ),
+      KeySpec(CalcKey.on, 'ON', style: KeyStyle.modifier),
+    ],
+    [
+      KeySpec(
+        CalcKey.calc,
+        'CALC',
+        above: [
+          KeyLabel('SOLVE', _s),
+          KeyLabel('=', _a, slot: _r),
+        ],
+      ),
+      KeySpec(
+        CalcKey.integrate,
+        '∫dx',
+        above: [
+          KeyLabel('d/dx', _s),
+          KeyLabel(':', _a, slot: _r),
+        ],
+      ),
+      KeySpec(CalcKey.left, '←', style: KeyStyle.modifier),
+      KeySpec(CalcKey.right, '→', style: KeyStyle.modifier),
+      KeySpec(
+        CalcKey.reciprocal,
+        'x^{-1}',
+        above: [
+          KeyLabel('x!', _s),
+          KeyLabel('LOGIC', _b, slot: _r),
+        ],
+      ),
+      KeySpec(
+        CalcKey.constant,
+        'CONST',
+        above: [KeyLabel('CONV', _s, slot: _m)],
+      ),
+    ],
+  ],
+  functionRows: functionRows,
+  numberRows: numberRows,
+);

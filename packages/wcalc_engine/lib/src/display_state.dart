@@ -94,11 +94,27 @@ class DisplayState {
   /// LCD contrast setting, −5 (light) … +5 (dark).
   final int contrast;
 
+  /// The result as plain text for the clipboard (`7`, `1.25E-04`, `12k`), or
+  /// null when the display shows a menu, an error or nothing.
+  String? get copyText {
+    if (isOff || menuMarks != null) return null;
+    var m = lower.trim();
+    if (m.isEmpty || upper.contains('ERROR')) return null;
+    if (!RegExp(r'\d').hasMatch(m)) return null;
+    if (m.endsWith('.')) m = m.substring(0, m.length - 1);
+    if (exponent != null) m = '${m}E$exponent';
+    if (engSymbol != null) m = '$m$engSymbol';
+    return m;
+  }
+
   static const DisplayState off = DisplayState(
     upper: '',
     lower: '',
     isOff: true,
   );
+
+  /// Shown while a long calculation runs (the device clears its display).
+  static const DisplayState busy = DisplayState(upper: '', lower: '');
 
   static const int upperColumns = 12;
 

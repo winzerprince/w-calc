@@ -9,6 +9,7 @@ class AppSettings extends ChangeNotifier {
     this.vibration = true,
     this.keySound = false,
     this.skinId = 'classic',
+    this.modelId = 'plus',
   });
 
   static const _key = 'wcalc.app.v1';
@@ -22,6 +23,9 @@ class AppSettings extends ChangeNotifier {
   /// Selected [CalcSkin] id.
   String skinId;
 
+  /// Selected calculator model id (see CalcModel).
+  String modelId;
+
   Future<void> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -33,23 +37,32 @@ class AppSettings extends ChangeNotifier {
       keySound = m['keySound'] == true;
       final skin = m['skin'];
       if (skin is String) skinId = skin;
+      final model = m['model'];
+      if (model is String) modelId = model;
       notifyListeners();
     } on Object {
       // Unreadable preferences: keep defaults.
     }
   }
 
-  void update({bool? vibration, bool? keySound, String? skinId}) {
+  void update({
+    bool? vibration,
+    bool? keySound,
+    String? skinId,
+    String? modelId,
+  }) {
     this.vibration = vibration ?? this.vibration;
     this.keySound = keySound ?? this.keySound;
     this.skinId = skinId ?? this.skinId;
+    this.modelId = modelId ?? this.modelId;
     notifyListeners();
     _save();
   }
 
   /// Applies a skin without saving it (web `?skin=` links).
-  void preview({required String skinId}) {
-    this.skinId = skinId;
+  void preview({String? skinId, String? modelId}) {
+    this.skinId = skinId ?? this.skinId;
+    this.modelId = modelId ?? this.modelId;
     notifyListeners();
   }
 

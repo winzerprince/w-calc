@@ -45,6 +45,9 @@ abstract final class Priority {
 /// Numeric stack depth.
 const int numericStackSize = 10;
 
+/// Matrices / vectors that may be pending at once (MAT/VCT stack).
+const int linearStackSize = 2;
+
 /// Command (operator) stack depth.
 const int commandStackSize = 24;
 
@@ -610,6 +613,10 @@ class _Evaluator {
 
   void _pushValue(Value v, int pos) {
     if (values.length >= numericStackSize) {
+      throw CalcError(CalcErrorKind.stack, pos);
+    }
+    if (v.isLinear &&
+        values.where((x) => x.isLinear).length >= linearStackSize) {
       throw CalcError(CalcErrorKind.stack, pos);
     }
     values.add(v);

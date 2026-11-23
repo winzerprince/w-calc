@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:w_calc/app/app_settings.dart';
@@ -92,5 +93,82 @@ void main() {
     await b.load();
     expect((b.vibration, b.keySound, b.skinId), (false, true, 'ivory'));
     expect(a.skinId, 'ivory');
+  });
+
+  testWidgets('switching to the basic model keeps memory and gates keys', (
+    tester,
+  ) async {
+    final settings = await openApp(tester);
+    // Store 7 in A on the full model.
+    for (final k in ['d7', 'shift', 'rcl', 'negative']) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    await openMenuItem(tester, 'Calculator model');
+    await tester.tap(find.byKey(const Key('model-basic')));
+    await settle(tester);
+    expect(settings.modelId, 'basic');
+    await tester.pageBack();
+    await settle(tester);
+    // Close the menu overlay if still open.
+    final close = find.byKey(const Key('app-menu-close'));
+    if (close.evaluate().isNotEmpty) {
+      await tester.tap(close);
+      await settle(tester);
+    }
+    expect(find.text('SCIENTIFIC BASIC'), findsOneWidget);
+    expect(find.text('CONV'), findsNothing);
+    // CONST is inert; the memory survived the switch.
+    for (final k in ['ac', 'constant', 'rcl', 'negative']) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    expect(lcd(tester, 'lower'), '7.');
+  });
+
+  testWidgets('long press on the LCD copies the result', (tester) async {
+    final copied = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied.add((call.arguments as Map)['text'] as String);
+        }
+        return null;
+      },
+    );
+    await openApp(tester);
+    for (final k in ['d1', 'd2', 'multiply', 'd3', 'equals']) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    await tester.longPress(find.byKey(const Key('lcd-copy')));
+    await settle(tester);
+    expect(copied, ['36']);
+    expect(find.text('Copied 36'), findsOneWidget);
+  });
+
+  testWidgets('keys can be activated by a screen reader', (tester) async {
+    final handle = tester.ensureSemantics();
+    await openApp(tester);
+    tester.semantics.tap(find.semantics.byLabel('5'));
+    await tester.pump();
+    expect(lcd(tester, 'upper'), '5');
+    handle.dispose();
+  });
+
+  testWidgets('grid model shows arrow keys instead of the disc', (
+    tester,
+  ) async {
+    final settings = await openApp(tester);
+    settings.update(modelId: 'grid');
+    await settle(tester);
+    expect(find.text('SCIENTIFIC GRID'), findsOneWidget);
+    expect(find.text('2nd'), findsWidgets);
+    for (final k in ['d4', 'left', 'right', 'd2', 'equals']) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    expect(lcd(tester, 'lower'), '42.');
   });
 }

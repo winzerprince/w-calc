@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'haptics.dart';
 import 'pages/about_page.dart';
 import 'pages/guide_page.dart';
+import 'pages/model_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/shortcuts_page.dart';
 import 'pages/theme_page.dart';
@@ -27,8 +28,14 @@ final menuEntries = [
   MenuEntry(
     Icons.tune,
     'Settings',
-    'Vibration, sound, theme, reset',
+    'Vibration, sound, model, theme, reset',
     page: (onReset) => SettingsPage(onResetCalculator: onReset),
+  ),
+  MenuEntry(
+    Icons.calculate_outlined,
+    'Calculator model',
+    'Plus, Grid or Basic',
+    page: (_) => const ModelPage(),
   ),
   MenuEntry(
     Icons.palette_outlined,

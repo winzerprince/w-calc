@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
+import '../app/calc_model.dart';
 import 'keypad_layout.dart';
 import 'legend.dart';
 import 'skin.dart';
@@ -29,41 +30,45 @@ class Keypad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final layout = ModelScope.of(context).layout;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          flex: 21,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Column(
-                  children: [
-                    Expanded(child: _row(row0Left)),
-                    Expanded(child: _row(row1Left)),
-                  ],
+        if (layout.hasDisc)
+          Expanded(
+            flex: 21,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      for (final r in layout.topLeft) Expanded(child: _row(r)),
+                    ],
+                  ),
                 ),
-              ),
-              Expanded(flex: 2, child: CursorDisc(onPress: onPress)),
-              Expanded(
-                flex: 2,
-                child: Column(
-                  children: [
-                    Expanded(child: _row(row0Right)),
-                    Expanded(child: _row(row1Right)),
-                  ],
+                Expanded(flex: 2, child: CursorDisc(onPress: onPress)),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    children: [
+                      for (final r in layout.topRight) Expanded(child: _row(r)),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          )
+        else
+          for (final r in layout.topRows) Expanded(flex: 10, child: _row(r)),
+        for (final (i, r) in layout.functionRows.indexed)
+          Expanded(
+            flex: i == layout.functionRows.length - 1 ? 12 : 10,
+            child: _row(r),
           ),
-        ),
-        Expanded(flex: 10, child: _row(functionRows[0])),
-        Expanded(flex: 10, child: _row(functionRows[1])),
-        Expanded(flex: 12, child: _row(functionRows[2])),
         const SizedBox(height: 4),
-        for (final r in numberRows) Expanded(flex: 13, child: _row(r)),
+        for (final r in layout.numberRows) Expanded(flex: 13, child: _row(r)),
       ],
     );
   }
@@ -96,6 +101,7 @@ class _KeyButtonState extends State<KeyButton> {
   Widget build(BuildContext context) {
     final spec = widget.spec;
     final skin = CalcSkin.of(context);
+    final model = ModelScope.of(context);
     final (base, fg) = switch (spec.style) {
       KeyStyle.modifier => (skin.modifierKey, skin.modifierText),
       KeyStyle.function => (skin.functionKey, skin.functionText),
@@ -112,14 +118,32 @@ class _KeyButtonState extends State<KeyButton> {
         children: [
           SizedBox(
             height: _stripHeight,
-            child: LegendStrip(labels: spec.above, below: false),
+            child: LegendStrip(
+              labels: [
+                for (final l in spec.above)
+                  if (model.showsLegend(spec.key, l)) l,
+              ],
+              below: false,
+            ),
           ),
           const SizedBox(height: 1),
-          Expanded(child: _cap(spec, cap, fg)),
+          Expanded(
+            child: Opacity(
+              // Keys without a function on this model are drawn faded.
+              opacity: model.keyEnabled(spec.key) ? 1 : 0.35,
+              child: _cap(spec, cap, fg),
+            ),
+          ),
           if (widget.reserveBelow)
             SizedBox(
               height: _stripHeight,
-              child: LegendStrip(labels: spec.below, below: true),
+              child: LegendStrip(
+                labels: [
+                  for (final l in spec.below)
+                    if (model.showsLegend(spec.key, l)) l,
+                ],
+                below: true,
+              ),
             ),
         ],
       ),
@@ -127,9 +151,20 @@ class _KeyButtonState extends State<KeyButton> {
   }
 
   Widget _cap(KeySpec spec, Color cap, Color fg) {
+    final model = ModelScope.of(context);
+    final enabled = model.keyEnabled(spec.key);
+    final extras = [
+      for (final l in [...spec.above, ...spec.below])
+        if (model.showsLegend(spec.key, l)) legendText(l.text),
+    ];
     return Semantics(
       button: true,
+      enabled: enabled,
       label: legendText(spec.main),
+      hint: extras.isEmpty ? null : 'also ${extras.join(', ')}',
+      // Screen readers activate through a semantic tap, not pointer events.
+      onTap: () => widget.onPress(spec.key),
+      excludeSemantics: true,
       child: Listener(
         key: Key('key-${spec.key.name}'),
         onPointerDown: (_) {
@@ -369,6 +404,7 @@ class CursorDisc extends StatelessWidget {
         child: Semantics(
           button: true,
           label: 'cursor ${dir.name}',
+          onTap: () => onPress(key),
           child: Listener(
             key: Key('key-${key.name}'),
             behavior: HitTestBehavior.opaque,

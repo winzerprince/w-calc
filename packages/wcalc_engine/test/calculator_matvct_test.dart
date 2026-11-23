@@ -46,6 +46,13 @@ void main() {
       expect(screen('>'), ('MatAns₁₂', '0.'));
       expect(screen('down'), ('MatAns₂₂', '1.'));
     });
+    test('matrix stack holds two levels (notes #71)', () {
+      press(setup);
+      // A + B × A needs three pending matrices.
+      expect(press('MAT 3 1 + MAT 3 2 × MAT 3 1 =').upper, 'Stack ERROR');
+      // A × B + A only ever holds two.
+      expect(screen('AC MAT 3 1 × MAT 3 2 + MAT 3 1 ='), ('MatAns₁₁', '5.'));
+    });
     test('A + B', () {
       press(setup);
       expect(screen('MAT 3 1 + MAT 3 2 ='), ('MatAns₁₁', '4.'));
