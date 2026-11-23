@@ -30,11 +30,33 @@ class AppSettings extends ChangeNotifier {
   /// Surface finish of body and keys (see CalcFinish).
   String finishId;
 
+  /// Tours already shown (first-run help).
+  final Set<String> seenTours = {};
+
+  /// True once saved preferences have been read (tours wait for it so they
+  /// do not reappear on every start).
+  bool loaded = false;
+
+  void markTourSeen(String id) {
+    if (seenTours.add(id)) _save();
+  }
+
+  /// Settings ▸ Tours: show every tour again on its next visit.
+  void resetTours() {
+    seenTours.clear();
+    _save();
+    notifyListeners();
+  }
+
   Future<void> load() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_key);
-      if (raw == null) return;
+      if (raw == null) {
+        loaded = true;
+        notifyListeners();
+        return;
+      }
       final m = jsonDecode(raw);
       if (m is! Map) return;
       vibration = m['vibration'] != false;
@@ -45,9 +67,13 @@ class AppSettings extends ChangeNotifier {
       if (model is String) modelId = model;
       final finish = m['finish'];
       if (finish is String) finishId = finish;
+      final tours = m['tours'];
+      if (tours is List) seenTours.addAll(tours.whereType<String>());
+      loaded = true;
       notifyListeners();
     } on Object {
       // Unreadable preferences: keep defaults.
+      loaded = true;
     }
   }
 
@@ -85,6 +111,7 @@ class AppSettings extends ChangeNotifier {
           'skin': skinId,
           'model': modelId,
           'finish': finishId,
+          'tours': seenTours.toList(),
         }),
       );
     } on Object {

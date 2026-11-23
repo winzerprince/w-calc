@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../app/app_settings.dart';
 import '../haptics.dart';
 import 'page_scaffold.dart';
+import '../tour/tours.dart';
+import 'manual_page.dart';
 import 'model_page.dart';
 import 'theme_page.dart';
 
@@ -89,6 +91,50 @@ class SettingsPage extends StatelessWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute<void>(builder: (_) => const ThemePage()),
+          ),
+        ),
+        const PageSection('Help'),
+        ListTile(
+          key: const Key('tour-calculator'),
+          leading: const Icon(Icons.gesture),
+          title: const Text('Calculator tour'),
+          subtitle: const Text('What the display and main keys do'),
+          onTap: () {
+            Navigator.of(context).popUntil((r) => r.isFirst);
+            calculatorTourRequest.value++;
+          },
+        ),
+        ListTile(
+          key: const Key('tour-models'),
+          leading: const Icon(Icons.calculate_outlined),
+          title: const Text('Models tour'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => const ModelPage(startTour: true),
+            ),
+          ),
+        ),
+        ListTile(
+          key: const Key('tour-theme'),
+          leading: const Icon(Icons.palette_outlined),
+          title: const Text('Theme tour'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => const ThemePage(startTour: true),
+            ),
+          ),
+        ),
+        ListTile(
+          key: const Key('tour-manual'),
+          leading: const Icon(Icons.menu_book_outlined),
+          title: const Text('Manual tour'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => const ManualPage(startTour: true),
+            ),
           ),
         ),
         const PageSection('Calculator'),

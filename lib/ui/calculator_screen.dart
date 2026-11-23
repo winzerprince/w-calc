@@ -13,6 +13,7 @@ import 'keypad.dart';
 import 'lcd.dart';
 import 'lcd/dot_lcd.dart';
 import 'skin.dart';
+import 'tour/tours.dart';
 import 'state_store.dart';
 
 class CalculatorScreen extends StatefulWidget {
@@ -58,6 +59,30 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       }
     }
   }
+
+  bool _tourChecked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    calculatorTourRequest.addListener(replayTour);
+  }
+
+  /// First run: the calculator tour, once preferences are known.
+  void _maybeTour() {
+    final settings = SettingsScope.maybeOf(context);
+    if (_tourChecked || settings == null || !settings.loaded) return;
+    _tourChecked = true;
+    runTourOnce(context, Tours.calculator, () => calculatorTour(_model!));
+  }
+
+  /// Settings ▸ Tours ▸ Calculator.
+  void replayTour() => runTourOnce(
+    context,
+    Tours.calculator,
+    () => calculatorTour(_model!),
+    force: true,
+  );
 
   /// Restores [engine]'s saved state once storage answers, if it is still
   /// the engine in use.
@@ -185,6 +210,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   void dispose() {
+    calculatorTourRequest.removeListener(replayTour);
     if (_focusMode) setFullscreen(false);
     _focus.dispose();
     super.dispose();
@@ -192,6 +218,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _maybeTour();
     final skin = CalcSkin.of(context);
     return Scaffold(
       backgroundColor: skin.background,
@@ -207,6 +234,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
               // Landscape: LCD beside the keypad instead of a squashed keypad.
               final landscape = box.maxWidth > box.maxHeight * 1.15;
               final lcd = _Bezel(
+                key: TourKeys.lcd,
                 child: GestureDetector(
                   key: const Key('lcd-copy'),
                   onLongPress: _copyResult,
@@ -216,7 +244,10 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   ),
                 ),
               );
-              final keypad = Keypad(onPress: _press);
+              final keypad = KeyedSubtree(
+                key: TourKeys.keypad,
+                child: Keypad(onPress: _press, tourTargets: true),
+              );
               return Center(
                 child: ConstrainedBox(
                   constraints: landscape
@@ -298,7 +329,10 @@ class _Header extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _MenuButton(onReset: onReset),
+                KeyedSubtree(
+                  key: TourKeys.menu,
+                  child: _MenuButton(onReset: onReset),
+                ),
                 const SizedBox(width: 8),
                 Text(
                   ModelScope.of(context).name.toUpperCase(),
@@ -328,6 +362,7 @@ class _Header extends StatelessWidget {
               behavior: HitTestBehavior.opaque,
               onTap: onFocus,
               child: Padding(
+                key: TourKeys.solar,
                 padding: const EdgeInsets.all(4),
                 child: _solar(context),
               ),
@@ -367,7 +402,7 @@ class _Header extends StatelessWidget {
 }
 
 class _Bezel extends StatelessWidget {
-  const _Bezel({required this.child});
+  const _Bezel({super.key, required this.child});
 
   final Widget child;
 

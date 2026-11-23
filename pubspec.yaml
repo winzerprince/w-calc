@@ -25,6 +25,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Licence texts shown on Menu ▸ About ▸ Third-party licences.
+  assets:
+    - assets/fonts/OFL.txt
+    - assets/fonts/OFL-PatrickHand.txt
+
   # Bundled fonts: the app must never fetch fonts at runtime (offline, no network).
   # Barlow Semi Condensed: SIL OFL 1.1 (assets/fonts/OFL.txt).
   # WCalcSymbols: subset of Noto Sans Math, SIL OFL 1.1.
@@ -38,3 +43,7 @@ flutter:
     - family: WCalcSymbols
       fonts:
         - asset: assets/fonts/WCalcSymbols.ttf
+    # Patrick Hand: SIL OFL 1.1 (assets/fonts/OFL-PatrickHand.txt); tour notes.
+    - family: Hand
+      fonts:
+        - asset: assets/fonts/PatrickHand-Regular.ttf
