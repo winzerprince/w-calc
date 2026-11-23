@@ -21,6 +21,9 @@ abstract final class Priority {
   /// Implied multiplication before π, e, memory or variable names (2π, 3A, 2Ans).
   static const impliedOperand = 5;
 
+  /// Fraction bar (textbook display): binds tighter than (−).
+  static const fraction = 4;
+
   /// Type B functions: (−), √, sin, log, ...
   static const prefix = 6;
 
@@ -304,7 +307,10 @@ class _Evaluator {
           // functions, so they apply to the value just completed.
           if (expectOperand) _syntax(i);
           _guard(i, () => values.add(_postfixFn(tok)(values.removeLast())));
-        case TokKind.function when tok == Tok.integral || tok == Tok.derivative:
+        case TokKind.function
+            when tok == Tok.integral ||
+                tok == Tok.derivative ||
+                tok == Tok.sigma:
           if (!expectOperand) {
             _pushBinary(_Op(_OpType.binary, Priority.impliedFunction, i, _mul));
           }
@@ -377,7 +383,12 @@ class _Evaluator {
     }
     args.add((argStart, end));
     final integral = tokens[start] == Tok.integral;
-    final (minArgs, maxArgs) = integral ? (3, 4) : (2, 3);
+    final sigma = tokens[start] == Tok.sigma;
+    final (minArgs, maxArgs) = integral
+        ? (3, 4)
+        : sigma
+        ? (3, 3)
+        : (2, 3);
     if (args.length < minArgs || args.length > maxArgs) _syntax(end);
     for (final (a, b) in args) {
       if (a == b) _syntax(a);
@@ -407,6 +418,12 @@ class _Evaluator {
       ),
     );
 
+    if (sigma) {
+      final a = number(1), b = number(2);
+      _pushValue(_guarded(start, () => _sum(fa, body, a, b)), start);
+      return end < tokens.length ? end + 1 : end;
+    }
+
     late Dec result;
     if (integral) {
       final a = number(1), b = number(2);
@@ -429,6 +446,34 @@ class _Evaluator {
     }
     _pushValue(Value.dec(result), start);
     return end < tokens.length ? end + 1 : end;
+  }
+
+  /// Σ(f, a, b) = f(a) + f(a+1) + … + f(b); fractions stay exact.
+  Value _sum(int pos, List<Tok> body, Dec a, Dec b) {
+    final limit = Dec.parse('1e10');
+    if (!a.isInteger ||
+        !b.isInteger ||
+        b < a ||
+        a.abs() > limit ||
+        b.abs() > limit) {
+      throw const CalcError(CalcErrorKind.math);
+    }
+    var total = Value.zero;
+    for (var x = a; x <= b; x = x + Dec.one) {
+      final term = _Evaluator(
+        body,
+        EvalContext(
+          ans: ctx.ans,
+          angle: ctx.angle,
+          format: ctx.format,
+          variables: {...ctx.variables, 'X': Value.dec(x)},
+          improperFractions: ctx.improperFractions,
+          random: ctx.random,
+        ),
+      ).run();
+      total = total + term;
+    }
+    return total;
   }
 
   /// Closes a parenthesis; for a function, applies it to its arguments.
@@ -459,6 +504,23 @@ class _Evaluator {
           Tok.distQ => normalQ(t),
           _ => normalR(t),
         });
+      case Tok.logBase:
+        // log(x) is base 10; log(a, x) is base a.
+        if (args.isEmpty || args.length > 2) _syntax(pos);
+        if (args.any((a) => a.isComplex)) {
+          throw const CalcError(CalcErrorKind.math);
+        }
+        if (args.length == 1) return Value.dec(logDec(args.single.dec));
+        return Value.dec(logBaseDec(args[0].dec, args[1].dec));
+      case Tok.ranInt:
+        if (args.length != 2) _syntax(pos);
+        final lo = args[0].dec, hi = args[1].dec;
+        if (!lo.isInteger || !hi.isInteger || hi < lo) {
+          throw const CalcError(CalcErrorKind.math);
+        }
+        final span = (hi - lo).toInt() + 1;
+        if (span > 10000000000) throw const CalcError(CalcErrorKind.math);
+        return Value.dec(lo + Dec.fromInt(ctx.random.nextInt(span)));
       default:
         throw ArgumentError('not a function: $f');
     }
@@ -826,6 +888,12 @@ class _Evaluator {
       (a, b) => a / b,
     ),
     Tok.power => _Op(_OpType.binary, Priority.power, pos, _power),
+    Tok.fracDiv => _Op(
+      _OpType.binary,
+      Priority.fraction,
+      pos,
+      (a, b) => a.fractionOver(b),
+    ),
     Tok.xRoot => _Op(_OpType.binary, Priority.power, pos, _d2(xRootDec)),
     Tok.nPr => _Op(
       _OpType.binary,
