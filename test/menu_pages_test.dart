@@ -265,4 +265,17 @@ void main() {
     expect(settings.modelId, 'textbook2');
     expect(settings.skinId, 'black');
   });
+
+  testWidgets('app appearance and text size', (tester) async {
+    final settings = await openApp(tester);
+    await openMenuItem(tester, 'Settings');
+    await tester.tap(find.text('Dark'));
+    await settle(tester);
+    expect(settings.appearance, 'dark');
+    final slider = find.byKey(const Key('setting-text-size'));
+    await tester.drag(slider, const Offset(400, 0));
+    await settle(tester);
+    expect(settings.textScale, greaterThan(1.2));
+    expect(tester.takeException(), isNull);
+  });
 }

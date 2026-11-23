@@ -47,8 +47,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget build(BuildContext context) {
     final store = HistoryStore.instance;
     final settings = SettingsScope.of(context);
-    return Theme(
-      data: readingTheme(context),
+    return AppPageTheme(
       child: ListenableBuilder(
         listenable: store,
         builder: (context, _) {

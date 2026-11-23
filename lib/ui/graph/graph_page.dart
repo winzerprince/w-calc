@@ -352,8 +352,7 @@ class _GraphPageState extends State<GraphPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: readingTheme(context),
+    return AppPageTheme(
       child: Builder(
         builder: (context) {
           final scheme = Theme.of(context).colorScheme;

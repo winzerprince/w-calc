@@ -5,6 +5,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Added
+- Settings ▸ App appearance: System, Light or Dark for menus and pages (separate from calculator
+  themes) and a text-size slider (85–150 %).
 - History (Menu ▸ History or the clock button): every calculation with its time and answer,
   kept separately per model; tap to copy; clear per model. "Save history on this device" is on
   by default — switching it off stops saving and removes what was stored.
