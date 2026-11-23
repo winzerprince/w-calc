@@ -23,7 +23,11 @@ class CalcModel {
     this.profile = NaturalProfile.textbook,
     this.naturalModes,
     this.indicatorLabels = const {},
+    this.bigLinear = false,
   });
+
+  /// Textbook family: MatA–MatD up to 4 × 4, VctA–VctD, four unknowns.
+  final bool bigLinear;
 
   /// Textbook family: screen layout (single expression or four-line history).
   final NaturalProfile profile;
@@ -46,6 +50,7 @@ class CalcModel {
     CalcFamily.textbook => NaturalCalculator(
       profile: profile,
       modes: naturalModes,
+      bigLinear: bigLinear,
     ),
   };
 
@@ -187,12 +192,28 @@ class CalcModel {
     indicatorLabels: {Indicator.shift: '2nd'},
   );
 
+  /// Textbook display with bigger linear algebra (four 4 × 4 matrices,
+  /// four vectors, four unknowns).
+  static final max = CalcModel(
+    id: 'max',
+    name: 'Scientific Max',
+    description:
+        'Textbook display with four matrices up to 4×4, four vectors and '
+        'equations with four unknowns',
+    features: CalcFeatures.full,
+    layout: textbookDiscLayout,
+    family: CalcFamily.textbook,
+    skinId: 'ocean',
+    bigLinear: true,
+  );
+
   static final all = [
     plus,
     grid,
     basic,
     textbook,
     textbook2,
+    max,
     twoView,
     view,
     write,

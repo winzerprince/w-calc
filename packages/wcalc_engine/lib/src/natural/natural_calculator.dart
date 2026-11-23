@@ -40,7 +40,7 @@ enum NaturalProfile {
 }
 
 /// EQN types in MODE 5 menu order.
-enum EqnType { lin2, lin3, quad, cubic }
+enum EqnType { lin2, lin3, quad, cubic, lin4 }
 
 /// STAT calculation types in MODE 3 menu order.
 enum StatType { oneVar, lin, quad, log, eExp, abExp, pwr, inv }
@@ -101,6 +101,7 @@ class NaturalCalculator implements CalcEngine {
     math.Random? random,
     this.profile = NaturalProfile.textbook,
     Set<NaturalMode>? modes,
+    this.bigLinear = false,
   }) : _random = random ?? math.Random(),
        modes = modes ?? NaturalMode.values.toSet();
 
@@ -109,6 +110,13 @@ class NaturalCalculator implements CalcEngine {
 
   /// Modes this model offers on its MODE menu.
   final Set<NaturalMode> modes;
+
+  /// Four matrices up to 4 × 4 (MatA–MatD), four vectors and simultaneous
+  /// equations with four unknowns.
+  final bool bigLinear;
+
+  List<String> get _letters =>
+      bigLinear ? const ['A', 'B', 'C', 'D'] : const ['A', 'B', 'C'];
 
   final math.Random _random;
 
@@ -1111,19 +1119,44 @@ class NaturalCalculator implements CalcEngine {
       }
     }
 
+    final l = _letters;
     return _Menu(
-      [matrix ? 'Matrix?' : 'Vector?', '1:${p}A  2:${p}B', '3:${p}C'],
-      {1: () => open('${p}A'), 2: () => open('${p}B'), 3: () => open('${p}C')},
+      [
+        matrix ? 'Matrix?' : 'Vector?',
+        '1:$p${l[0]}  2:$p${l[1]}',
+        '3:$p${l[2]}${l.length > 3 ? '  4:$p${l[3]}' : ''}',
+      ],
+      {for (final (i, x) in l.indexed) i + 1: () => open('$p$x')},
     );
   }
 
-  _Menu _matDimMenu(String name) => _Menu(
-    ['$name(m×n) m×n?', '1:3×3  2:3×2', '3:3×1  4:2×3', '5:2×2  6:2×1 ▼'],
-    {
+  _Menu _matDimMenu(String name) {
+    if (bigLinear) {
+      // Rows and columns typed: m? then n? (1-4 each).
+      _askDigit('$name  m? (1~4)', 1, 4, (m) {
+        _askDigit('$name  n? (1~4)', 1, 4, (n) {
+          _dimension(name, Value.matrix(_zeros(m, n)));
+        });
+      });
+      return _Menu(const [''], const {});
+    }
+    final actions = {
       for (final (i, (r, c)) in _matDims.indexed)
         i + 1: () => _dimension(name, Value.matrix(_zeros(r, c))),
-    },
-  );
+    };
+    late _Menu page1, page2;
+    page1 = _Menu(
+      ['$name(m×n) m×n?', '1:3×3  2:3×2', '3:3×1  4:2×3', '5:2×2  6:2×1'],
+      actions,
+      next: () => page2,
+    );
+    page2 = _Menu(
+      ['$name(m×n) m×n?', '7:1×3  8:1×2'],
+      actions,
+      prev: () => page1,
+    );
+    return page1;
+  }
 
   _Menu _vctDimMenu(String name) => _Menu(
     ['$name(m) m?', '1:3    2:2'],
@@ -1138,6 +1171,7 @@ class NaturalCalculator implements CalcEngine {
   ];
 
   void _dimension(String name, Value v) {
+    _menu = null;
     _linear[name] = v;
     _openGrid(name);
   }
@@ -1246,10 +1280,12 @@ class NaturalCalculator implements CalcEngine {
       'MatA' => Tok.matA,
       'MatB' => Tok.matB,
       'MatC' => Tok.matC,
+      'MatD' => Tok.matD,
       'MatAns' => Tok.matAns,
       'VctA' => Tok.vctA,
       'VctB' => Tok.vctB,
       'VctC' => Tok.vctC,
+      'VctD' => Tok.vctD,
       _ => Tok.vctAns,
     };
     void insert(Tok tok) {
@@ -1286,6 +1322,9 @@ class NaturalCalculator implements CalcEngine {
         } else
           7: () => insert(Tok.dot),
       },
+      next: bigLinear
+          ? () => _Menu(['9:${p}D'], {9: () => insert(t('D'))})
+          : null,
     );
   }
 
@@ -1593,19 +1632,33 @@ class NaturalCalculator implements CalcEngine {
 
   // ------------------------------------------------------------- EQN
 
-  _Menu _eqnTypeMenu() => _Menu(
-    const [
-      '1:anX+bnY=cn',
-      '2:anX+bnY+cnZ=dn',
-      '3:aX²+bX+c=0',
-      '4:aX³+bX²+cX+d=0',
-    ],
-    {for (final t in EqnType.values) t.index + 1: () => _setEqnType(t)},
-  );
+  _Menu _eqnTypeMenu() {
+    final page1 = _Menu(
+      const [
+        '1:anX+bnY=cn',
+        '2:anX+bnY+cnZ=dn',
+        '3:aX²+bX+c=0',
+        '4:aX³+bX²+cX+d=0',
+      ],
+      {
+        for (final t in EqnType.values)
+          if (t != EqnType.lin4 || bigLinear) t.index + 1: () => _setEqnType(t),
+      },
+      next: bigLinear
+          ? () => _Menu(
+              const ['5:4 unknowns'],
+              {5: () => _setEqnType(EqnType.lin4)},
+              prev: _eqnTypeMenu,
+            )
+          : null,
+    );
+    return page1;
+  }
 
   (int, int) get _eqnShape => switch (_eqnType!) {
     EqnType.lin2 => (2, 3),
     EqnType.lin3 => (3, 4),
+    EqnType.lin4 => (4, 5),
     EqnType.quad => (1, 3),
     EqnType.cubic => (1, 4),
   };
@@ -1702,7 +1755,7 @@ class NaturalCalculator implements CalcEngine {
     try {
       final t = _eqnType!;
       final List<Value> sols;
-      if (t == EqnType.lin2 || t == EqnType.lin3) {
+      if (t == EqnType.lin2 || t == EqnType.lin3 || t == EqnType.lin4) {
         sols = solveLinear([
           for (final row in _coef) [for (final v in row) v.dec],
         ]).map(_cleanLinear).toList();
@@ -1759,9 +1812,12 @@ class NaturalCalculator implements CalcEngine {
   void _paintEqn(DotBitmap bmp, StringBuffer text) {
     final sols = _solutions;
     if (sols != null) {
-      final linear = _eqnType == EqnType.lin2 || _eqnType == EqnType.lin3;
+      final linear =
+          _eqnType == EqnType.lin2 ||
+          _eqnType == EqnType.lin3 ||
+          _eqnType == EqnType.lin4;
       final name = linear
-          ? const ['X', 'Y', 'Z'][_solIndex]
+          ? const ['X', 'Y', 'Z', 'T'][_solIndex]
           : (sols.length == 1 ? 'X' : 'X${_solIndex + 1}');
       bmp.text(0, 0, '$name=');
       final row = _rowFor(sols[_solIndex], surd: !linear);
@@ -1775,7 +1831,7 @@ class NaturalCalculator implements CalcEngine {
       return;
     }
     final (rows, cols) = _eqnShape;
-    const letters = ['a', 'b', 'c', 'd'];
+    const letters = ['a', 'b', 'c', 'd', 'e'];
     const rowNumW = 7;
     final colW = (DotScreen.width - rowNumW) ~/ cols;
     for (var c = 0; c < cols; c++) {
