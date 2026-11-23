@@ -11,6 +11,7 @@ import '../input/token.dart';
 import '../lcd/dot_bitmap.dart';
 import '../eqn/solvers.dart';
 import '../eval/solve.dart';
+import '../graph/graph_math.dart';
 import '../number/dec.dart';
 import '../number/frac.dart';
 import '../number/surd.dart';
@@ -103,6 +104,7 @@ class NaturalCalculator implements CalcEngine {
     Set<NaturalMode>? modes,
     this.bigLinear = false,
     this.listNames = false,
+    this.menuCursor = false,
   }) : _random = random ?? math.Random(),
        modes = modes ?? NaturalMode.values.toSet();
 
@@ -114,6 +116,20 @@ class NaturalCalculator implements CalcEngine {
 
   /// Statistics editor columns named L1, L2, L3 (list-style models).
   final bool listNames;
+
+  /// Menus show option names in rows with a highlight moved by ◀ ▶ and
+  /// chosen with = (numbers still work).
+  final bool menuCursor;
+
+  int _menuIndex = 0;
+  _Menu? _menuSeen;
+
+  /// (number, label) items of a menu, from its "n:label" lines.
+  static List<(int, String)> _items(_Menu m) => [
+    for (final line in m.lines)
+      for (final match in RegExp(r'(\d+):(.*?)(?=\s+\d+:|$)').allMatches(line))
+        (int.parse(match.group(1)!), match.group(2)!.trim()),
+  ];
 
   /// Four matrices up to 4 × 4 (MatA–MatD), four vectors and simultaneous
   /// equations with four unknowns.
@@ -2282,6 +2298,32 @@ class NaturalCalculator implements CalcEngine {
 
   void _onMenuKey(CalcKey key) {
     final m = _menu!;
+    if (menuCursor && _pendingConfirm == null && m.lines.first != 'CONTRAST') {
+      final items = _items(m);
+      if (items.isNotEmpty) {
+        if (!identical(_menuSeen, m)) {
+          _menuSeen = m;
+          _menuIndex = 0;
+        }
+        switch (key) {
+          case CalcKey.right:
+            _menuIndex = (_menuIndex + 1) % items.length;
+            return;
+          case CalcKey.left:
+            _menuIndex = (_menuIndex - 1 + items.length) % items.length;
+            return;
+          case CalcKey.equals:
+            final action = m.actions[items[_menuIndex].$1];
+            if (action != null) {
+              _menu = null;
+              action();
+            }
+            return;
+          default:
+            break;
+        }
+      }
+    }
     if (key == CalcKey.shift) {
       _shift = !_shift;
       return;
@@ -2652,8 +2694,36 @@ class NaturalCalculator implements CalcEngine {
       _paintEditor(bmp, text);
     } else if (_menu != null) {
       final m = _menu!;
-      for (var i = 0; i < m.lines.length && i < 4; i++) {
-        bmp.text(0, i * 8, m.lines[i]);
+      final items = menuCursor ? _items(m) : const <(int, String)>[];
+      if (items.isEmpty) {
+        for (var i = 0; i < m.lines.length && i < 4; i++) {
+          bmp.text(0, i * 8, m.lines[i]);
+        }
+      } else {
+        if (!identical(_menuSeen, m)) {
+          _menuSeen = m;
+          _menuIndex = 0;
+        }
+        // Names across the line, wrapping; the chosen one highlighted.
+        final title = m.lines.first.contains(':') ? null : m.lines.first;
+        var x = 0, y = 0;
+        if (title != null) {
+          bmp.text(0, 0, title);
+          y = 8;
+        }
+        for (final (i, (_, label)) in items.indexed) {
+          final w = textWidth(label);
+          if (x > 0 && x + w > DotScreen.width) {
+            x = 0;
+            y += 8;
+          }
+          if (y > 24) break;
+          bmp.text(x + 1, y, label);
+          if (i == _menuIndex) {
+            bmp.invert(x, y == 0 ? 0 : y - 1, x + w + 1, y + 7);
+          }
+          x += w + 8;
+        }
       }
       if (m.next != null) ind.add(Indicator.scrollDown);
       if (m.prev != null) ind.add(Indicator.scrollUp);
@@ -3130,6 +3200,68 @@ class NaturalCalculator implements CalcEngine {
 
   @override
   AngleUnit get angleUnit => angle;
+
+  @override
+  GraphSpec? get graphSpec {
+    if (mode == NaturalMode.comp) return functionSpec(graphTokens, angle);
+    double d(Dec x) => double.parse(x.toString());
+    if (mode == NaturalMode.eqn &&
+        (_eqnType == EqnType.quad || _eqnType == EqnType.cubic) &&
+        !_coef[0][0].dec.isZero) {
+      final k = [for (final v in _coef[0]) d(v.dec)];
+      final label = StringBuffer('y = ');
+      final deg = k.length - 1;
+      for (final (i, c) in k.indexed) {
+        if (c == 0) continue;
+        final p = deg - i;
+        final mag = c.abs();
+        final num = mag == mag.roundToDouble()
+            ? mag.toInt().toString()
+            : mag.toString();
+        if (label.length > 4) label.write(c < 0 ? ' − ' : ' + ');
+        if (label.length == 4 && c < 0) label.write('−');
+        if (p == 0 || num != '1') label.write(num);
+        if (p >= 1) label.write('x');
+        if (p >= 2) label.write(p == 2 ? '²' : '³');
+      }
+      return GraphSpec(
+        curves: [
+          (
+            label.toString(),
+            GraphFunction.of((x) => k.fold(0.0, (s, c) => s * x + c)),
+          ),
+        ],
+      );
+    }
+    if (mode == NaturalMode.stat && _paired && _stat.items.length >= 2) {
+      final pts = [
+        for (final i in _stat.items) (x: d(i.x), y: d(i.y ?? Dec.zero)),
+      ];
+      GraphFunction? fit;
+      try {
+        _stat.estimateY(_stat.items.first.x); // throws when undefined
+        fit = GraphFunction.of((x) {
+          try {
+            return d(_stat.estimateY(Dec.parse(x.toStringAsPrecision(15))));
+          } on Object {
+            return double.nan;
+          }
+        });
+      } on Object {
+        fit = null;
+      }
+      final name = _statTypeLines
+          .join(' ')
+          .split(RegExp(r'\s+\d:'))
+          .map((s) => s.replaceFirst(RegExp(r'^\d:'), '').trim())
+          .toList()[statType.index];
+      return GraphSpec(
+        curves: [if (fit != null) ('regression $name', fit)],
+        points: pts,
+      );
+    }
+    return null;
+  }
 
   @override
   String? get copyText {

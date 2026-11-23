@@ -1,5 +1,6 @@
 import 'angle_unit.dart';
 import 'calc_key.dart';
+import 'graph/graph_math.dart';
 import 'input/token.dart';
 
 /// What the app needs from any calculator model's engine.
@@ -24,6 +25,10 @@ abstract interface class CalcEngine {
 
   /// Angle unit in use (graphs follow it).
   AngleUnit get angleUnit;
+
+  /// Something worth drawing right now (a function of X, an equation's
+  /// polynomial, paired statistics data), or null.
+  GraphSpec? get graphSpec;
 }
 
 /// Shared rule for [CalcEngine.graphTokens].
@@ -34,3 +39,10 @@ List<Tok>? graphableTokens(List<Tok> tokens) {
   if (t.any((k) => k == Tok.eqSign || k == Tok.colon)) return null;
   return List.unmodifiable(t);
 }
+
+/// Graph spec for a plain function of X.
+GraphSpec? functionSpec(List<Tok>? tokens, AngleUnit angle) => tokens == null
+    ? null
+    : GraphSpec(
+        curves: [(formulaText(tokens), GraphFunction(tokens, angle: angle))],
+      );

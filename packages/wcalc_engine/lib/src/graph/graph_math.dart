@@ -116,6 +116,13 @@ class GraphFunction {
   }) : _vars = variables,
        _fast = _Compiler(tokens, angle).compile();
 
+  /// A curve given directly as a function (regression lines, polynomials).
+  GraphFunction.of(double Function(double) f)
+    : tokens = const [],
+      angle = AngleUnit.rad,
+      _vars = const {},
+      _fast = f;
+
   final List<Tok> tokens;
   final AngleUnit angle;
   final Map<String, Value> _vars;
@@ -229,6 +236,36 @@ class GraphFunction {
     }
     return out;
   }
+}
+
+/// What a calculator offers to draw: labelled curves and data points.
+class GraphSpec {
+  const GraphSpec({required this.curves, this.points = const []});
+
+  final List<(String, GraphFunction)> curves;
+  final List<Offset2> points;
+}
+
+/// Readable formula text for calculator tokens (`x²+1`, `2sin(x)`).
+String formulaText(List<Tok> tokens) {
+  final b = StringBuffer();
+  for (final t in tokens) {
+    b.write(switch (t) {
+      Tok.varX => 'x',
+      Tok.negative || Tok.subtract => '−',
+      Tok.multiply => '×',
+      Tok.divide || Tok.fracDiv => '/',
+      Tok.power => '^',
+      Tok.square => '²',
+      Tok.cube => '³',
+      Tok.sqrt => '√',
+      Tok.cAbs => 'abs',
+      Tok.ePow => 'exp',
+      Tok.tenPow => '10^',
+      _ => t.text.trim(),
+    });
+  }
+  return b.toString();
 }
 
 /// Points where [f] and [g] cross in [a, b].

@@ -71,4 +71,38 @@ void main() {
     expect(find.byKey(const Key('graph-values')), findsOneWidget);
     expect(find.text('y = x^2'), findsOneWidget);
   });
+
+  testWidgets('graph mode remembers typed functions', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'wcalc.graph.v1': ['x^3', 'sin(x)'],
+    });
+    await open(tester);
+    await tester.tap(find.byKey(const Key('app-menu-button')));
+    await settle(tester);
+    await tester.tap(find.text('Graph'));
+    await settle(tester);
+    expect(find.text('x^3'), findsOneWidget);
+    expect(find.text('sin(x)'), findsOneWidget);
+  });
+
+  testWidgets('landscape puts the list beside the plot; summary for TalkBack', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    tester.view.physicalSize = const Size(2340, 1080);
+    tester.view.devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(WCalcApp(settings: AppSettings()));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('app-menu-button')));
+    await settle(tester);
+    await tester.tap(find.text('Graph'));
+    await settle(tester);
+    final canvas = tester.getRect(find.byKey(const Key('graph-canvas')));
+    final list = tester.getRect(find.byKey(const Key('graph-add')));
+    expect(list.left, greaterThan(canvas.right - 1));
+    expect(tester.takeException(), isNull);
+    expect(find.bySemanticsLabel(RegExp('Graph of y = x\\^2')), findsOneWidget);
+    handle.dispose();
+  });
 }

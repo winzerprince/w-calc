@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
 
 import '../haptics.dart';
@@ -31,36 +32,14 @@ class GraphCurve {
 /// Desmos-style graph: functions listed below, pan and pinch to move,
 /// tap to trace, points of interest marked.
 class GraphPage extends StatefulWidget {
-  const GraphPage({super.key, this.tokens, this.angle = AngleUnit.rad});
+  const GraphPage({super.key, this.spec, this.angle = AngleUnit.rad});
 
-  /// A function from the calculator (uses X), or null to start empty.
-  final List<Tok>? tokens;
+  /// What the calculator offers to draw, or null to start with y = x².
+  final GraphSpec? spec;
   final AngleUnit angle;
 
   @override
   State<GraphPage> createState() => _GraphPageState();
-}
-
-/// Readable formula text for calculator tokens.
-String formulaText(List<Tok> tokens) {
-  final b = StringBuffer();
-  for (final t in tokens) {
-    b.write(switch (t) {
-      Tok.varX => 'x',
-      Tok.negative || Tok.subtract => '−',
-      Tok.multiply => '×',
-      Tok.divide || Tok.fracDiv => '/',
-      Tok.power => '^',
-      Tok.square => '²',
-      Tok.cube => '³',
-      Tok.sqrt => '√',
-      Tok.cAbs => 'abs',
-      Tok.ePow => 'exp',
-      Tok.tenPow => '10^',
-      _ => t.text.trim(),
-    });
-  }
-  return b.toString();
 }
 
 class _GraphPageState extends State<GraphPage> {
@@ -90,18 +69,74 @@ class _GraphPageState extends State<GraphPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) runTourOnce(context, Tours.graph, () => graphTour);
     });
-    final t = widget.tokens;
-    if (t != null) {
+    final spec = widget.spec;
+    if (spec == null) {
+      _addCurve('x^2');
+      _restore();
+      return;
+    }
+    for (final (label, f) in spec.curves) {
       _curves.add(
         GraphCurve(
-          text: formulaText(t),
-          function: GraphFunction(t, angle: _angle),
-          color: _palette[0],
+          text: label,
+          function: f,
+          color: _palette[_curves.length % _palette.length],
         ),
       );
-    } else {
-      _addCurve('x^2');
     }
+    _points = [for (final p in spec.points) Offset(p.x, p.y)];
+    if (_points.isNotEmpty) _fitPoints = true;
+  }
+
+  /// Data points from statistics (drawn as dots).
+  List<Offset> _points = const [];
+
+  /// Frame the data on the first layout.
+  bool _fitPoints = false;
+
+  void _fitToPoints() {
+    final xs = _points.map((p) => p.dx), ys = _points.map((p) => p.dy);
+    final minX = xs.reduce(math.min), maxX = xs.reduce(math.max);
+    final minY = ys.reduce(math.min), maxY = ys.reduce(math.max);
+    final w = math.max(maxX - minX, 1e-9), h = math.max(maxY - minY, 1e-9);
+    _center = Offset((minX + maxX) / 2, (minY + maxY) / 2);
+    _scale = math.min(_size.width / (w * 1.4), _size.height / (h * 1.4));
+  }
+
+  static const _storeKey = 'wcalc.graph.v1';
+
+  /// Graph mode remembers its typed functions.
+  Future<void> _restore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getStringList(_storeKey);
+      if (saved != null && saved.isNotEmpty && mounted) {
+        setState(() {
+          _curves.clear();
+          saved.forEach(_addCurve);
+        });
+        _schedulePoi();
+      }
+    } on Object {
+      // No storage: start with the example.
+    } finally {
+      _restored = true;
+    }
+  }
+
+  /// Saving waits until the stored functions have been read.
+  bool _restored = false;
+
+  void _save() {
+    // Only graph mode is remembered, and only after restoring.
+    if (widget.spec != null || !_restored) return;
+    final texts = [
+      for (final c in _curves)
+        if (c.text.trim().isNotEmpty) c.text,
+    ];
+    SharedPreferences.getInstance()
+        .then((p) => p.setStringList(_storeKey, texts))
+        .catchError((Object _) => true);
   }
 
   void _addCurve(String text) {
@@ -115,6 +150,7 @@ class _GraphPageState extends State<GraphPage> {
   }
 
   void _parse(GraphCurve c) {
+    _save();
     try {
       c.function = GraphFunction(parseFormula(c.text), angle: _angle);
       c.error = null;
@@ -282,6 +318,28 @@ class _GraphPageState extends State<GraphPage> {
     );
   }
 
+  /// Spoken description of the graph for screen readers.
+  String _summary() {
+    final shown = [
+      for (final c in _curves)
+        if (c.visible && c.function != null) 'y = ${c.text}',
+    ];
+    if (shown.isEmpty) return 'Empty graph';
+    final parts = <String>['Graph of ${shown.join(', ')}'];
+    final roots = [
+      for (final (p, kind) in _poi)
+        if (kind == 'root') _fmt(p.dx),
+    ];
+    if (roots.isNotEmpty) parts.add('roots at x = ${roots.join(', ')}');
+    for (final (p, kind) in _poi) {
+      if (kind == 'maximum' || kind == 'minimum' || kind == 'intersection') {
+        parts.add('$kind at (${_fmt(p.dx)}, ${_fmt(p.dy)})');
+      }
+    }
+    if (_points.isNotEmpty) parts.add('${_points.length} data points');
+    return parts.join('; ');
+  }
+
   static String _fmt(double v) {
     if (v == 0) return '0';
     final a = v.abs();
@@ -337,13 +395,17 @@ class _GraphPageState extends State<GraphPage> {
                 ),
               ],
             ),
-            body: Column(
-              children: [
-                Expanded(
+            body: LayoutBuilder(
+              builder: (context, outer) {
+                final plot = Expanded(
                   child: LayoutBuilder(
                     builder: (context, box) {
                       if (_size != box.biggest) {
                         _size = box.biggest;
+                        if (_fitPoints) {
+                          _fitPoints = false;
+                          _fitToPoints();
+                        }
                         _schedulePoi();
                       }
                       return Stack(
@@ -384,17 +446,21 @@ class _GraphPageState extends State<GraphPage> {
                             onScaleEnd: (_) => _schedulePoi(),
                             onTapUp: (d) => _onTap(d.localPosition),
                             onDoubleTapDown: (d) => _zoom(2, d.localPosition),
-                            child: CustomPaint(
-                              key: TourKeys.graphCanvas,
-                              size: Size.infinite,
-                              painter: _GraphPainter(
-                                center: _center,
-                                scale: _scale,
-                                curves: _curves,
-                                poi: _poi,
-                                trace: _trace,
-                                paper: scheme.surface,
-                                ink: scheme.onSurface,
+                            child: Semantics(
+                              label: _summary(),
+                              child: CustomPaint(
+                                key: TourKeys.graphCanvas,
+                                size: Size.infinite,
+                                painter: _GraphPainter(
+                                  points: _points,
+                                  center: _center,
+                                  scale: _scale,
+                                  curves: _curves,
+                                  poi: _poi,
+                                  trace: _trace,
+                                  paper: scheme.surface,
+                                  ink: scheme.onSurface,
+                                ),
                               ),
                             ),
                           ),
@@ -432,8 +498,8 @@ class _GraphPageState extends State<GraphPage> {
                       );
                     },
                   ),
-                ),
-                _FunctionList(
+                );
+                final list = _FunctionList(
                   key: TourKeys.graphList,
                   curves: _curves,
                   onChanged: (c) {
@@ -449,13 +515,26 @@ class _GraphPageState extends State<GraphPage> {
                       _curves.remove(c);
                       _trace = null;
                     });
+                    _save();
                     _schedulePoi();
                   },
                   onAdd: () {
                     setState(() => _addCurve(''));
                   },
-                ),
-              ],
+                );
+                // Landscape: the list beside the plot, so the plot keeps
+                // its height.
+                if (outer.maxWidth > outer.maxHeight * 1.2) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      plot,
+                      SizedBox(width: outer.maxWidth * 0.36, child: list),
+                    ],
+                  );
+                }
+                return Column(children: [plot, list]);
+              },
             ),
           );
         },
@@ -547,6 +626,7 @@ class _FunctionList extends StatelessWidget {
             children: [
               for (final (i, c) in curves.indexed)
                 Padding(
+                  key: ObjectKey(c),
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Row(
                     children: [
@@ -606,6 +686,7 @@ class _FunctionList extends StatelessWidget {
 
 class _GraphPainter extends CustomPainter {
   _GraphPainter({
+    required this.points,
     required this.center,
     required this.scale,
     required this.curves,
@@ -615,6 +696,7 @@ class _GraphPainter extends CustomPainter {
     required this.ink,
   });
 
+  final List<Offset> points;
   final Offset center;
   final double scale;
   final List<GraphCurve> curves;
@@ -737,6 +819,15 @@ class _GraphPainter extends CustomPainter {
         prevY = y;
       }
       canvas.drawPath(path, paint);
+    }
+
+    // Data points: rings in the first curve's colour.
+    final ring = Paint()
+      ..color = curves.isEmpty ? ink : curves.first.color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2;
+    for (final p in points) {
+      canvas.drawCircle(s(p.dx, p.dy), 5, ring);
     }
 
     // Points of interest: grey dots.

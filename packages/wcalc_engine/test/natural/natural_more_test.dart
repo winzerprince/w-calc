@@ -152,4 +152,47 @@ void main() {
     expect(c.graphTokens, isNotNull);
     expect(c.angleUnit, AngleUnit.deg);
   });
+
+  test('menu rows: ◀ ▶ move the highlight, = chooses', () {
+    final v = NaturalCalculator(
+      menuCursor: true,
+      modes: {NaturalMode.comp, NaturalMode.stat, NaturalMode.table},
+    );
+    for (final k in parseKeySequence('MODE > =')) {
+      v.press(k);
+    }
+    expect(v.mode, NaturalMode.stat);
+    for (final k in parseKeySequence('AC MODE < =')) {
+      v.press(k);
+    }
+    expect(v.mode, NaturalMode.table);
+    // Numbers still choose directly.
+    for (final k in parseKeySequence('AC MODE 1')) {
+      v.press(k);
+    }
+    expect(v.mode, NaturalMode.comp);
+    for (final k in parseKeySequence('MODE')) {
+      v.press(k);
+    }
+    expect(v.screen.dots.toAscii().contains('#'), isTrue);
+  });
+
+  test('graph specs: equation polynomial and statistics data', () {
+    for (final k in parseKeySequence('MODE 5 3 1 = (-) 3 = 2 =')) {
+      c.press(k);
+    }
+    final eq = c.graphSpec!;
+    expect(eq.curves.single.$1, 'y = x² − 3x + 2');
+    expect(eq.curves.single.$2.at(1), 0);
+    final s = NaturalCalculator();
+    for (final k in parseKeySequence(
+      'MODE 3 2 1 = 2 = 3 = up up up > 3 = 5 = 7 =',
+    )) {
+      s.press(k);
+    }
+    final st = s.graphSpec!;
+    expect(st.points, hasLength(3));
+    expect(st.curves.single.$1, 'regression A+BX');
+    expect(st.curves.single.$2.at(4), closeTo(9, 1e-9));
+  });
 }

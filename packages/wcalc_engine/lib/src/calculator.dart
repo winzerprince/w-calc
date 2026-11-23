@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'angle_unit.dart';
 import 'calc_engine.dart';
+import 'graph/graph_math.dart';
 import 'calc_key.dart';
 import 'display_state.dart';
 import 'eval/evaluator.dart';
@@ -2461,6 +2462,33 @@ class Calculator implements CalcEngine {
   /// UI can show the cleared "busy" display first, as the device does.
   @override
   String? get copyText => display.copyText;
+
+  @override
+  GraphSpec? get graphSpec {
+    if (_mode == CalcMode.reg && _stats.items.length >= 2) {
+      double d(Dec x) => double.parse(x.toString());
+      return GraphSpec(
+        curves: [
+          (
+            'regression',
+            GraphFunction.of((x) {
+              try {
+                return d(
+                  _stats.estimateY(Dec.parse(x.toStringAsPrecision(15))),
+                );
+              } on Object {
+                return double.nan;
+              }
+            }),
+          ),
+        ],
+        points: [
+          for (final i in _stats.items) (x: d(i.x), y: d(i.y ?? Dec.zero)),
+        ],
+      );
+    }
+    return functionSpec(graphTokens, _angle);
+  }
 
   @override
   List<Tok>? get graphTokens =>
