@@ -36,3 +36,26 @@ List<InlineSpan> legendSpans(String legend, TextStyle style) {
 /// Plain-text form of a legend (`x^{-1}` → `x-1`), for semantics.
 String legendText(String legend) =>
     legend.replaceAllMapped(RegExp(r'\^\{([^}]*)\}'), (m) => m.group(1)!);
+
+/// Readable form of a legend with real superscript characters
+/// (`sin^{-1}` → `sin⁻¹`, `x^{2}` → `x²`), for tooltips.
+String legendReadable(String legend) => legend.replaceAllMapped(
+  RegExp(r'\^\{([^}]*)\}'),
+  (m) => m.group(1)!.split('').map((c) => _sup[c] ?? c).join(),
+);
+
+const _sup = {
+  '0': '⁰',
+  '1': '¹',
+  '2': '²',
+  '3': '³',
+  '4': '⁴',
+  '5': '⁵',
+  '6': '⁶',
+  '7': '⁷',
+  '8': '⁸',
+  '9': '⁹',
+  '-': '⁻',
+  '+': '⁺',
+  'n': 'ⁿ',
+};
