@@ -10,6 +10,7 @@ class DisplaySettings {
     this.engOn = false,
     this.improperFractions = false,
     this.decimalComma = false,
+    this.polarComplex = false,
   });
 
   final DisplayFormat format;
@@ -23,16 +24,21 @@ class DisplaySettings {
   /// Comma: decimal comma and period group separator.
   final bool decimalComma;
 
+  /// CMPLX results as r∠θ instead of a+bi.
+  final bool polarComplex;
+
   DisplaySettings copyWith({
     DisplayFormat? format,
     bool? engOn,
     bool? improperFractions,
     bool? decimalComma,
+    bool? polarComplex,
   }) => DisplaySettings(
     format: format ?? this.format,
     engOn: engOn ?? this.engOn,
     improperFractions: improperFractions ?? this.improperFractions,
     decimalComma: decimalComma ?? this.decimalComma,
+    polarComplex: polarComplex ?? this.polarComplex,
   );
 }
 

@@ -69,9 +69,12 @@ class LcdPainter extends CustomPainter {
     (Indicator.rad, 'R'),
     (Indicator.gra, 'G'),
     (Indicator.cmplx, 'CMPLX'),
+    (Indicator.polar, 'r∠θ'),
     (Indicator.mat, 'MAT'),
     (Indicator.vct, 'VCT'),
     (Indicator.reIm, 'R⇔I'),
+    (Indicator.imaginary, 'i'),
+    (Indicator.angleMark, '∠'),
     (Indicator.scrollUp, '▲'),
     (Indicator.scrollDown, '▼'),
     (Indicator.disp, 'Disp'),
@@ -113,7 +116,7 @@ class LcdPainter extends CustomPainter {
     const style = TextStyle(
       fontFamily: 'Barlow',
       fontFamilyFallback: ['WCalcSymbols'],
-      fontSize: 27,
+      fontSize: 24,
       fontWeight: FontWeight.w700,
       height: 1,
     );

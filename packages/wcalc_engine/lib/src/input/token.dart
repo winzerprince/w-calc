@@ -39,6 +39,9 @@ enum TokKind {
 
   /// `=` inside CALC / SOLVE expressions (ALPHA CALC).
   equation,
+
+  /// CMPLX result-format commands at the end of an expression (▶r∠θ, ▶a+bi).
+  formatCommand,
 }
 
 /// One input step on the upper line. Each key press inserts one token, so
@@ -128,6 +131,13 @@ enum Tok {
   rec('Rec(', TokKind.function),
   integral('∫(', TokKind.function),
   eqSign('=', TokKind.equation),
+  imagUnit('i', TokKind.constant),
+  angle('∠', TokKind.binary),
+  cAbs('Abs ', TokKind.prefix),
+  cArg('arg ', TokKind.prefix),
+  conjg('Conjg ', TokKind.prefix),
+  toPolar('▶r∠θ', TokKind.formatCommand),
+  toRect('▶a+bi', TokKind.formatCommand),
   derivative('d/dx(', TokKind.function),
   // Scientific constants (CONST 01-40) and metric conversions (CONV 01-40).
   const01('mₚ', TokKind.constant),

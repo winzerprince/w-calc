@@ -54,3 +54,7 @@ how to verify on the device, result.
 | 47 | SOLVE prompts | every variable in order of appearance; `=` stores and moves on (stays on the last); ▲▼ move; SHIFT CALC solves for the variable on screen using its value as the start | manual example | to verify |
 | 48 | SOLVE result | `X=` and the solution; stored in the variable and Ans | | to verify |
 | 49 | Can't Solve | after 150 Newton steps without convergence | `X² + 1 SOLVE` | to verify message text |
+| 50 | CMPLX parts | result line shows the real part (or r); SHIFT = toggles to the imaginary part (or θ) with `i` (or `∠`) lit in the indicator row; `R⇔I` lit while a second part exists | `(2+6i)÷(2i) =` then SHIFT = | to verify where `i` / `∠` appear |
+| 51 | CMPLX functions | only + − × ÷, integer powers, x², x³, x⁻¹, Abs, arg, Conjg, ∠ accept complex values; other functions of a complex value → Math ERROR | `sin(1+i)` | to verify |
+| 52 | Mode change | MODE 1 / MODE 2 clears input, result and history; memories kept | | to verify |
+| 53 | CMPLX restrictions | ∫dx, d/dx, SOLVE keys do nothing in CMPLX; SHIFT + / − are ▶r∠θ / ▶a+bi instead of Pol( / Rec( | | to verify |
