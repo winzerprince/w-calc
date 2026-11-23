@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -104,5 +105,19 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.bySemanticsLabel(RegExp('Graph of y = x\\^2')), findsOneWidget);
     handle.dispose();
+  });
+
+  testWidgets('mouse wheel zooms the graph', (tester) async {
+    await open(tester);
+    await tester.tap(find.byKey(const Key('app-menu-button')));
+    await settle(tester);
+    await tester.tap(find.text('Graph'));
+    await settle(tester);
+    final c = tester.getCenter(find.byKey(const Key('graph-canvas')));
+    final pointer = TestPointer(1, PointerDeviceKind.mouse);
+    await tester.sendEventToBinding(pointer.hover(c));
+    await tester.sendEventToBinding(pointer.scroll(const Offset(0, -100)));
+    await settle(tester);
+    expect(tester.takeException(), isNull);
   });
 }
