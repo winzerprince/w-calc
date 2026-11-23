@@ -4,6 +4,10 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Added
+- Focus mode: tap the solar panel to show the calculator full screen (system bars hidden, or
+  browser full screen); tap again to return.
+
 ### Changed
 - Licence: W-Calc is now proprietary (all rights reserved). Versions up to v0.4.0-beta remain
   GPL-3.0-or-later for anyone who received them.
