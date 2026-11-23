@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wcalc_engine/wcalc_engine.dart' show NaturalProfile;
 
 import '../../app/app_settings.dart';
 import '../../app/calc_model.dart';
@@ -11,6 +12,35 @@ import 'page_scaffold.dart';
 String modelName(String id) => CalcModel.byId(id).name;
 
 /// Pick which calculator to use. Memories, data and setup carry over.
+/// Models grouped by display kind, in picker order.
+List<(String, List<CalcModel>)> get modelGroups => [
+  (
+    'Two-line display',
+    [
+      for (final m in CalcModel.all)
+        if (m.family == CalcFamily.twoLine) m,
+    ],
+  ),
+  (
+    'Textbook display',
+    [
+      for (final m in CalcModel.all)
+        if (m.family == CalcFamily.textbook &&
+            m.profile == NaturalProfile.textbook)
+          m,
+    ],
+  ),
+  (
+    'Multi-line display',
+    [
+      for (final m in CalcModel.all)
+        if (m.family == CalcFamily.textbook &&
+            m.profile != NaturalProfile.textbook)
+          m,
+    ],
+  ),
+];
+
 class ModelPage extends StatelessWidget {
   const ModelPage({super.key, this.startTour = false});
 
@@ -101,34 +131,37 @@ class ModelPage extends StatelessWidget {
           },
           child: Column(
             children: [
-              for (final model in CalcModel.all)
-                RadioListTile<String>(
-                  key: model == CalcModel.all.first
-                      ? TourKeys.modelChoice
-                      : Key('model-${model.id}'),
-                  value: model.id,
-                  isThreeLine: true,
-                  title: Text(
-                    model.name,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Text(model.description),
-                  secondary: Semantics(
-                    button: true,
-                    label: 'Preview ${model.name}',
-                    child: InkWell(
-                      key: model == CalcModel.all.first
-                          ? TourKeys.modelPicture
-                          : Key('preview-${model.id}'),
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () => _preview(context, model),
-                      child: Padding(
-                        padding: const EdgeInsets.all(2),
-                        child: ModelThumbnail(model: model, width: 60),
+              for (final (title, models) in modelGroups) ...[
+                PageSection(title),
+                for (final model in models)
+                  RadioListTile<String>(
+                    key: model == CalcModel.all.first
+                        ? TourKeys.modelChoice
+                        : Key('model-${model.id}'),
+                    value: model.id,
+                    isThreeLine: true,
+                    title: Text(
+                      model.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(model.description),
+                    secondary: Semantics(
+                      button: true,
+                      label: 'Preview ${model.name}',
+                      child: InkWell(
+                        key: model == CalcModel.all.first
+                            ? TourKeys.modelPicture
+                            : Key('preview-${model.id}'),
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _preview(context, model),
+                        child: Padding(
+                          padding: const EdgeInsets.all(2),
+                          child: ModelThumbnail(model: model, width: 60),
+                        ),
                       ),
                     ),
                   ),
-                ),
+              ],
             ],
           ),
         ),
