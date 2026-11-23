@@ -5,6 +5,7 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 import '../app/app_settings.dart';
 import '../app/calc_model.dart';
 import 'app_menu.dart';
+import 'finish.dart';
 import 'fullscreen.dart';
 import 'haptics.dart';
 import 'keyboard_shortcuts.dart';
@@ -224,58 +225,45 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
                   child: Container(
                     key: const Key('calc-body'),
                     margin: EdgeInsets.all(_focusMode ? 0 : 8),
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [skin.bodyTop, skin.body],
-                      ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black54,
-                          blurRadius: 18,
-                          offset: Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: landscape
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                flex: 4,
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    _Header(
-                                      onReset: _reset,
-                                      focus: _focusMode,
-                                      onFocus: _toggleFocus,
-                                    ),
-                                    const SizedBox(height: 8),
-                                    lcd,
-                                  ],
+                    child: CalcShell(
+                      flat: _focusMode,
+                      child: landscape
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  flex: 4,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      _Header(
+                                        onReset: _reset,
+                                        focus: _focusMode,
+                                        onFocus: _toggleFocus,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      lcd,
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(flex: 5, child: keypad),
-                            ],
-                          )
-                        : Column(
-                            children: [
-                              _Header(
-                                onReset: _reset,
-                                focus: _focusMode,
-                                onFocus: _toggleFocus,
-                              ),
-                              const SizedBox(height: 8),
-                              lcd,
-                              const SizedBox(height: 12),
-                              Expanded(child: keypad),
-                            ],
-                          ),
+                                const SizedBox(width: 16),
+                                Expanded(flex: 5, child: keypad),
+                              ],
+                            )
+                          : Column(
+                              children: [
+                                _Header(
+                                  onReset: _reset,
+                                  focus: _focusMode,
+                                  onFocus: _toggleFocus,
+                                ),
+                                const SizedBox(height: 8),
+                                lcd,
+                                const SizedBox(height: 12),
+                                Expanded(child: keypad),
+                              ],
+                            ),
+                    ),
                   ),
                 ),
               );
