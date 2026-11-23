@@ -18,4 +18,5 @@ tool/web.sh                                                # run in browser (LAN
 Workflow and CI rules: [`docs/CI_CD.md`](docs/CI_CD.md).
 
 ## License
-GPL-3.0-or-later. See [`LICENSE`](LICENSE).
+Proprietary — all rights reserved. See [`LICENSE`](LICENSE). Releases up to v0.4.0-beta were
+GPL-3.0-or-later. Third-party components: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).

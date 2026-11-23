@@ -39,18 +39,19 @@ class AboutPage extends StatelessWidget {
         ),
         const PageSection('Licence'),
         const PageText(
-          'Free software under the GNU General Public License v3.0 or later. '
-          'Fonts: Barlow (SIL Open Font License 1.1) and a subset of Noto Sans Math (SIL OFL 1.1).',
+          '© 2026 winzerprince. All rights reserved. '
+          'Fonts: Barlow (SIL Open Font License 1.1) and a subset of Noto Sans Math (SIL OFL 1.1); '
+          'Flutter and Dart packages under their own licences.',
         ),
         ListTile(
           leading: const Icon(Icons.description_outlined),
-          title: const Text('Open-source licences'),
+          title: const Text('Third-party licences'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => showLicensePage(
             context: context,
             applicationName: 'W-Calc',
             applicationVersion: appVersion,
-            applicationLegalese: '© W-Calc contributors · GPL-3.0-or-later',
+            applicationLegalese: '© 2026 winzerprince. All rights reserved.',
           ),
         ),
       ],
