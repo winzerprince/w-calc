@@ -39,6 +39,10 @@ const manualChapters = <ManualChapter>[
             ManualStep('Move the cursor inside the calculation.', '< >'),
             ManualStep('Switch off (memories are kept).', 'SHIFT AC'),
           ]),
+          Tip(
+            'Tap the solar panel (top right) for full screen: the calculator '
+            'fills the whole display. Tap it again to go back.',
+          ),
         ],
       ),
       ManualArticle(
