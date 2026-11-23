@@ -2036,6 +2036,9 @@ class NaturalCalculator implements CalcEngine {
       return t.length > chars ? t.substring(0, chars) : t;
     }
 
+    // Two rows fit above the input line; keep the cursor row in view.
+    if (_row < _top) _top = _row;
+    if (_row > _top + 1) _top = _row - 1;
     for (var k = 0; k < 3; k++) {
       final r = _top + k;
       if (r >= _maxRows) break;
@@ -2841,6 +2844,22 @@ class NaturalCalculator implements CalcEngine {
     'contrast': contrast,
     'vars': {for (final e in _vars.entries) e.key: e.value.dec.toString()},
     'ans': _ans.dec.toString(),
+    'mode': mode.name,
+    'base': _base,
+    'statType': statType.name,
+    'stat': [
+      for (final i in _stat.items)
+        [i.x.toString(), i.y?.toString(), i.freq.toString()],
+    ],
+    'linear': {
+      for (final e in _linear.entries)
+        e.key: e.value.isMatrix
+            ? [
+                for (final row in e.value.matrix!)
+                  [for (final x in row) x.toString()],
+              ]
+            : [for (final x in e.value.vector!) x.toString()],
+    },
   };
 
   @override
@@ -2879,5 +2898,59 @@ class NaturalCalculator implements CalcEngine {
     }
     final ans = s['ans'];
     if (ans is String) _ans = Value.dec(Dec.parse(ans));
+    final m = s['mode'];
+    if (m is String) {
+      mode = NaturalMode.values.firstWhere(
+        (x) => x.name == m,
+        orElse: () => NaturalMode.comp,
+      );
+      // Editors and menus are not restored; EQN / STAT open their menus
+      // again when chosen.
+      if (mode == NaturalMode.eqn) mode = NaturalMode.comp;
+    }
+    final b = s['base'];
+    if (b is int && const {2, 8, 10, 16}.contains(b)) _base = b;
+    final t = s['statType'];
+    if (t is String) {
+      final type = StatType.values.firstWhere(
+        (x) => x.name == t,
+        orElse: () => StatType.oneVar,
+      );
+      _setStatType(type);
+      _editor = false;
+    }
+    final stat = s['stat'];
+    if (stat is List) {
+      _stat.clear();
+      for (final row in stat) {
+        if (row is! List || row.length != 3) continue;
+        final [x, y, f] = row;
+        if (x is! String || f is! String) continue;
+        _stat.add(
+          StatItem(
+            Dec.parse(x),
+            y: y is String ? Dec.parse(y) : null,
+            freq: Dec.parse(f),
+          ),
+        );
+      }
+    }
+    final linear = s['linear'];
+    if (linear is Map) {
+      _linear.clear();
+      for (final MapEntry(:key, :value) in linear.entries) {
+        if (key is! String || value is! List || value.isEmpty) continue;
+        if (value.first is List) {
+          _linear[key] = Value.matrix([
+            for (final row in value)
+              [for (final x in row as List) Dec.parse(x as String)],
+          ]);
+        } else {
+          _linear[key] = Value.vector([
+            for (final x in value) Dec.parse(x as String),
+          ]);
+        }
+      }
+    }
   }
 }
