@@ -5,6 +5,16 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 ## [Unreleased]
 
 ### Fixed
+- Textbook display: when the answer is a fraction, the fractions you typed keep their full
+  denominators (only the answer's own area is cleared).
+- Equation mode: the coefficient being entered is named on the bottom line (a=, b=, …) and the
+  column letters are larger; ▲ sits a little further from “Math”.
+
+### Added
+- About ▸ Help improve W-Calc: report a bug or suggest an idea on GitHub; the website says the
+  same. Bug-report and idea forms and a CONTRIBUTING guide on GitHub.
+
+### Fixed
 - Textbook and multi-line displays: status indicators are spaced by their width, so “Math” and
   the ▲/▼ scroll arrows no longer overlap.
 

@@ -42,6 +42,22 @@ class AboutPage extends StatelessWidget {
             'The website version may show ads from Google, which can use '
             'cookies. The Android app has no ads.',
           ),
+        const PageSection('Help improve W-Calc'),
+        const PageText(
+          'W-Calc is still growing, and I am improving it all the time. If '
+          'something looks wrong, or your answer differs from your own '
+          'calculator, please let me know: a short report with the keys you '
+          'pressed is the quickest way to get it fixed. Ideas and code '
+          'contributions are welcome too.',
+        ),
+        ListTile(
+          key: const Key('about-issues'),
+          leading: const Icon(Icons.bug_report_outlined),
+          title: const Text('Report a bug or suggest an idea'),
+          subtitle: const Text('On GitHub, no account details shared'),
+          trailing: const Icon(Icons.open_in_new),
+          onTap: () => openLink(issuesUrl),
+        ),
         const PageSection('Legal'),
         const PageText(
           '© 2026 winzerprince. Free and open source under the MIT licence.',

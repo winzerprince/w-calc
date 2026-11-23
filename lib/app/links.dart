@@ -9,6 +9,9 @@ const itchUrl = 'https://winzerprince.itch.io/w-calc';
 /// The web version.
 const webUrl = 'https://w-calc.0xwinzer.com';
 
+/// Bug reports and ideas.
+const issuesUrl = 'https://github.com/winzerprince/w-calc/issues/new/choose';
+
 /// Source code.
 const sourceUrl = 'https://github.com/winzerprince/w-calc';
 

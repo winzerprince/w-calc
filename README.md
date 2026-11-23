@@ -26,6 +26,11 @@ Beta (v0.13.x). Plan: [`docs/PLAN.md`](docs/PLAN.md) · changes: [`CHANGELOG.md`
 device questions: [`docs/behaviour-notes.md`](docs/behaviour-notes.md) · known issues:
 [`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md).
 
+## Feedback and contributions
+W-Calc is actively developed. Found a bug or a difference from your calculator? [Open an
+issue](https://github.com/winzerprince/w-calc/issues/new/choose). Code contributions: see
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ## Layout
 - `packages/wcalc_engine/` — pure Dart engine: decimal arithmetic, evaluator, two-line and
   textbook calculators, dot-matrix rendering, graph maths. No Flutter.
