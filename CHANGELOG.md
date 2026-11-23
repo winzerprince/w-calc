@@ -6,7 +6,11 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ### Added
 - More graph shortcuts: the graph button also appears for quadratic / cubic equations (their
-  polynomial) and for paired statistics data (scatter plot with the regression curve).
+  polynomial) and for paired statistics data (scatter plot with the regression curve), on the
+  two-line models' REG mode too.
+
+### Changed
+- Dot displays draw in two batched calls (lighter on battery and older phones).
 - Scientific View and Two-View: menus show option names in rows; ◀ ▶ move the highlight and
   enter chooses (numbers still work).
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:wcalc_engine/wcalc_engine.dart';
@@ -178,13 +179,21 @@ class _DotLcdPainter extends CustomPainter {
       ..color = palette.ink.withValues(
         alpha: 0.035 + (screen.contrast > 0 ? screen.contrast * 0.008 : 0),
       );
+    // Two batched draws (lit dots, ghost dots) instead of ~3000 rects.
     final bmp = screen.dots;
+    final on = <Offset>[], off = <Offset>[];
+    final half = dot / 2;
     for (var y = 0; y < DotScreen.height; y++) {
       for (var x = 0; x < DotScreen.width; x++) {
-        final r = Rect.fromLTWH(left + x * cell, top + y * cell, dot, dot);
-        canvas.drawRect(r, bmp.get(x, y) ? lit : ghost);
+        final p = Offset(left + x * cell + half, top + y * cell + half);
+        (bmp.get(x, y) ? on : off).add(p);
       }
     }
+    final square = Paint()
+      ..strokeWidth = dot
+      ..strokeCap = StrokeCap.square;
+    canvas.drawPoints(ui.PointMode.points, off, square..color = ghost.color);
+    canvas.drawPoints(ui.PointMode.points, on, square..color = lit.color);
 
     // Blinking vertical bar cursor.
     final c = screen.cursor;
