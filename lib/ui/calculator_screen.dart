@@ -17,6 +17,7 @@ import 'lcd/dot_lcd.dart';
 import 'skin.dart';
 import 'tour/tours.dart';
 import 'state_store.dart';
+import 'soft_route.dart';
 
 class CalculatorScreen extends StatefulWidget {
   const CalculatorScreen({super.key});
@@ -188,7 +189,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   void _openGraph() {
     keyVibration();
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      SoftRoute<void>(
         builder: (_) =>
             GraphPage(spec: _calc.graphSpec, angle: _calc.angleUnit),
       ),
