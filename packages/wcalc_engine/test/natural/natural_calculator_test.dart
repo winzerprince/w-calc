@@ -527,4 +527,32 @@ void main() {
       expect(c.screen.dots.toAscii().contains('#'), isTrue);
     });
   });
+
+  group('two-line profile', () {
+    late NaturalCalculator t;
+    setUp(() => t = NaturalCalculator(profile: NaturalProfile.twoLine));
+    String run(String keys) {
+      for (final k in parseKeySequence(keys)) {
+        t.press(k);
+      }
+      final s = t.screen.text;
+      return s.substring(s.lastIndexOf(' = ') + 3);
+    }
+
+    test('fraction input gives fraction results', () {
+      expect(run('5 frac 6 + 1 frac 10 ='), '14/15');
+      expect(run('S<>D'), '0.933333333');
+    });
+    test('mixed with ab/c setting: 7u1/8', () {
+      t.improper = false;
+      expect(run('7 frac 8 + 7 ='), '7u7/8');
+    });
+    test('whole numbers keep their point; decimals stay decimals', () {
+      expect(run('7 × 8 ÷ 2 ='), '28.');
+      expect(run('0.5 + 0.25 ='), '0.75');
+    });
+    test('exponent shown separately', () {
+      expect(run('2 EXP 20 × 3 ='), '6. E20');
+    });
+  });
 }

@@ -326,6 +326,40 @@ class CalcSkin {
     solarStrip: Color(0xFF3B2E27),
   );
 
+  /// Graphite: grey body, yellow 2nd key, light grey digits.
+  static const graphite = CalcSkin(
+    id: 'graphite',
+    name: 'Graphite',
+    description: 'Grey body, yellow 2nd key, light digit keys',
+    background: Color(0xFF1A1B1E),
+    bodyTop: Color(0xFF747A84),
+    body: Color(0xFF545961),
+    bezel: Color(0xFF2A2D32),
+    brandText: Color(0xFFF2F3F5),
+    modifierKey: Color(0xFFF2C230),
+    modifierText: Color(0xFF1E1F22),
+    functionKey: Color(0xFF2B2F36),
+    functionText: Color(0xFFFFFFFF),
+    digitKey: Color(0xFFD6D9DE),
+    digitText: Color(0xFF1E2126),
+    operatorKey: Color(0xFFB0B5BD),
+    clearKey: Color(0xFFF2C230),
+    clearText: Color(0xFF1E1F22),
+    disc: Color(0xFF3A3E45),
+    discMark: Color(0xFFF2F3F5),
+    labels: {
+      LabelKind.shift: Color(0xFFF7D154),
+      LabelKind.alpha: Color(0xFF9EE6B0),
+      LabelKind.complex: Color(0xFFD3B5FF),
+      LabelKind.stat: Color(0xFF9CC7FF),
+      LabelKind.base: Color(0xFF9EE6B0),
+      LabelKind.plain: Color(0xFFF2F3F5),
+      LabelKind.neutral: Color(0xFFC9CDD3),
+    },
+    lcd: LcdPalette(glass: Color(0xFFC8CFC0), ink: Color(0xFF1B211B)),
+    solarStrip: Color(0xFF2A221E),
+  );
+
   static const all = [
     classic,
     midnight,
@@ -335,6 +369,7 @@ class CalcSkin {
     black,
     slate,
     pearl,
+    graphite,
   ];
 
   static CalcSkin byId(String? id) =>
