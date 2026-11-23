@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # Release version. Bump on `dev` via PR; merging to `main` creates tag v<version-without-build>.
 # Build number (+N) is overridden in CI by the workflow run number.
-version: 0.5.0-beta+1
+version: 0.6.0-beta+1
 
 environment:
   sdk: ^3.13.7
@@ -25,6 +25,11 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Licence texts shown on Menu ▸ About ▸ Third-party licences.
+  assets:
+    - assets/fonts/OFL.txt
+    - assets/fonts/OFL-PatrickHand.txt
+
   # Bundled fonts: the app must never fetch fonts at runtime (offline, no network).
   # Barlow Semi Condensed: SIL OFL 1.1 (assets/fonts/OFL.txt).
   # WCalcSymbols: subset of Noto Sans Math, SIL OFL 1.1.
@@ -38,3 +43,7 @@ flutter:
     - family: WCalcSymbols
       fonts:
         - asset: assets/fonts/WCalcSymbols.ttf
+    # Patrick Hand: SIL OFL 1.1 (assets/fonts/OFL-PatrickHand.txt); tour notes.
+    - family: Hand
+      fonts:
+        - asset: assets/fonts/PatrickHand-Regular.ttf

@@ -506,4 +506,80 @@ void main() {
     expect(other.statItems, hasLength(2));
     expect(other.linearVariables.keys, contains('MatA'));
   });
+
+  group('profiles', () {
+    test('four-line model lists only its modes', () {
+      final c = NaturalCalculator(
+        profile: NaturalProfile.multiLine,
+        modes: {NaturalMode.comp, NaturalMode.stat, NaturalMode.table},
+      );
+      c.press(CalcKey.mode);
+      expect(c.screen.text, '1:COMP  2:STAT | 3:TABLE');
+      c.press(CalcKey.d2);
+      expect(c.mode, NaturalMode.stat);
+    });
+    test('history screen shows the current result', () {
+      final c = NaturalCalculator(profile: NaturalProfile.multiLine);
+      for (final k in parseKeySequence('1 + 1 = 2 frac 3 > + 1 frac 2 =')) {
+        c.press(k);
+      }
+      expect(c.screen.text, endsWith('= fraction{7|6}'));
+      expect(c.screen.dots.toAscii().contains('#'), isTrue);
+    });
+  });
+
+  group('two-line profile', () {
+    late NaturalCalculator t;
+    setUp(() => t = NaturalCalculator(profile: NaturalProfile.twoLine));
+    String run(String keys) {
+      for (final k in parseKeySequence(keys)) {
+        t.press(k);
+      }
+      final s = t.screen.text;
+      return s.substring(s.lastIndexOf(' = ') + 3);
+    }
+
+    test('fraction input gives fraction results', () {
+      expect(run('5 frac 6 + 1 frac 10 ='), '14/15');
+      expect(run('S<>D'), '0.933333333');
+    });
+    test('mixed with ab/c setting: 7u1/8', () {
+      t.improper = false;
+      expect(run('7 frac 8 + 7 ='), '7u7/8');
+    });
+    test('whole numbers keep their point; decimals stay decimals', () {
+      expect(run('7 × 8 ÷ 2 ='), '28.');
+      expect(run('0.5 + 0.25 ='), '0.75');
+    });
+    test('exponent shown separately', () {
+      expect(run('2 EXP 20 × 3 ='), '6. E20');
+    });
+  });
+
+  group('big linear algebra (four matrices up to 4×4)', () {
+    late NaturalCalculator m;
+    setUp(() => m = NaturalCalculator(bigLinear: true));
+    String run(String keys) {
+      for (final k in parseKeySequence(keys)) {
+        m.press(k);
+      }
+      return m.screen.text;
+    }
+
+    test('MatD 4×4 identity-like: det = 24', () {
+      run('MODE 6 4 4 4');
+      run('2 = 0 = 0 = 0 = 0 = 3 = 0 = 0 = 0 = 0 = 4 = 0 = 0 = 0 = 0 = 1 = AC');
+      final t = run('SHIFT 4 7 SHIFT 4 down 9 ) =');
+      expect(t.substring(t.lastIndexOf(' = ') + 3), '24');
+    });
+    test('four unknowns', () {
+      run('MODE 5 down 5');
+      // x+y+z+t=10, x−y=−1, y−z=−1, z−t=−1 → 1, 2, 3, 4
+      run('1 = 1 = 1 = 1 = 10 = 1 = (-) 1 = 0 = 0 = (-) 1 = ');
+      run('0 = 1 = (-) 1 = 0 = (-) 1 = 0 = 0 = 1 = (-) 1 = (-) 1 = =');
+      expect(m.screen.text, 'X= 1');
+      run('down down down');
+      expect(m.screen.text, 'T= 4');
+    });
+  });
 }

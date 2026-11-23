@@ -20,7 +20,27 @@ class CalcModel {
     this.layout = twoLineLayout,
     this.family = CalcFamily.twoLine,
     this.skinId,
+    this.profile = NaturalProfile.textbook,
+    this.naturalModes,
+    this.indicatorLabels = const {},
+    this.bigLinear = false,
+    this.listNames = false,
   });
+
+  /// Textbook family: statistics editor columns L1, L2, L3.
+  final bool listNames;
+
+  /// Textbook family: MatA–MatD up to 4 × 4, VctA–VctD, four unknowns.
+  final bool bigLinear;
+
+  /// Textbook family: screen layout (single expression or four-line history).
+  final NaturalProfile profile;
+
+  /// Textbook family: modes on the MODE menu (null: all eight).
+  final Set<NaturalMode>? naturalModes;
+
+  /// LCD indicator texts that differ on this model (e.g. 2nd for SHIFT).
+  final Map<Indicator, String> indicatorLabels;
 
   /// Which engine (and LCD) the model uses.
   final CalcFamily family;
@@ -31,7 +51,12 @@ class CalcModel {
   /// A fresh engine for this model.
   CalcEngine createEngine() => switch (family) {
     CalcFamily.twoLine => Calculator(features: features),
-    CalcFamily.textbook => NaturalCalculator(),
+    CalcFamily.textbook => NaturalCalculator(
+      profile: profile,
+      modes: naturalModes,
+      bigLinear: bigLinear,
+      listNames: listNames,
+    ),
   };
 
   final String id;
@@ -118,7 +143,87 @@ class CalcModel {
     skinId: 'black',
   );
 
-  static const all = [plus, grid, basic, textbook, textbook2];
+  /// Four-line history display with textbook input; 2nd key.
+  static final view = CalcModel(
+    id: 'view',
+    name: 'Scientific View',
+    description:
+        'Four-line display that keeps earlier entries and answers on screen; '
+        'textbook input, ◄► answer toggle, statistics and tables',
+    features: CalcFeatures.full,
+    layout: viewLayout,
+    family: CalcFamily.textbook,
+    skinId: 'slate',
+    profile: NaturalProfile.multiLine,
+    naturalModes: {NaturalMode.comp, NaturalMode.stat, NaturalMode.table},
+    indicatorLabels: {Indicator.shift: '2nd'},
+    listNames: true,
+  );
+
+  /// Four-line textbook display, 2ndF key, round cursor pad.
+  static final write = CalcModel(
+    id: 'write',
+    name: 'Scientific Write',
+    description:
+        'Four-line textbook display with a 2ndF key; calculations, complex '
+        'numbers, statistics, tables and equations',
+    features: CalcFeatures.full,
+    layout: writeLayout,
+    family: CalcFamily.textbook,
+    skinId: 'pearl',
+    profile: NaturalProfile.multiLine,
+    naturalModes: {
+      NaturalMode.comp,
+      NaturalMode.cmplx,
+      NaturalMode.stat,
+      NaturalMode.eqn,
+      NaturalMode.table,
+    },
+    indicatorLabels: {Indicator.shift: '2ndF'},
+  );
+
+  /// Two-line dot display: entry line above a tall result line; 2nd key.
+  static final twoView = CalcModel(
+    id: 'twoview',
+    name: 'Scientific Two-View',
+    description:
+        'Classic two-line dot display: the entry on top (÷ shown as /), the '
+        'answer below; fractions like 14/15 and 7u1/8, statistics',
+    features: CalcFeatures.full,
+    layout: viewLayout,
+    family: CalcFamily.textbook,
+    skinId: 'graphite',
+    profile: NaturalProfile.twoLine,
+    naturalModes: {NaturalMode.comp, NaturalMode.stat},
+    indicatorLabels: {Indicator.shift: '2nd'},
+  );
+
+  /// Textbook display with bigger linear algebra (four 4 × 4 matrices,
+  /// four vectors, four unknowns).
+  static final max = CalcModel(
+    id: 'max',
+    name: 'Scientific Max',
+    description:
+        'Textbook display with four matrices up to 4×4, four vectors and '
+        'equations with four unknowns',
+    features: CalcFeatures.full,
+    layout: textbookDiscLayout,
+    family: CalcFamily.textbook,
+    skinId: 'ocean',
+    bigLinear: true,
+  );
+
+  static final all = [
+    plus,
+    grid,
+    basic,
+    textbook,
+    textbook2,
+    max,
+    twoView,
+    view,
+    write,
+  ];
 
   static CalcModel byId(String? id) =>
       all.firstWhere((m) => m.id == id, orElse: () => plus);

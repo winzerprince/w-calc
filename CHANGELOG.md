@@ -2,6 +2,33 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [0.6.0-beta] - 2026-11-23
+
+Nine calculator models: new two-line dot, four-line and big-matrix models; first-start tours.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
+
+### Fixed
+- Textbook models: the matrix size menu now shows its second page (1×3, 1×2).
+- Font licence texts are now bundled so the third-party licence page can show them.
+
+### Added
+- Scientific View: statistics editor columns named L1, L2, L3.
+- Model picker grouped by display: two-line, textbook and multi-line.
+- *Scientific Max* model: textbook display with four matrices up to 4×4 (size typed as m?, n?),
+  four vectors and equations with four unknowns; Ocean theme.
+- *Scientific Two-View* model: classic two-line dot display (entry line with / and *, tall answer
+  line with a trailing point, fractions 14/15 and 7u1/8, ◄► toggle), 2nd key, Graphite theme.
+- First-start tours: hand-drawn notes and arrows over a dark scrim explain the display, menu,
+  modifier and MODE keys, the solar panel; the model, theme and manual pages have their own.
+  Replay them from Settings ▸ Help.
+- Two four-line models: *Scientific View* (history display, 2nd key, ◄► answer toggle, enter;
+  COMP, STAT, TABLE) and *Scientific Write* (2ndF key, round pad; COMP, CMPLX, STAT, EQN, TABLE),
+  with new Slate and Pearl themes.
+- Textbook engine: display profiles (single expression or four-line history) and per-model
+  mode lists; model-specific LCD indicator names (2nd / 2ndF).
+
 ## [0.5.0-beta] - 2026-11-23
 
 Finishes and body shapes, model previews, focus mode, a fuller manual, and a proprietary licence.

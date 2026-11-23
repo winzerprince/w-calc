@@ -27,6 +27,9 @@ void _registerFontLicences() {
   LicenseRegistry.addLicense(() async* {
     final ofl = await rootBundle.loadString('assets/fonts/OFL.txt');
     yield LicenseEntryWithLineBreaks(['Barlow Semi Condensed'], ofl);
+    yield LicenseEntryWithLineBreaks([
+      'Patrick Hand',
+    ], await rootBundle.loadString('assets/fonts/OFL-PatrickHand.txt'));
     yield const LicenseEntryWithLineBreaks(
       ['Noto Sans Math (subset)'],
       'Copyright 2022 The Noto Project Authors. Licensed under the SIL Open Font License, Version 1.1.',

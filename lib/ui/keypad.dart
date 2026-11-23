@@ -6,15 +6,26 @@ import 'keypad_layout.dart';
 import 'legend.dart';
 import 'finish.dart';
 import 'skin.dart';
+import 'tour/tours.dart';
 
 /// Height of one printed legend strip.
 const double _stripHeight = 13;
 
 /// Full keypad: top block (modifiers + cursor disc), function rows, number rows.
 class Keypad extends StatelessWidget {
-  const Keypad({super.key, required this.onPress});
+  const Keypad({super.key, required this.onPress, this.tourTargets = false});
 
   final ValueChanged<CalcKey> onPress;
+
+  /// Attach the tour's keys (only on the main calculator, never on
+  /// thumbnails, so each GlobalKey is used once).
+  final bool tourTargets;
+
+  static Key? _tourKey(CalcKey k) => switch (k) {
+    CalcKey.shift => TourKeys.shift,
+    CalcKey.mode => TourKeys.mode,
+    _ => null,
+  };
 
   Widget _row(List<KeySpec> specs) {
     final hasBelow = specs.any((s) => s.below.isNotEmpty);
@@ -23,7 +34,12 @@ class Keypad extends StatelessWidget {
       children: [
         for (final s in specs)
           Expanded(
-            child: KeyButton(spec: s, onPress: onPress, reserveBelow: hasBelow),
+            child: KeyButton(
+              key: tourTargets ? _tourKey(s.key) : null,
+              spec: s,
+              onPress: onPress,
+              reserveBelow: hasBelow,
+            ),
           ),
       ],
     );

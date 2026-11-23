@@ -24,8 +24,23 @@ import 'result_forms.dart';
 /// Calculation modes of the textbook-display models (MODE 1-8).
 enum NaturalMode { comp, cmplx, stat, base, eqn, matrix, table, vector }
 
+/// How the calculation screen is laid out.
+enum NaturalProfile {
+  /// One expression on top, its result at the bottom right (96 × 31).
+  textbook,
+
+  /// Four text lines with the history above the current line: each entry
+  /// left, its result right-aligned (on the same line when it fits).
+  multiLine,
+
+  /// Classic two-line dot display: one scrolling entry line (÷ as `/`,
+  /// × as `*`), a tall result line with a trailing point on whole numbers,
+  /// fractions as `14/15` or `7u1/8`, no √ / π forms.
+  twoLine,
+}
+
 /// EQN types in MODE 5 menu order.
-enum EqnType { lin2, lin3, quad, cubic }
+enum EqnType { lin2, lin3, quad, cubic, lin4 }
 
 /// STAT calculation types in MODE 3 menu order.
 enum StatType { oneVar, lin, quad, log, eExp, abExp, pwr, inv }
@@ -82,7 +97,30 @@ final class _History {
 /// models; adds the 2-D input editor, exact result forms and the menu-style
 /// MODE / SETUP screens. Draws its own 96 × 31 dot screen.
 class NaturalCalculator implements CalcEngine {
-  NaturalCalculator({math.Random? random}) : _random = random ?? math.Random();
+  NaturalCalculator({
+    math.Random? random,
+    this.profile = NaturalProfile.textbook,
+    Set<NaturalMode>? modes,
+    this.bigLinear = false,
+    this.listNames = false,
+  }) : _random = random ?? math.Random(),
+       modes = modes ?? NaturalMode.values.toSet();
+
+  /// Screen layout of this model.
+  final NaturalProfile profile;
+
+  /// Modes this model offers on its MODE menu.
+  final Set<NaturalMode> modes;
+
+  /// Statistics editor columns named L1, L2, L3 (list-style models).
+  final bool listNames;
+
+  /// Four matrices up to 4 × 4 (MatA–MatD), four vectors and simultaneous
+  /// equations with four unknowns.
+  final bool bigLinear;
+
+  List<String> get _letters =>
+      bigLinear ? const ['A', 'B', 'C', 'D'] : const ['A', 'B', 'C'];
 
   final math.Random _random;
 
@@ -95,6 +133,7 @@ class NaturalCalculator implements CalcEngine {
   /// STAT, BASE-N, MATRIX and VECTOR always use Linear display.
   bool get _mathIO =>
       mathInput &&
+      profile != NaturalProfile.twoLine &&
       mode != NaturalMode.stat &&
       mode != NaturalMode.base &&
       mode != NaturalMode.matrix &&
@@ -841,7 +880,7 @@ class NaturalCalculator implements CalcEngine {
     improperFractions: improper,
     random: _random,
     polRecVars: const ('X', 'Y'),
-    exactForms: true,
+    exactForms: profile != NaturalProfile.twoLine,
     functionParens: true,
     stats: mode == NaturalMode.stat ? _stat : null,
     base: mode == NaturalMode.base ? _base : null,
@@ -1084,19 +1123,44 @@ class NaturalCalculator implements CalcEngine {
       }
     }
 
+    final l = _letters;
     return _Menu(
-      [matrix ? 'Matrix?' : 'Vector?', '1:${p}A  2:${p}B', '3:${p}C'],
-      {1: () => open('${p}A'), 2: () => open('${p}B'), 3: () => open('${p}C')},
+      [
+        matrix ? 'Matrix?' : 'Vector?',
+        '1:$p${l[0]}  2:$p${l[1]}',
+        '3:$p${l[2]}${l.length > 3 ? '  4:$p${l[3]}' : ''}',
+      ],
+      {for (final (i, x) in l.indexed) i + 1: () => open('$p$x')},
     );
   }
 
-  _Menu _matDimMenu(String name) => _Menu(
-    ['$name(m×n) m×n?', '1:3×3  2:3×2', '3:3×1  4:2×3', '5:2×2  6:2×1 ▼'],
-    {
+  _Menu _matDimMenu(String name) {
+    if (bigLinear) {
+      // Rows and columns typed: m? then n? (1-4 each).
+      _askDigit('$name  m? (1~4)', 1, 4, (m) {
+        _askDigit('$name  n? (1~4)', 1, 4, (n) {
+          _dimension(name, Value.matrix(_zeros(m, n)));
+        });
+      });
+      return _Menu(const [''], const {});
+    }
+    final actions = {
       for (final (i, (r, c)) in _matDims.indexed)
         i + 1: () => _dimension(name, Value.matrix(_zeros(r, c))),
-    },
-  );
+    };
+    late _Menu page1, page2;
+    page1 = _Menu(
+      ['$name(m×n) m×n?', '1:3×3  2:3×2', '3:3×1  4:2×3', '5:2×2  6:2×1'],
+      actions,
+      next: () => page2,
+    );
+    page2 = _Menu(
+      ['$name(m×n) m×n?', '7:1×3  8:1×2'],
+      actions,
+      prev: () => page1,
+    );
+    return page1;
+  }
 
   _Menu _vctDimMenu(String name) => _Menu(
     ['$name(m) m?', '1:3    2:2'],
@@ -1111,6 +1175,7 @@ class NaturalCalculator implements CalcEngine {
   ];
 
   void _dimension(String name, Value v) {
+    _menu = null;
     _linear[name] = v;
     _openGrid(name);
   }
@@ -1219,10 +1284,12 @@ class NaturalCalculator implements CalcEngine {
       'MatA' => Tok.matA,
       'MatB' => Tok.matB,
       'MatC' => Tok.matC,
+      'MatD' => Tok.matD,
       'MatAns' => Tok.matAns,
       'VctA' => Tok.vctA,
       'VctB' => Tok.vctB,
       'VctC' => Tok.vctC,
+      'VctD' => Tok.vctD,
       _ => Tok.vctAns,
     };
     void insert(Tok tok) {
@@ -1259,6 +1326,9 @@ class NaturalCalculator implements CalcEngine {
         } else
           7: () => insert(Tok.dot),
       },
+      next: bigLinear
+          ? () => _Menu(['9:${p}D'], {9: () => insert(t('D'))})
+          : null,
     );
   }
 
@@ -1566,19 +1636,33 @@ class NaturalCalculator implements CalcEngine {
 
   // ------------------------------------------------------------- EQN
 
-  _Menu _eqnTypeMenu() => _Menu(
-    const [
-      '1:anX+bnY=cn',
-      '2:anX+bnY+cnZ=dn',
-      '3:aX²+bX+c=0',
-      '4:aX³+bX²+cX+d=0',
-    ],
-    {for (final t in EqnType.values) t.index + 1: () => _setEqnType(t)},
-  );
+  _Menu _eqnTypeMenu() {
+    final page1 = _Menu(
+      const [
+        '1:anX+bnY=cn',
+        '2:anX+bnY+cnZ=dn',
+        '3:aX²+bX+c=0',
+        '4:aX³+bX²+cX+d=0',
+      ],
+      {
+        for (final t in EqnType.values)
+          if (t != EqnType.lin4 || bigLinear) t.index + 1: () => _setEqnType(t),
+      },
+      next: bigLinear
+          ? () => _Menu(
+              const ['5:4 unknowns'],
+              {5: () => _setEqnType(EqnType.lin4)},
+              prev: _eqnTypeMenu,
+            )
+          : null,
+    );
+    return page1;
+  }
 
   (int, int) get _eqnShape => switch (_eqnType!) {
     EqnType.lin2 => (2, 3),
     EqnType.lin3 => (3, 4),
+    EqnType.lin4 => (4, 5),
     EqnType.quad => (1, 3),
     EqnType.cubic => (1, 4),
   };
@@ -1675,7 +1759,7 @@ class NaturalCalculator implements CalcEngine {
     try {
       final t = _eqnType!;
       final List<Value> sols;
-      if (t == EqnType.lin2 || t == EqnType.lin3) {
+      if (t == EqnType.lin2 || t == EqnType.lin3 || t == EqnType.lin4) {
         sols = solveLinear([
           for (final row in _coef) [for (final v in row) v.dec],
         ]).map(_cleanLinear).toList();
@@ -1732,9 +1816,12 @@ class NaturalCalculator implements CalcEngine {
   void _paintEqn(DotBitmap bmp, StringBuffer text) {
     final sols = _solutions;
     if (sols != null) {
-      final linear = _eqnType == EqnType.lin2 || _eqnType == EqnType.lin3;
+      final linear =
+          _eqnType == EqnType.lin2 ||
+          _eqnType == EqnType.lin3 ||
+          _eqnType == EqnType.lin4;
       final name = linear
-          ? const ['X', 'Y', 'Z'][_solIndex]
+          ? const ['X', 'Y', 'Z', 'T'][_solIndex]
           : (sols.length == 1 ? 'X' : 'X${_solIndex + 1}');
       bmp.text(0, 0, '$name=');
       final row = _rowFor(sols[_solIndex], surd: !linear);
@@ -1748,7 +1835,7 @@ class NaturalCalculator implements CalcEngine {
       return;
     }
     final (rows, cols) = _eqnShape;
-    const letters = ['a', 'b', 'c', 'd'];
+    const letters = ['a', 'b', 'c', 'd', 'e'];
     const rowNumW = 7;
     final colW = (DotScreen.width - rowNumW) ~/ cols;
     for (var c = 0; c < cols; c++) {
@@ -2061,7 +2148,7 @@ class NaturalCalculator implements CalcEngine {
     final colW = (DotScreen.width - rowNumW) ~/ _cols;
     final names = _colNames;
     for (var c = 0; c < _cols; c++) {
-      final n = names[c];
+      final n = listNames ? 'L${c + 1}' : names[c];
       final x = rowNumW + c * colW + (colW - smallTextWidth(n)) ~/ 2;
       bmp.smallText(x, 0, n);
     }
@@ -2242,15 +2329,34 @@ class NaturalCalculator implements CalcEngine {
     }
   }
 
-  _Menu _modeMenu() => _Menu(
-    const [
-      '1:COMP  2:CMPLX',
-      '3:STAT  4:BASE-N',
-      '5:EQN   6:MATRIX',
-      '7:TABLE 8:VECTOR',
-    ],
-    {for (final (i, m) in NaturalMode.values.indexed) i + 1: () => _setMode(m)},
-  );
+  static const _modeNames = {
+    NaturalMode.comp: 'COMP',
+    NaturalMode.cmplx: 'CMPLX',
+    NaturalMode.stat: 'STAT',
+    NaturalMode.base: 'BASE-N',
+    NaturalMode.eqn: 'EQN',
+    NaturalMode.matrix: 'MATRIX',
+    NaturalMode.table: 'TABLE',
+    NaturalMode.vector: 'VECTOR',
+  };
+
+  /// MODE list of this model's modes, numbered in order, two per line.
+  _Menu _modeMenu() {
+    final list = [
+      for (final m in NaturalMode.values)
+        if (modes.contains(m)) m,
+    ];
+    final lines = <String>[
+      for (var i = 0; i < list.length; i += 2)
+        i + 1 < list.length
+            ? '${'${i + 1}:${_modeNames[list[i]]}'.padRight(8)}'
+                  '${i + 2}:${_modeNames[list[i + 1]]}'
+            : '${i + 1}:${_modeNames[list[i]]}',
+    ];
+    return _Menu(lines, {
+      for (final (i, m) in list.indexed) i + 1: () => _setMode(m),
+    });
+  }
 
   void _setMode(NaturalMode m) {
     if (mode == NaturalMode.stat && m != NaturalMode.stat) {
@@ -2553,7 +2659,11 @@ class NaturalCalculator implements CalcEngine {
       if (m.prev != null) ind.add(Indicator.scrollUp);
       text.write(m.lines.join(' | '));
     } else {
-      cursor = _paintCalculation(bmp, text);
+      cursor = switch (profile) {
+        NaturalProfile.multiLine => _paintHistory(bmp, text),
+        NaturalProfile.twoLine => _paintTwoLine(bmp, text),
+        NaturalProfile.textbook => _paintCalculation(bmp, text),
+      };
       if (_resultShown && _history.isNotEmpty) {
         final i = _historyIndex ?? _history.length - 1;
         if (i > 0) ind.add(Indicator.scrollUp);
@@ -2612,6 +2722,157 @@ class NaturalCalculator implements CalcEngine {
     return editing ? cursor : null;
   }
 
+  static const _twoLineSymbols = {
+    Tok.divide: '/',
+    Tok.multiply: '*',
+    Tok.fracSep: '⌟',
+  };
+
+  /// Two-line screen: scrolling entry line, tall result line.
+  CursorRect? _paintTwoLine(DotBitmap bmp, StringBuffer text) {
+    final layout = MathLayout(_ed.root, symbols: _twoLineSymbols);
+    final editing = !_resultShown;
+    final probe = DotBitmap(layout.width + 8, layout.height + 1);
+    final at = layout.paint(probe, 0, 0, cursor: editing ? _ed.cursor : null);
+    if (editing && at != null) {
+      if (at.x - _scrollX > DotScreen.width - 4) {
+        _scrollX = at.x - DotScreen.width + 4;
+      } else if (at.x - _scrollX < 0) {
+        _scrollX = at.x;
+      }
+    } else if (!editing) {
+      _scrollX = 0;
+    }
+    var cursor = layout.paint(
+      bmp,
+      1 - _scrollX,
+      1,
+      cursor: editing ? _ed.cursor : null,
+    );
+    if (editing && _ed.isEmpty) cursor = const CursorRect(1, 1, 7);
+    text.write(_ed.root.toString());
+    if (_resultShown && _result != null) {
+      final (mantissa, exponent) = _twoLineResult(_result!);
+      var right = DotScreen.width - 1;
+      if (exponent != null) {
+        // ×10 and the exponent sit raised at the right edge.
+        final ew = textWidth(exponent);
+        bmp.text(DotScreen.width - ew - 1, 12, exponent);
+        final xw = smallTextWidth('×10');
+        bmp.smallText(DotScreen.width - ew - xw - 3, 20, '×10');
+        right = DotScreen.width - ew - xw - 6;
+      }
+      bmp.tallText(right - textWidth(mantissa), 20, mantissa);
+      text.write(' = $mantissa${exponent == null ? '' : ' E$exponent'}');
+    }
+    return editing ? cursor : null;
+  }
+
+  /// Result text for the two-line display: fractions when the calculation
+  /// was made of fractions (◄► / S⇔D toggles), else the decimal with its
+  /// point.
+  (String, String?) _twoLineResult(Value v) {
+    if (v.isComplex || v.isLinear) return ('ERROR', null);
+    if (mode == NaturalMode.base) return (_baseRow(v).toString(), null);
+    Frac? f = v.frac;
+    if (_alternate) f = f == null ? Frac.approximate(v.dec) : null;
+    if (f != null && !f.isInteger && _engExponent == null) {
+      final n = f.n.abs(), d = f.d;
+      final sign = f.isNegative ? '-' : '';
+      if (improper != _flipMixed || n < d) return ('$sign$n/$d', null);
+      return ('$sign${n ~/ d}u${n % d}/$d', null);
+    }
+    final fmt = v.isSexagesimal
+        ? formatValue(
+            v,
+            DisplaySettings(format: format),
+            view: ResultView.sexagesimal,
+          )
+        : formatValue(
+            v,
+            DisplaySettings(format: format, decimalComma: decimalComma),
+            view: ResultView.decimal,
+            engExponent: _engExponent,
+          );
+    var m = fmt.mantissa;
+    if (decimalComma) m = m.replaceAll('.', ',');
+    return (m.replaceAll('°', '°'), fmt.exponent);
+  }
+
+  /// Four-line screen: the current line at the bottom, earlier entries and
+  /// results above it (newest lowest), like a paper roll.
+  CursorRect? _paintHistory(DotBitmap bmp, StringBuffer text) {
+    // (input, result) pairs, oldest first; the current one last.
+    final entries = <(MathRow, MathRow?)>[];
+    final keep = _resultShown ? _history.length - 1 : _history.length;
+    for (var i = 0; i < keep; i++) {
+      final h = _history[i];
+      entries.add((h.input, _rowFor(h.result)));
+    }
+    final editing = !_resultShown;
+    if (_resultShown && _result != null) {
+      entries.add((_ed.root, _currentResultRow()));
+    } else {
+      entries.add((_ed.root, null));
+    }
+    var bottom = DotScreen.height; // next free row from the bottom
+    CursorRect? cursor;
+    for (final (i, (input, result)) in entries.reversed.indexed) {
+      if (bottom <= 0) break;
+      final inLayout = MathLayout(input);
+      final current = i == 0;
+      if (result != null) {
+        final r = MathLayout(result);
+        final sameLine =
+            inLayout.width + r.width + 6 <= DotScreen.width &&
+            inLayout.height <= 8 &&
+            r.height <= 8;
+        if (sameLine) {
+          final h = inLayout.height > r.height ? inLayout.height : r.height;
+          final top = bottom - h;
+          if (top < 0 && !current) break; // only whole entries are shown
+          inLayout.paint(bmp, 1, top + h - inLayout.height);
+          r.paint(bmp, DotScreen.width - r.width - 1, top + h - r.height);
+          bottom = top - 1;
+          continue;
+        }
+        if (!current && bottom - r.height < 0) break;
+        r.paint(bmp, DotScreen.width - r.width - 1, bottom - r.height);
+        bottom -= r.height + 1;
+      }
+      final top = bottom - inLayout.height;
+      if (top < 0 && !current) break;
+      final c = inLayout.paint(
+        bmp,
+        1,
+        top,
+        cursor: current && editing ? _ed.cursor : null,
+      );
+      if (current && editing) cursor = c;
+      bottom = top - 1;
+    }
+    if (editing && _ed.isEmpty) {
+      cursor = const CursorRect(1, DotScreen.height - 7, 7);
+    }
+    text.write(_ed.root.toString());
+    if (_resultShown && _result != null) {
+      text.write(' = ${_currentResultRow()}');
+    }
+    // Entries left above the screen are marked like the device does.
+    return cursor;
+  }
+
+  /// The shown result honouring S⇔D, SHIFT = and ENG (as on the result line).
+  MathRow _currentResultRow() {
+    final probe = DotBitmap(DotScreen.width, DotScreen.height);
+    final sb = StringBuffer();
+    _lastResultRow = null;
+    _paintResult(probe, sb);
+    return _lastResultRow!;
+  }
+
+  MathRow? _lastResultRow;
+
   void _paintResult(DotBitmap bmp, StringBuffer text) {
     final r = _result!;
     final settings = DisplaySettings(
@@ -2652,6 +2913,7 @@ class NaturalCalculator implements CalcEngine {
             );
       row = _decimalRow(f);
     }
+    _lastResultRow = row;
     text.write(row.toString());
     final layout = MathLayout(row);
     // Clear the result area, then draw right-aligned on the bottom row.
