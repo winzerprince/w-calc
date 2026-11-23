@@ -172,4 +172,51 @@ void main() {
     expect(other.angle, AngleUnit.rad);
     expect(other.variables['A']!.dec, Dec.fromInt(9));
   });
+
+  group('exact √ and π forms (Math display)', () {
+    test('√2 + √2 = 2√2', () {
+      expect(result('√ 2 > + √ 2 ='), '2sqrt{2}');
+    });
+    test('(√2 + 2) × √3 = 2√3 + √6, S⇔D gives 5.913591358', () {
+      expect(result('( √ 2 > + 2 ) × √ 3 ='), '2sqrt{3}+sqrt{6}');
+      expect(result('S<>D'), '5.913591358');
+    });
+    test('π ÷ 6 = π/6; SHIFT = gives 0.5235987756, S⇔D back to π/6', () {
+      expect(result('SHIFT EXP ÷ 6 ='), 'fraction{π|6}');
+      expect(result('AC SHIFT EXP ÷ 6 SHIFT ='), '0.5235987756');
+      expect(result('S<>D'), 'fraction{π|6}');
+    });
+    test('sin 45° = √2/2 (recognised)', () {
+      expect(result('sin 45 ) ='), 'fraction{sqrt{2}|2}');
+    });
+    test('1 ÷ √2 = √2/2', () {
+      expect(result('1 ÷ √ 2 ='), 'fraction{sqrt{2}|2}');
+    });
+    test('(1 + √5) ÷ 2 keeps the sum form', () {
+      expect(result('frac 1 + √ 5 > down 2 ='), 'fraction{1+sqrt{5}|2}');
+    });
+    test('−√3 shows the minus in front', () {
+      expect(result('(-) √ 3 ='), '-sqrt{3}');
+    });
+    test('Rad: sin⁻¹ 1 = π/2', () {
+      press('SHIFT MODE 4');
+      expect(result('SHIFT sin 1 ) ='), 'fraction{π|2}');
+    });
+    test('decimals typed are exact: 0.5 + 0.25 = 3/4', () {
+      expect(result('0.5 + 0.25 ='), 'fraction{3|4}');
+    });
+    test('2π stays a π form, π² falls back to a decimal', () {
+      expect(result('2 SHIFT EXP ='), '2π');
+      expect(result('SHIFT EXP x2 ='), '9.869604401');
+    });
+    test('SHIFT = then S⇔D does not offer √ forms', () {
+      press('√ 2 > SHIFT =');
+      expect(result('S<>D'), '1.414213562');
+    });
+    test('Linear display: √2 stays decimal; S⇔D has no √ form', () {
+      press('SHIFT MODE 2');
+      expect(result('√ 2 ) ='), '1.414213562');
+      expect(result('S<>D'), '1.414213562');
+    });
+  });
 }

@@ -12,6 +12,9 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 - Two new calculator models in Menu ▸ Calculator model: *Textbook Plus* (silver body, round
   cursor disc) and *Textbook Plus II* (black body, four arrow keys), with full-dot LCD and their
   own Silver / Black themes. COMP mode works; other modes follow.
+- Textbook models keep results exact: fractions, √ forms ((√2+2)×√3 = 2√3+√6, 1÷√2 = √2/2)
+  and π forms (π÷6 = π/6); function results such as sin 45° are recognised. S⇔D and SHIFT =
+  switch to decimals.
 
 ## [0.2.0-beta] - 2026-11-23
 

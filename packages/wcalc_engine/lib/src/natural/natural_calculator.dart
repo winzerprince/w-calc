@@ -11,10 +11,12 @@ import '../input/token.dart';
 import '../lcd/dot_bitmap.dart';
 import '../number/dec.dart';
 import '../number/frac.dart';
+import '../number/surd.dart';
 import '../number/value.dart';
 import 'dot_screen.dart';
 import 'math_input.dart';
 import 'math_render.dart';
+import 'result_forms.dart';
 
 /// Calculation modes of the textbook-display models (MODE 1-8).
 enum NaturalMode { comp, cmplx, stat, base, eqn, matrix, table, vector }
@@ -92,6 +94,9 @@ class NaturalCalculator implements CalcEngine {
 
   /// S⇔D pressed: showing the alternative form.
   bool _alternate = false;
+
+  /// Result came from SHIFT = (S⇔D then offers fraction / π forms only).
+  bool _decimalFirst = false;
 
   /// SHIFT S⇔D: mixed ↔ improper for this result.
   bool _flipMixed = false;
@@ -591,12 +596,13 @@ class NaturalCalculator implements CalcEngine {
       improperFractions: improper,
       random: _random,
       polRecVars: const ('X', 'Y'),
+      exactForms: true,
       store: (n, v) => _vars[n] = v,
     );
     try {
       final v = evaluateValue(form.tokens, ctx);
       _setResult(v);
-      _alternate = decimal;
+      _decimalFirst = decimal;
     } on CalcError catch (e) {
       _error = _errorText(e.kind);
       _errorCursor = form.cursorFor(
@@ -611,6 +617,7 @@ class NaturalCalculator implements CalcEngine {
     _ans = v;
     _resultShown = true;
     _alternate = false;
+    _decimalFirst = false;
     _flipMixed = false;
     _engExponent = null;
     if (record) {
@@ -637,19 +644,22 @@ class NaturalCalculator implements CalcEngine {
     if (_engExponent! > 99 || _engExponent! < -99) _engExponent = e;
   }
 
-  /// Fraction the result should be shown as, or null for decimal.
-  Frac? _shownFraction() {
+  /// Exact form the result is shown in, or null for a decimal.
+  ExactForm? _shownForm() {
     final r = _result;
-    if (r == null || r.isComplex || r.isLinear || r.isSexagesimal) return null;
-    if (_engExponent != null) return null;
-    if (r.dec.isInteger) return null;
-    final f = r.frac ?? Frac.approximate(r.dec);
-    if (f == null) return null;
-    // MathO shows exact fractions by default; LineIO / LineO show decimals
-    // until S⇔D.
-    final exactFirst = mathInput;
-    return exactFirst != _alternate ? f : null;
+    if (r == null || _engExponent != null) return null;
+    final mathOut = mathInput && mathOutput;
+    // Exact first on MathO / LineO; decimal first on LineIO and after SHIFT =.
+    final exactFirst = mathInput && !_decimalFirst;
+    if (exactFirst == _alternate) return null;
+    final form = exactFormOf(r, surd: mathOut && !_decimalFirst, pi: mathOut);
+    return form;
   }
+
+  Frac? _shownFraction() => switch (_shownForm()) {
+    FractionForm(:final value) => value,
+    _ => null,
+  };
 
   static String _errorText(CalcErrorKind k) => switch (k) {
     CalcErrorKind.math => 'Math ERROR',
@@ -1022,15 +1032,19 @@ class NaturalCalculator implements CalcEngine {
       decimalComma: decimalComma,
       leadingZeroCounts: false,
     );
-    final frac = _shownFraction();
+    final form = _shownForm();
     MathRow row;
-    if (frac != null) {
+    if (form is FractionForm) {
       final improperView = improper != _flipMixed;
       row = _fractionRow(
-        frac,
+        form.value,
         improperView,
         linear: !(mathInput && mathOutput),
       );
+    } else if (form is SurdForm) {
+      row = _surdRow(form.value);
+    } else if (form is PiForm) {
+      row = _piRow(form.coefficient);
     } else {
       final f = r.isSexagesimal
           ? formatValue(r, settings, view: ResultView.sexagesimal)
@@ -1092,6 +1106,65 @@ class NaturalCalculator implements CalcEngine {
       );
     }
     return MathRow(items);
+  }
+
+  /// (n₀ ± n₁√b₁ ± …)/d, rational part first; a lone negative term puts the
+  /// minus sign in front of the fraction.
+  MathRow _surdRow(Surd s) {
+    final d = s.terms.values.fold(BigInt.one, (l, c) => l * c.d ~/ l.gcd(c.d));
+    final parts = <(BigInt, BigInt)>[
+      if (s.terms.containsKey(BigInt.one))
+        (BigInt.one, (s.terms[BigInt.one]! * Frac.fromInt(d)).n),
+      for (final (b, c) in s.radicals) (b, (c * Frac.fromInt(d)).n),
+    ];
+    final single = parts.length == 1;
+    final leadingMinus = single && parts.single.$2.isNegative;
+    final num = <MathItem>[];
+    for (final (i, (b, n)) in parts.indexed) {
+      if (n.isNegative && !(single && leadingMinus)) {
+        num.add(TokItem(i == 0 ? Tok.negative : Tok.subtract));
+      } else if (i > 0) {
+        num.add(TokItem(Tok.add));
+      }
+      final m = n.abs();
+      if (b == BigInt.one) {
+        num.addAll(_digitItems('$m'));
+      } else {
+        if (m != BigInt.one) num.addAll(_digitItems('$m'));
+        num.add(TemplateItem(MathTemplate.sqrt, [MathRow(_digitItems('$b'))]));
+      }
+    }
+    final items = <MathItem>[if (leadingMinus) TokItem(Tok.negative)];
+    if (d == BigInt.one) {
+      items.addAll(num);
+    } else {
+      items.add(
+        TemplateItem(MathTemplate.fraction, [
+          MathRow(num),
+          MathRow(_digitItems('$d')),
+        ]),
+      );
+    }
+    return MathRow(items);
+  }
+
+  /// (p/q)π shown as pπ over q.
+  MathRow _piRow(Frac k) {
+    final p = k.n.abs();
+    final num = <MathItem>[
+      if (p != BigInt.one) ..._digitItems('$p'),
+      TokItem(Tok.pi),
+    ];
+    return MathRow([
+      if (k.isNegative) TokItem(Tok.negative),
+      if (k.d == BigInt.one)
+        ...num
+      else
+        TemplateItem(MathTemplate.fraction, [
+          MathRow(num),
+          MathRow(_digitItems('${k.d}')),
+        ]),
+    ]);
   }
 
   MathRow _decimalRow(FormattedNumber f) {

@@ -8,6 +8,7 @@ import '../number/constants.dart';
 import '../number/frac.dart';
 import '../number/functions.dart';
 import '../number/linalg.dart';
+import '../number/surd.dart';
 import '../number/value.dart';
 import '../number/wide.dart';
 import '../stats/stats.dart';
@@ -67,6 +68,7 @@ class EvalContext {
     this.base,
     this.linear = const {},
     this.polRecVars = const ('E', 'F'),
+    this.exactForms = false,
     math.Random? random,
   }) : ans = ans ?? Value.zero,
        random = random ?? math.Random();
@@ -91,6 +93,10 @@ class EvalContext {
 
   /// MAT / VCT variables by name (MatA … VctAns); missing = not dimensioned.
   final Map<String, Value> linear;
+
+  /// Textbook-display models: decimals, √ and π stay exact where possible
+  /// (results can then be shown as fractions, √ forms and π forms).
+  final bool exactForms;
 
   /// Variables Pol/Rec write their two results to (E, F on two-line models;
   /// X, Y on textbook-display models).
@@ -533,7 +539,10 @@ class _Evaluator {
 
   Value _operandValue(Tok tok) => switch (tok) {
     Tok.ans => ctx.ans,
-    Tok.pi => Value.dec(piConstant),
+    Tok.pi =>
+      ctx.exactForms
+          ? Value.pi(Frac.fromInt(BigInt.one))
+          : Value.dec(piConstant),
     Tok.e => Value.dec(eConstant),
     Tok.imagUnit => Value.imaginaryUnit,
     _ when tok.name.startsWith('mat') || tok.name.startsWith('vct') =>
@@ -666,7 +675,12 @@ class _Evaluator {
       });
       return i;
     }
-    _pushValue(Value.dec(value), start);
+    _pushValue(
+      ctx.exactForms && !value.isInteger
+          ? Value.frac(Frac.fromDec(value))
+          : Value.dec(value),
+      start,
+    );
     return i;
   }
 
@@ -739,7 +753,16 @@ class _Evaluator {
       Tok.ln => _d1(lnDec),
       Tok.tenPow => _d1(tenPowDec),
       Tok.ePow => _d1(expDec),
-      Tok.sqrt => _d1(sqrtDec),
+      Tok.sqrt => (a) {
+        if (ctx.exactForms && !a.isComplex && !a.isLinear) {
+          final e = a.frac ?? (a.dec.isInteger ? Frac.fromDec(a.dec) : null);
+          if (e != null && !e.isNegative) {
+            final r = Surd.sqrtOf(e);
+            if (r != null) return Value.fromSurd(r);
+          }
+        }
+        return _d1(sqrtDec)(a);
+      },
       Tok.cbrt => _d1(cbrtDec),
       Tok.rnd => _d1((a) => roundForDisplay(a, ctx.format)),
       Tok.cAbs =>
