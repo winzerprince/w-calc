@@ -2,7 +2,12 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
-## [Unreleased]
+## [0.4.0-beta] - 2026-11-23
+
+All eight modes on the textbook-display models, and working key vibration on Android.
+
+**Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
+`…-universal.apk`.
 
 ### Fixed
 - Android: key-press vibration now uses the vibrator directly, so it works even when the phone's
