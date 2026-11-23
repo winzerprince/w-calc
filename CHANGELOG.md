@@ -2,6 +2,12 @@
 
 All notable changes. Format: `## [version] - date`, newest first. Release notes are taken from here by CI.
 
+## [Unreleased]
+
+### Added
+- Key styles: Classic (the original W-Calc look, now the default), Flat, Raised and Soft join
+  Glossy, Matte, Rubber and Metallic (Menu ▸ Theme ▸ Finish).
+
 ## [0.6.0-beta] - 2026-11-23
 
 Nine calculator models: new two-line dot, four-line and big-matrix models; first-start tours.
