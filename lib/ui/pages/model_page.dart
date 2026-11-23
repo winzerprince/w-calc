@@ -5,13 +5,17 @@ import '../../app/calc_model.dart';
 import '../haptics.dart';
 import '../model_thumbnail.dart';
 import '../skin.dart';
+import '../tour/tours.dart';
 import 'page_scaffold.dart';
 
 String modelName(String id) => CalcModel.byId(id).name;
 
 /// Pick which calculator to use. Memories, data and setup carry over.
 class ModelPage extends StatelessWidget {
-  const ModelPage({super.key});
+  const ModelPage({super.key, this.startTour = false});
+
+  /// Settings ▸ Help: replay this page's tour.
+  final bool startTour;
 
   static void _choose(AppSettings settings, String id) {
     keyVibration();
@@ -82,6 +86,7 @@ class ModelPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = SettingsScope.of(context);
+    runTourOnce(context, Tours.models, () => modelsTour, force: startTour);
     return MenuPageScaffold(
       title: 'Calculator model',
       children: [
@@ -98,7 +103,9 @@ class ModelPage extends StatelessWidget {
             children: [
               for (final model in CalcModel.all)
                 RadioListTile<String>(
-                  key: Key('model-${model.id}'),
+                  key: model == CalcModel.all.first
+                      ? TourKeys.modelChoice
+                      : Key('model-${model.id}'),
                   value: model.id,
                   isThreeLine: true,
                   title: Text(
@@ -110,7 +117,9 @@ class ModelPage extends StatelessWidget {
                     button: true,
                     label: 'Preview ${model.name}',
                     child: InkWell(
-                      key: Key('preview-${model.id}'),
+                      key: model == CalcModel.all.first
+                          ? TourKeys.modelPicture
+                          : Key('preview-${model.id}'),
                       borderRadius: BorderRadius.circular(8),
                       onTap: () => _preview(context, model),
                       child: Padding(

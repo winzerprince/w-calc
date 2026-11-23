@@ -4,7 +4,13 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Fixed
+- Font licence texts are now bundled so the third-party licence page can show them.
+
 ### Added
+- First-start tours: hand-drawn notes and arrows over a dark scrim explain the display, menu,
+  modifier and MODE keys, the solar panel; the model, theme and manual pages have their own.
+  Replay them from Settings ▸ Help.
 - Two four-line models: *Scientific View* (history display, 2nd key, ◄► answer toggle, enter;
   COMP, STAT, TABLE) and *Scientific Write* (2ndF key, round pad; COMP, CMPLX, STAT, EQN, TABLE),
   with new Slate and Pearl themes.

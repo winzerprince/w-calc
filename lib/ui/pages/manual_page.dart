@@ -7,6 +7,7 @@ import '../../manual/manual_model.dart';
 import '../keypad_layout.dart';
 import '../legend.dart';
 import '../skin.dart';
+import '../tour/tours.dart';
 
 /// Reading theme for the manual: light on light calculator bodies, dark on
 /// dark ones, so it feels like part of the same device.
@@ -51,7 +52,10 @@ ThemeData _manualTheme(BuildContext context) {
 
 /// Manual home: search and chapters for the model in use.
 class ManualPage extends StatefulWidget {
-  const ManualPage({super.key});
+  const ManualPage({super.key, this.startTour = false});
+
+  /// Settings ▸ Help: replay this page's tour.
+  final bool startTour;
 
   @override
   State<ManualPage> createState() => _ManualPageState();
@@ -59,6 +63,7 @@ class ManualPage extends StatefulWidget {
 
 class _ManualPageState extends State<ManualPage> {
   final _search = TextEditingController();
+  late bool _tourOnce = widget.startTour;
   String _query = '';
 
   @override
@@ -75,6 +80,8 @@ class _ManualPageState extends State<ManualPage> {
         if (c.articlesFor(model).isNotEmpty) c,
     ];
     final hits = searchManual(chapters, model, _query);
+    runTourOnce(context, Tours.manual, () => manualTour, force: _tourOnce);
+    _tourOnce = false;
     return Theme(
       data: _manualTheme(context),
       child: Builder(
@@ -98,6 +105,7 @@ class _ManualPageState extends State<ManualPage> {
               child: Column(
                 children: [
                   Padding(
+                    key: TourKeys.manualSearch,
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                     child: TextField(
                       key: const Key('manual-search'),
@@ -157,6 +165,7 @@ class _ChapterList extends StatelessWidget {
         final c = chapters[i];
         final articles = c.articlesFor(model);
         return Card(
+          key: i == 0 ? TourKeys.manualChapters : null,
           elevation: 0,
           color: scheme.surfaceContainer,
           shape: RoundedRectangleBorder(

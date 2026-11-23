@@ -4,17 +4,22 @@ import '../../app/app_settings.dart';
 import '../haptics.dart';
 import '../finish.dart';
 import '../skin.dart';
+import '../tour/tours.dart';
 import 'page_scaffold.dart';
 
 String themeName(String id) => CalcSkin.byId(id).name;
 
 /// Pick a skin; each row previews its body, keys and LCD colours.
 class ThemePage extends StatelessWidget {
-  const ThemePage({super.key});
+  const ThemePage({super.key, this.startTour = false});
+
+  /// Settings ▸ Help: replay this page's tour.
+  final bool startTour;
 
   @override
   Widget build(BuildContext context) {
     final settings = SettingsScope.of(context);
+    runTourOnce(context, Tours.theme, () => themeTour, force: startTour);
     return MenuPageScaffold(
       title: 'Theme',
       children: [
@@ -32,7 +37,9 @@ class ThemePage extends StatelessWidget {
             children: [
               for (final skin in CalcSkin.all)
                 RadioListTile<String>(
-                  key: Key('theme-${skin.id}'),
+                  key: skin == CalcSkin.all.first
+                      ? TourKeys.skins
+                      : Key('theme-${skin.id}'),
                   value: skin.id,
                   title: Text(
                     skin.name,
@@ -44,7 +51,7 @@ class ThemePage extends StatelessWidget {
             ],
           ),
         ),
-        const PageSection('Finish'),
+        KeyedSubtree(key: TourKeys.finish, child: const PageSection('Finish')),
         RadioGroup<String>(
           groupValue: settings.finishId,
           onChanged: (id) {

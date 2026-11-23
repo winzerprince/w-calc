@@ -60,6 +60,12 @@ void main() {
       await tester.pump();
     }
     await openMenuItem(tester, 'Settings');
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('setting-reset')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pump();
     await tester.tap(find.byKey(const Key('setting-reset')));
     await settle(tester);
     await tester.tap(find.byKey(const Key('confirm-reset')));
