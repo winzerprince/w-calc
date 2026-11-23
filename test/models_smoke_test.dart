@@ -5,11 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:w_calc/app/app_settings.dart';
 import 'package:w_calc/app/calc_model.dart';
+import 'package:w_calc/app/history_store.dart';
 import 'package:w_calc/main.dart';
 
 /// Every model renders without layout errors and calculates 1 + 2.
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    HistoryStore.instance.resetForTest();
+  });
 
   for (final model in CalcModel.all) {
     testWidgets('${model.name}: renders and adds', (tester) async {

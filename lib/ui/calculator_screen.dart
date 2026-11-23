@@ -4,11 +4,13 @@ import 'package:wcalc_engine/wcalc_engine.dart';
 
 import '../app/app_settings.dart';
 import '../app/calc_model.dart';
+import '../app/history_store.dart';
 import 'app_menu.dart';
 import 'finish.dart';
 import 'fullscreen.dart';
 import 'graph/graph_page.dart';
 import 'haptics.dart';
+import 'pages/history_page.dart';
 import 'keyboard_shortcuts.dart';
 import 'keypad.dart';
 import 'keypad_layout.dart' show LabelKind;
@@ -120,8 +122,27 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   /// A long computation (∫dx, d/dx, SOLVE) is running.
   bool _busy = false;
 
+  /// Records a calculation the engine just finished in [HistoryStore].
+  void _recordHistory(List<({String input, String result})> before) {
+    final after = _calc.historyEntries;
+    if (after.isEmpty) return;
+    final grew = after.length > before.length;
+    final shifted =
+        after.length == before.length &&
+        before.isNotEmpty &&
+        after.last != before.last;
+    if (grew || shifted) {
+      HistoryStore.instance.add(
+        _model!.id,
+        after.last.input,
+        after.last.result,
+      );
+    }
+  }
+
   Future<void> _press(CalcKey key) async {
     if (_busy) return;
+    final historyBefore = _calc.historyEntries;
     final settings = SettingsScope.maybeOf(context);
     if (settings?.vibration ?? true) keyVibration();
     if (settings?.keySound ?? false) SystemSound.play(SystemSoundType.click);
@@ -135,6 +156,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
     } else {
       setState(() => _calc.press(key));
     }
+    _recordHistory(historyBefore);
     StateStore.save(_calc, _stateKey);
   }
 
@@ -184,50 +206,12 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
   VoidCallback? _historyAction() =>
       _calc.historyEntries.isEmpty ? null : _openHistory;
 
-  /// Earlier calculations, newest first; tap one to copy its answer.
+  /// The History page for the model in use.
   void _openHistory() {
     keyVibration();
-    final entries = _calc.historyEntries.reversed.toList();
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheet) => SafeArea(
-        child: ListView(
-          key: const Key('history-list'),
-          shrinkWrap: true,
-          children: [
-            const ListTile(
-              title: Text(
-                'Earlier calculations',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: Text('Tap one to copy its answer'),
-            ),
-            for (final e in entries)
-              ListTile(
-                title: Text(e.input),
-                trailing: Text(
-                  e.result,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                  ),
-                ),
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: e.result));
-                  Navigator.pop(sheet);
-                  ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-                    SnackBar(
-                      content: Text('Copied ${e.result}'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
-              ),
-          ],
-        ),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(SoftRoute<void>(builder: (_) => HistoryPage(modelId: _model?.id)));
   }
 
   VoidCallback? _graphAction() {

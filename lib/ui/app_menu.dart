@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'graph/graph_page.dart';
 import 'haptics.dart';
 import 'pages/about_page.dart';
+import 'pages/history_page.dart';
 import 'pages/manual_page.dart';
 import 'pages/model_page.dart';
 import 'pages/settings_page.dart';
@@ -26,6 +27,12 @@ class MenuEntry {
 }
 
 final menuEntries = [
+  MenuEntry(
+    Icons.history,
+    'History',
+    'Earlier calculations for each model, with times',
+    page: (_) => const HistoryPage(),
+  ),
   MenuEntry(
     Icons.show_chart,
     'Graph',

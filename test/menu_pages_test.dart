@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:w_calc/app/app_settings.dart';
+import 'package:w_calc/app/history_store.dart';
 import 'package:w_calc/main.dart';
 
 Future<void> settle(WidgetTester tester) async {
@@ -18,7 +19,10 @@ String lcd(WidgetTester tester, String line) =>
     '';
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    HistoryStore.instance.resetForTest();
+  });
 
   Future<AppSettings> openApp(WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2340);

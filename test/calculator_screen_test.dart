@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:w_calc/app/app_settings.dart';
+import 'package:w_calc/app/history_store.dart';
 import 'package:w_calc/main.dart';
 
 Future<void> tapKey(WidgetTester tester, String name) async {
@@ -16,7 +18,10 @@ String lcdText(WidgetTester tester, String line) =>
     '';
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    HistoryStore.instance.resetForTest();
+  });
 
   testWidgets('shows initial display', (tester) async {
     tester.view.physicalSize = const Size(1080, 2340);
@@ -230,8 +235,33 @@ void main() {
     }
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.byKey(const Key('history-button')));
-    await tester.pump(const Duration(milliseconds: 400));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
     expect(find.text('1+2'), findsOneWidget);
     expect(find.text('25'), findsOneWidget);
+  });
+
+  testWidgets('History page: per model, with time; saving can be turned off', (
+    tester,
+  ) async {
+    final settings = AppSettings();
+    await tester.pumpWidget(WCalcApp(settings: settings));
+    for (final k in ['d6', 'multiply', 'd7', 'equals']) {
+      await tester.tap(find.byKey(Key('key-$k')));
+      await tester.pump();
+    }
+    expect(HistoryStore.instance.of('plus').single.result, '42');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.byKey(const Key('history-button')));
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('6×7'), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('history-save')));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(settings.saveHistory, isFalse);
+    expect(HistoryStore.instance.persist, isFalse);
   });
 }

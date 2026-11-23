@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:w_calc/app/app_settings.dart';
+import 'package:w_calc/app/history_store.dart';
 import 'package:w_calc/main.dart';
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    HistoryStore.instance.resetForTest();
+  });
 
   Future<void> settle(WidgetTester tester) async {
     for (var i = 0; i < 6; i++) {
