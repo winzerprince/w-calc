@@ -9,6 +9,7 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
   supported by “Buy me a coffee”.
 
 ### Changed
+- itch.io link updated to the official page (winzer-prince.itch.io/w-calc).
 - Website: feature list and disclaimer reworded.
 - Website: the “live ;)” arrow points at the calculator without touching its frame; “try it
   here!” sits closer and more slanted.
