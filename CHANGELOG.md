@@ -8,6 +8,10 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 - Ads: the website no longer has any ad code or ad mentions; W-Calc is ad-free everywhere and
   supported by “Buy me a coffee”.
 
+### Added
+- Website: a small chalk YouTube icon links to the W-Calc video.
+- Contributor guides in `docs/contributing/` and a pull request template.
+
 ### Changed
 - itch.io link updated to the official page (winzer-prince.itch.io/w-calc).
 - Website: feature list and disclaimer reworded.

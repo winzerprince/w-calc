@@ -104,6 +104,11 @@
     #hint.show { opacity: .9; }
     .btn svg { width: 22px; height: 22px; vertical-align: -4px; margin-left: 6px; }
     .btn .gh { fill: currentColor; margin: 0 6px 0 0; }
+    /* YouTube: a chalk outline, no box, sits quietly after the buttons. */
+    .yt { align-self: center; color: var(--dim); line-height: 0; transition: color .2s, transform .15s; }
+    .yt:hover { color: var(--chalk); transform: rotate(-4deg) scale(1.08); }
+    .yt svg { width: 46px; height: 34px; }
+    .yt path { stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
     .cup path { stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
     .cup .steam { opacity: .8; animation: steam 2.6s ease-in-out infinite; }
     .cup .steam.b { animation-delay: .9s; }
@@ -187,6 +192,7 @@
         <a class="btn android" href="https://winzer-prince.itch.io/w-calc" rel="noopener">Get the Android app ↓</a>
         <a class="btn kofi" href="https://ko-fi.com/winzerprince" rel="noopener">Buy me a coffee<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path class="steam" d="M8 7c-1-1.5 1-2.5 0-4"/><path class="steam b" d="M12 7c-1-1.5 1-2.5 0-4"/><path d="M4 10h12l-1 9.5a1.5 1.5 0 0 1-1.5 1.3H6.5A1.5 1.5 0 0 1 5 19.5Z"/><path d="M16 12h1.5a2.5 2.5 0 0 1 0 5H15.6"/></svg></a>
         <a class="btn src" href="https://github.com/winzerprince/w-calc" rel="noopener"><svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>source code</a>
+        <a class="yt" href="https://youtu.be/D-NDQrO43gg" rel="noopener" aria-label="Watch W-Calc on YouTube" title="Watch on YouTube"><svg viewBox="0 0 46 34" aria-hidden="true"><path d="M6 6.5C14 4.6 32 4.4 40.5 6.2c2.3.6 3.4 2.4 3.6 5 .5 4 .4 8 0 11.6-.3 2.5-1.6 4.2-3.8 4.7-8.6 1.9-26 1.8-34.6.1-2.2-.5-3.4-2.3-3.7-4.8-.5-3.8-.5-7.8 0-11.4.3-2.7 1.6-4.4 4-4.9Z"/><path d="M18.5 11.5 L29.5 17.2 L18.6 23 Z"/></svg></a>
       </div>
       <p class="wip">Spotted a bug? <a href="https://github.com/winzerprince/w-calc/issues/new/choose" rel="noopener">Open an issue on GitHub</a> — ideas and contributions are welcome.</p>
       <p class="fine">
