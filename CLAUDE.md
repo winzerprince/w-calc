@@ -9,8 +9,7 @@ Clean-room Flutter app that behaves like the user's physical two-line MS-series 
 - `docs/downloads/` is private and gitignored: never commit, quote or bundle it. Write our own help text.
 - Never use CASIO firmware/ROM, logos, or trademarks ("CASIO", "fx-", "991", "V.P.A.M.") in code, assets,
   names, package ids or store text. Only allowed mention: one factual compatibility line + disclaimer in the store listing/About.
-- License: MIT, open source, public repo (LICENSE). Earlier releases were GPL-3.0 (≤ v0.4.0) and
-  proprietary (v0.5–v0.11). Only add permissive dependencies/assets (MIT, BSD, Apache-2.0, OFL) so
+- License: MIT, open source, public repo (LICENSE). Don't mention earlier licences in public text. Only add permissive dependencies/assets (MIT, BSD, Apache-2.0, OFL) so
   the app stays MIT; never GPL/LGPL/AGPL code.
 - Distribution: itch.io first (web build + Android APK). Everything for the store page
   (descriptions, screenshots, disclaimers, roadmap) lives in `docs/downloads/release-kit/` (private).

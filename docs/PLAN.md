@@ -184,7 +184,7 @@ Store title pattern: `<Brand> – Scientific Calculator`.
 ## 8. Decisions (2026-11-22)
 
 - Name: **W-Calc** (store title "W-Calc – Scientific Calculator"), app id `io.github.winzerprince.wcalc`
-- License: MIT, open source (from 2026-11-23; v0.5–v0.11 proprietary; v0.0.1–v0.4.0 GPL-3.0)
+- License: MIT, open source
 - Platforms: Android first (CI-built); web local only; iOS later
 - Free, no ads, no tracking
 - Reference: user's physical unit (from photos/device tests) over the manual
