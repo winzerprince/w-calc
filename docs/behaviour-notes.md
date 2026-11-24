@@ -1,6 +1,6 @@
 # Behaviour notes (device vs manual)
 
-Ground truth = the owner's physical unit (older edition, `EXP` key). Each entry: what we assumed,
+Ground truth = a real calculator (older edition, `EXP` key). Each entry: what we assumed,
 how to verify on the device, result.
 
 | # | Topic | Assumption in code | Verify on device | Status |
@@ -27,7 +27,7 @@ how to verify on the device, result.
 | 20 | Rnd after a result | rounds Ans (`10 ÷ 3 = SHIFT 0 × 3 =` → `9.999` in Fix 3), shown as `Rnd Ans` | as described | to verify display text |
 | 21 | hyp | shows a `hyp` indicator until the next key; hyp + non-trig key drops hyp | press hyp | to verify |
 | 22 | Function texts | `sin⁻¹ ` (with `⁻¹` as 2 columns), `10^`, `e^`, `³√`, `ˣ√`, `Ran#`, `Rnd ` | type them, compare widths | to verify |
-| 23 | MODE menus | 6 pages (COMP CMPLX / SD REG BASE / EQN MAT VCT / Deg Rad Gra / Fix Sci Norm / Disp), MODE after the last page returns to calculation (confirmed by owner); selecting a setting returns to the expression being edited | MODE repeatedly | to verify |
+| 23 | MODE menus | 6 pages (COMP CMPLX / SD REG BASE / EQN MAT VCT / Deg Rad Gra / Fix Sci Norm / Disp), MODE after the last page returns to calculation (confirmed on a real calculator); selecting a setting returns to the expression being edited | MODE repeatedly | to verify |
 | 24 | Changing Fix/Sci/Norm | a result already on screen is re-shown in the new format | `100 ÷ 7 =` then Fix 3 | to verify |
 | 25 | RCL display | upper shows `A=`, result line the value; Ans unchanged; an operator after RCL continues from the variable (`RCL A +` → `A+`) | `RCL (−)` then `+` | to verify |
 | 26 | STO display | expression stays on the upper line, value on the result line; Ans updated | `3 + 5 SHIFT RCL (−)` | to verify |

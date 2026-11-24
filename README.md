@@ -22,9 +22,8 @@ https://w-calc.0xwinzer.com.
 - **Private** — no network, no data collected ([`docs/PRIVACY.md`](docs/PRIVACY.md)).
 
 ## Status
-Beta (v0.13.x). Plan: [`docs/PLAN.md`](docs/PLAN.md) · changes: [`CHANGELOG.md`](CHANGELOG.md) ·
-device questions: [`docs/behaviour-notes.md`](docs/behaviour-notes.md) · known issues:
-[`docs/KNOWN_ISSUES.md`](docs/KNOWN_ISSUES.md).
+Beta (v0.13.x). Changes: [`CHANGELOG.md`](CHANGELOG.md) · device behaviour:
+[`docs/behaviour-notes.md`](docs/behaviour-notes.md) · contributing: [`docs/contributing/`](docs/contributing/README.md).
 
 ## Feedback and contributions
 W-Calc is actively developed. Found a bug or a difference from your calculator? [Open an
