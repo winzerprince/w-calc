@@ -24,6 +24,7 @@
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
+  <script>if (window.self !== window.top) document.documentElement.classList.add('embed');</script>
   <link rel="preload" href="assets/assets/fonts/PatrickHand-Regular.ttf" as="font" type="font/ttf" crossorigin>
   <style>
     /* Patrick Hand: SIL OFL 1.1, bundled with the app. */
@@ -146,12 +147,27 @@
     }
     @media (max-width: 1200px) { .live { display: none; } }
     @media (max-width: 1120px) { .try { display: none; } #page { gap: 44px; } }
-    /* Phones and narrow windows (and the itch.io embed): the app fills the screen. */
+    .btn.open, #close-app { display: none; }
+    /* Phones: the chalkboard page with all links comes first; "Open the calculator" shows the app
+       full screen and "× close" brings the page back. Inside the itch.io embed: calculator only. */
     @media (max-width: 899px) {
-      #page { display: block; padding: 0; }
-      #info, #board, #tray, #draw, #held { display: none !important; }
-      .live { display: none; }
+      #page { display: block; padding: 28px 18px 44px; }
+      #tray, #draw, #held, #hint, .live, .try { display: none !important; }
+      #info { max-width: none; }
+      #info h1 { font-size: 58px; gap: 12px; }
+      #info h1 img { width: 48px; height: 48px; border-radius: 12px; }
+      .underline { width: 210px; margin: 2px 0 16px 58px; }
+      .tag { font-size: 24px; margin-bottom: 18px; }
+      #info ul { font-size: 19px; margin-bottom: 22px; }
+      .btn.open { display: block; width: 100%; margin: 0 0 24px; font-size: 27px; color: var(--mint); cursor: pointer; }
+      .stage { position: fixed; inset: 0; z-index: 20; visibility: hidden; }
       #frame { width: 100%; height: 100vh; height: 100dvh; padding: 0; border: 0; background: none; box-shadow: none; }
+      html.app-open .stage, html.embed .stage { visibility: visible; }
+      html.app-open, html.app-open body { overflow: hidden; }
+      html.app-open #close-app { display: block; position: fixed; top: 6px; left: 50%; transform: translateX(-50%); z-index: 30;
+        font: inherit; font-size: 17px; line-height: 1.2; color: var(--chalk); background: rgba(0,0,0,.6);
+        border: 1.5px solid rgba(243,241,231,.6); border-radius: 14px; padding: 1px 12px 3px; cursor: pointer; }
+      html.embed #info, html.embed #board, html.embed #close-app { display: none !important; }
     }
   </style>
 </head>
@@ -178,6 +194,7 @@
       <h1><img src="icons/Icon-192.png" alt="">W-Calc</h1>
       <svg class="underline" viewBox="0 0 260 18" aria-hidden="true"><path d="M4 12 C60 4, 120 16, 180 8 S 240 6, 256 10"/></svg>
       <p class="tag">The scientific calculator you use in class — right here, free.</p>
+      <button class="btn open" id="open-app" type="button">Open the calculator ▶</button>
       <ul>
         <li>Ten classic models including two-line, textbook and multi-line</li>
         <li>Works offline, free & open source</li>
@@ -204,6 +221,7 @@
       </div>
     </section>
     <div class="stage">
+      <button id="close-app" type="button" aria-label="Back to the W-Calc page">× close</button>
       <div class="live" aria-hidden="true">live ;)
         <svg viewBox="0 0 74 44"><path d="M58 3 C52 22, 34 34, 6 38"/><path d="M17 30 L5 38 L18 43"/></svg>
       </div>
@@ -309,6 +327,14 @@
         last = { x: e.clientX, y: e.clientY }; line(last, { x: last.x + .1, y: last.y + .1 });
       });
       addEventListener('pointerup', function () { last = null; });
+    })();
+  </script>
+  <script>
+    // Phones: open the calculator full screen from the page, and close it again.
+    (function () {
+      var root = document.documentElement;
+      document.getElementById('open-app').addEventListener('click', function () { root.classList.add('app-open'); scrollTo(0, 0); });
+      document.getElementById('close-app').addEventListener('click', function () { root.classList.remove('app-open'); });
     })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
