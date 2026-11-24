@@ -4,6 +4,12 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Changed
+- Website: shorter bug-report line; “live ;)” chalked beside the calculator; the board is
+  wiped and rewritten a little more often; privacy page shorter (no hosting details).
+- Website easter egg: right-click puts the chalk or eraser back; a note says so when you pick one
+  up.
+
 ## [0.13.2-beta] - 2026-11-23
 
 Display fixes (fractions, equation entry, indicators) and an easy way to report bugs.

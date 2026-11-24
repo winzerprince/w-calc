@@ -93,9 +93,13 @@
       background: #0D0E10; border: 2px solid rgba(243,241,231,.55);
       box-shadow: 0 0 0 6px rgba(0,0,0,.35), 0 28px 70px rgba(0,0,0,.55); }
     #app-host { position: relative; width: 100%; height: 100%; overflow: hidden; background: #15171C; }
-    .live { position: absolute; left: 4px; top: -40px; font-size: 22px; color: var(--mint); display: flex; align-items: center; gap: 8px; }
-    .live i { width: 11px; height: 11px; border-radius: 50%; background: #5BE38F; box-shadow: 0 0 0 0 rgba(91,227,143,.6); animation: live 1.8s ease-out infinite; }
-    @keyframes live { 70% { box-shadow: 0 0 0 9px rgba(91,227,143,0); } 100% { box-shadow: 0 0 0 0 rgba(91,227,143,0); } }
+    /* "live ;)" chalked at the top right, arrow pointing at the calculator. */
+    .live { position: absolute; right: -128px; top: 18px; width: 120px; font-size: 30px; color: var(--mint); transform: rotate(8deg); }
+    .live svg { display: block; width: 96px; height: 60px; margin: 2px 0 0 -30px; }
+    .live path { stroke: var(--mint); stroke-width: 2.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    #hint { position: fixed; left: 0; top: 0; z-index: 6; pointer-events: none; color: var(--yellow); font-size: 20px;
+      white-space: nowrap; opacity: 0; transition: opacity .4s; }
+    #hint.show { opacity: .9; }
     #mobile-ad { display: none; }
     .btn svg { width: 22px; height: 22px; vertical-align: -4px; margin-left: 6px; }
     .btn .gh { fill: currentColor; margin: 0 6px 0 0; }
@@ -132,9 +136,9 @@
 
     @media (prefers-reduced-motion: reduce) {
       .underline path { animation: none; stroke-dashoffset: 0; }
-      .eq.wipe, .eq.write, #splash img, .live i, .cup .steam { animation: none; }
+      .eq.wipe, .eq.write, #splash img, .cup .steam { animation: none; }
     }
-    @media (max-width: 1120px) { .try { display: none; } #page { gap: 44px; } }
+    @media (max-width: 1120px) { .try, .live { display: none; } #page { gap: 44px; } }
     /* Phones and narrow windows (and the itch.io embed): the app fills the screen. */
     @media (max-width: 899px) {
       #page { display: block; padding: 0; }
@@ -184,8 +188,7 @@
         <a class="btn kofi" href="https://ko-fi.com/winzerprince" rel="noopener">Buy me a coffee<svg class="cup" viewBox="0 0 24 24" aria-hidden="true"><path class="steam" d="M8 7c-1-1.5 1-2.5 0-4"/><path class="steam b" d="M12 7c-1-1.5 1-2.5 0-4"/><path d="M4 10h12l-1 9.5a1.5 1.5 0 0 1-1.5 1.3H6.5A1.5 1.5 0 0 1 5 19.5Z"/><path d="M16 12h1.5a2.5 2.5 0 0 1 0 5H15.6"/></svg></a>
         <a class="btn src" href="https://github.com/winzerprince/w-calc" rel="noopener"><svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>source code</a>
       </div>
-      <p class="wip">Still growing — I'm improving W-Calc all the time. Spotted a bug, or an answer
-        that differs from your calculator? <a href="https://github.com/winzerprince/w-calc/issues/new/choose" rel="noopener">Tell me on GitHub</a> — ideas and contributions welcome.</p>
+      <p class="wip">Spotted a bug? <a href="https://github.com/winzerprince/w-calc/issues/new/choose" rel="noopener">Open an issue on GitHub</a> — ideas and contributions are welcome.</p>
       <!-- ADS:SLOT -->
       <p class="fine">
         Independent educational software, not affiliated with or endorsed by any calculator
@@ -197,7 +200,9 @@
       </div>
     </section>
     <div class="stage">
-      <div class="live" aria-hidden="true"><i></i>live — tap the keys</div>
+      <div class="live" aria-hidden="true">live ;)
+        <svg viewBox="0 0 96 60"><path d="M70 4 C60 30, 40 44, 8 50"/><path d="M20 40 L7 50 L22 56"/></svg>
+      </div>
       <main id="frame">
         <div id="app-host">
           <div id="splash"><img src="icons/Icon-192.png" alt="">getting the chalk ready…</div>
@@ -207,6 +212,7 @@
   </div>
   <canvas id="draw" aria-hidden="true"></canvas>
   <div id="held" aria-hidden="true"></div>
+  <div id="hint" aria-hidden="true">right-click to put it back</div>
   <div id="tray" aria-hidden="true"><i class="c1" title="Chalk"></i><i class="c2" title="Chalk"></i><i class="c3" title="Chalk"></i><i class="eraser" title="Eraser"></i></div>
   <!-- ADS:MOBILE -->
   <noscript>W-Calc needs JavaScript to run. It is a free scientific calculator with exact fractions, statistics, equations, matrices and graphs.</noscript>
@@ -230,7 +236,7 @@
           el.textContent = lines[k++ % lines.length];
           el.classList.remove('wipe'); el.classList.add('write');
         }, 1200);
-      }, 6500);
+      }, 4000);
     })();
   </script>
   <script>
@@ -238,7 +244,7 @@
     // board to draw or erase; click the tray or press Esc to put it down.
     (function () {
       var canvas = document.getElementById('draw'), ctx = canvas.getContext('2d');
-      var held = document.getElementById('held');
+      var held = document.getElementById('held'), hint = document.getElementById('hint'), hintTimer;
       var tool = null, piece = null, last = null;
       function size() {
         var r = devicePixelRatio || 1, img = canvas.width ? ctx.getImageData(0, 0, canvas.width, canvas.height) : null;
@@ -251,6 +257,7 @@
       function drop() {
         if (piece) piece.classList.remove('taken');
         tool = piece = last = null; document.body.classList.remove('holding');
+        hint.classList.remove('show');
       }
       function pick(el) {
         drop(); piece = el; el.classList.add('taken');
@@ -259,11 +266,15 @@
         held.style.width = el.offsetWidth + 'px'; held.style.height = el.offsetHeight + 'px';
         held.style.background = cs.backgroundImage !== 'none' ? cs.backgroundImage : cs.backgroundColor;
         document.body.classList.add('holding');
+        // A short note on how to let go, then it fades.
+        hint.classList.add('show'); clearTimeout(hintTimer);
+        hintTimer = setTimeout(function () { hint.classList.remove('show'); }, 3000);
       }
       document.querySelectorAll('#tray i').forEach(function (el) {
         el.addEventListener('click', function (e) { e.stopPropagation(); piece === el ? drop() : pick(el); });
       });
       addEventListener('keydown', function (e) { if (e.key === 'Escape') drop(); });
+      addEventListener('contextmenu', function (e) { if (tool) { e.preventDefault(); drop(); } });
       function line(a, b) {
         if (tool.erase) {
           ctx.globalCompositeOperation = 'destination-out';
@@ -287,10 +298,11 @@
       addEventListener('pointermove', function (e) {
         if (!tool) return;
         held.style.transform = 'translate(' + e.clientX + 'px,' + e.clientY + 'px) rotate(' + (tool.erase ? 0 : -35) + 'deg)';
+        hint.style.transform = 'translate(' + (e.clientX + 18) + 'px,' + (e.clientY + 22) + 'px)';
         if (last && e.buttons) { var p = { x: e.clientX, y: e.clientY }; line(last, p); last = p; }
       });
       addEventListener('pointerdown', function (e) {
-        if (!tool || e.target.closest('#tray')) return;
+        if (!tool || e.button !== 0 || e.target.closest('#tray')) return;
         last = { x: e.clientX, y: e.clientY }; line(last, { x: last.x + .1, y: last.y + .1 });
       });
       addEventListener('pointerup', function () { last = null; });
