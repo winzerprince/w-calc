@@ -4,6 +4,13 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ## [Unreleased]
 
+### Removed
+- Ads: the website no longer has any ad code or ad mentions; W-Calc is ad-free everywhere and
+  supported by “Buy me a coffee”.
+
+### Changed
+- Website: feature list and disclaimer reworded.
+
 ### Changed
 - Website: shorter bug-report line; “live ;)” chalked beside the calculator; the board is
   wiped and rewritten a little more often; privacy page shorter (no hosting details).
