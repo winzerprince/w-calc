@@ -1,6 +1,6 @@
 # Textbook-display models (spec)
 
-Our own description of the second calculator family the user owns (photos: silver 1st edition,
+Our own description of the second calculator family (silver 1st edition,
 black 2nd edition). Both editions share behaviour; they differ in body, key colours and the cursor
 pad (round disc vs four separate arrow keys). Sources: official online manual (2nd edition) and the
 printed user guide, both read privately; nothing here is copied from them.

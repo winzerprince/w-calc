@@ -40,3 +40,9 @@ android/app/release
 # Personal Claude Code settings
 .claude/settings.local.json
 tool/.web.env
+
+# Internal notes kept locally (not needed by contributors)
+/CLAUDE.md
+/docs/PLAN.md
+/docs/KNOWN_ISSUES.md
+/docs/store/

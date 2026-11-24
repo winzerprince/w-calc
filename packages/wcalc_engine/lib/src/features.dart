@@ -16,7 +16,7 @@ class CalcFeatures {
     this.engSymbols = true,
   });
 
-  /// Everything (the two-line "991-style" reference model).
+  /// Everything (the two-line reference model).
   static const full = CalcFeatures();
 
   /// Basic two-line scientific: COMP, SD, REG; no constants, conversions,

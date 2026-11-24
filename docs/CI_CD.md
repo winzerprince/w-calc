@@ -62,7 +62,7 @@ gh pr create --base dev --title "chore: sync main into dev after vX.Y.Z" --body 
 gh pr merge <n> --merge      # merge commit, NOT squash (keeps ancestry)
 ```
 
-Done by Claude as part of every release.
+Done as part of every release.
 
 ## Required checks (branch protection)
 

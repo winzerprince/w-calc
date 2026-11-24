@@ -3,7 +3,7 @@
 ## Quick web test (no install)
 
 ```bash
-cd ~/code/projects/w-calc
+cd w-calc
 git switch dev && git pull         # latest integrated work
 tool/web.sh                         # dev server, hot reload, LAN-accessible
 ```

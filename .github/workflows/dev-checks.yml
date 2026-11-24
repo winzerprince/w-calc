@@ -1,6 +1,6 @@
 # PRs into dev: instant placeholder so the required "checks" status reports.
 # Full verification (format, analyze, all tests) runs locally before every PR
-# (see CLAUDE.md) and in CI on dev -> main (main-gate). Builds run only on main.
+# (tool/gate.sh) and in CI on dev -> main (main-gate). Builds run only on main.
 # Kept minimal on purpose to save GitHub Actions minutes and development time.
 name: dev-checks
 

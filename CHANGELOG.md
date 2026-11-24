@@ -240,7 +240,7 @@ Nine calculator models: new two-line dot, four-line and big-matrix models; first
 
 ## [0.5.0-beta] - 2026-11-23
 
-Finishes and body shapes, model previews, focus mode, a fuller manual, and a proprietary licence.
+Finishes and body shapes, model previews, focus mode, and a fuller manual.
 
 **Which file to install on Android:** most phones need `…-arm64-v8a.apk`; if unsure, use
 `…-universal.apk`.
@@ -265,8 +265,6 @@ Finishes and body shapes, model previews, focus mode, a fuller manual, and a pro
 
 ### Changed
 - About page shortened to version, purpose, notice and legal information.
-- Licence: W-Calc is now proprietary (all rights reserved). Versions up to v0.4.0-beta remain
-  GPL-3.0-or-later for anyone who received them.
 
 ## [0.4.0-beta] - 2026-11-23
 
