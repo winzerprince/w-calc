@@ -7,6 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 OUT="${1:-docs/downloads/release-kit/builds}"
 VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+rm -rf build/web
 flutter build web --release --no-web-resources-cdn --pwa-strategy=none
 sed -i 's#<base href="/">#<base href="./">#' build/web/index.html
 grep -q '<base href="./">' build/web/index.html

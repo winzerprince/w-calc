@@ -10,6 +10,8 @@ cd "$(dirname "$0")/.."
 DRY=false
 [[ "${1:-}" == "--dry-run" ]] && DRY=true
 
+# Start clean so no file from an older build is uploaded.
+rm -rf build/web
 flutter build web --release --no-web-resources-cdn --pwa-strategy=none
 OUT=build/web
 
