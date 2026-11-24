@@ -10,6 +10,8 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
 
 ### Changed
 - Website: feature list and disclaimer reworded.
+- Website: the “live ;)” arrow points at the calculator without touching its frame; “try it
+  here!” sits closer and more slanted.
 
 ### Changed
 - Website: shorter bug-report line; “live ;)” chalked beside the calculator; the board is
