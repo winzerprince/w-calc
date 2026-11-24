@@ -9,6 +9,7 @@ All notable changes. Format: `## [version] - date`, newest first. Release notes 
   supported by “Buy me a coffee”.
 
 ### Added
+- Releases are pushed to itch.io automatically (butler), once the `BUTLER_API_KEY` secret is set.
 - Website on phones: the page with all links comes first; “Open the calculator” shows the app
   full screen and “× close” returns. The itch.io embed stays calculator-only.
 - Website: a small chalk YouTube icon links to the W-Calc video.
