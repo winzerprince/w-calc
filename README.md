@@ -47,7 +47,6 @@ tool/itch_web.sh        # web build zipped for itch.io
 Android builds run only in CI on `main`. Workflow and CI rules: [`docs/CI_CD.md`](docs/CI_CD.md).
 
 ## License
-MIT — see [`LICENSE`](LICENSE). Free and open source; contributions welcome. (v0.5.0–v0.11.0
-were briefly proprietary; up to v0.4.0 were GPL-3.0.)
+MIT — see [`LICENSE`](LICENSE). Free and open source; contributions welcome.
 
 Like W-Calc? [Buy me a coffee on Ko-fi](https://ko-fi.com/winzerprince). Third-party components: [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
