@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 const kofiUrl = 'https://ko-fi.com/winzerprince';
 
 /// Downloads (Android app and web version) on itch.io.
-const itchUrl = 'https://winzerprince.itch.io/w-calc';
+const itchUrl = 'https://winzer-prince.itch.io/w-calc';
 
 /// The web version.
 const webUrl = 'https://w-calc.0xwinzer.com';
