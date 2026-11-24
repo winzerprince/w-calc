@@ -3,6 +3,8 @@
 Thank you for helping! W-Calc is actively developed, and reports from people who use it are the
 fastest way to make it better.
 
+More detail: [docs/contributing/](docs/contributing/README.md) (setup, project map, ways to help).
+
 ## Report a bug
 Open an issue with the **Bug report** form: https://github.com/winzerprince/w-calc/issues/new/choose
 
