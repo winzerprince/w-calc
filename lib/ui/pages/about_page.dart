@@ -37,11 +37,6 @@ class AboutPage extends StatelessWidget {
           'W-Calc collects no data. It works offline; settings, memories and '
           'graphs stay on this device.',
         ),
-        if (kIsWeb)
-          const PageText(
-            'The website version may show ads from Google, which can use '
-            'cookies. The Android app has no ads.',
-          ),
         const PageSection('Help improve W-Calc'),
         const PageText(
           'W-Calc is still growing, and I am improving it all the time. If '
@@ -67,7 +62,7 @@ class AboutPage extends StatelessWidget {
             key: const Key('about-android'),
             leading: const Icon(Icons.android),
             title: const Text('Get the Android app'),
-            subtitle: const Text('Free download on itch.io, no ads'),
+            subtitle: const Text('Free download on itch.io'),
             trailing: const Icon(Icons.open_in_new),
             onTap: () => openLink(itchUrl),
           ),

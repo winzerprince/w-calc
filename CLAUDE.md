@@ -32,8 +32,8 @@ Clean-room Flutter app that behaves like the user's physical two-line MS-series 
   Judge analyze/format by exit code, never through a pipe (`cmd | tail` hides failures; it let an
   unformatted file reach CI once). Use `set -o pipefail` or run the command bare.
 - CI builds Android only, and only on `main`. Website https://w-calc.0xwinzer.com is Cloudflare Pages,
-  deployed from a local build with `tool/deploy_web.sh` after each release (ads only there, via
-  `ADSENSE_CLIENT`; Android and itch.io builds stay ad-free). `tool/web.sh` for local testing.
+  deployed from a local build with `tool/deploy_web.sh` after each release. No ads anywhere
+  (decided 2026-11-24; Ko-fi instead). `tool/web.sh` for local testing.
 - PRs into dev only get a placeholder CI check: the local gates (format, both analyzers, engine + app
   tests) are mandatory before every PR. Release dev → main only after 6–10 significant merges.
 - Product vision: after the fx-991MS-style model is complete, add more calculator models (looks of
