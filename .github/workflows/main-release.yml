@@ -187,3 +187,64 @@ jobs:
           releaseFiles: dist/*.aab
           track: internal
           status: draft
+
+  # Pushes each new release to itch.io with butler (https://itch.io/docs/butler/).
+  # Needs secret BUTLER_API_KEY (itch.io ▸ Settings ▸ API keys); skipped without it.
+  # Channels: android-universal, android-arm64 (Android) and web (played in the browser).
+  itch:
+    name: itch-io
+    needs: [android, release]
+    if: needs.release.outputs.new == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ITCH_TARGET: winzer-prince/w-calc
+      VERSION: ${{ needs.android.outputs.version }}
+    steps:
+      - name: Check itch.io configuration
+        id: cfg
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          if [ -n "$BUTLER_API_KEY" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT";
+          else echo "::notice::itch.io upload skipped (BUTLER_API_KEY not set)."; fi
+
+      - uses: actions/checkout@v7
+        if: steps.cfg.outputs.enabled == 'true'
+
+      - uses: subosito/flutter-action@v2
+        if: steps.cfg.outputs.enabled == 'true'
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/download-artifact@v8
+        if: steps.cfg.outputs.enabled == 'true'
+        with:
+          name: w-calc-android-${{ needs.android.outputs.version }}-build${{ github.run_number }}
+          path: dist
+
+      - name: Build web version for itch.io
+        if: steps.cfg.outputs.enabled == 'true'
+        run: |
+          flutter pub get
+          tool/itch_web.sh "$RUNNER_TEMP/itch"
+
+      - name: Install butler
+        if: steps.cfg.outputs.enabled == 'true'
+        run: |
+          curl -sSfL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d "$RUNNER_TEMP/butler"
+          chmod +x "$RUNNER_TEMP/butler/butler"
+          echo "$RUNNER_TEMP/butler" >> "$GITHUB_PATH"
+
+      - name: Push to itch.io
+        if: steps.cfg.outputs.enabled == 'true'
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          butler -V
+          butler push "dist/w-calc-$VERSION-universal.apk" "$ITCH_TARGET:android-universal" --userversion "$VERSION"
+          butler push "dist/w-calc-$VERSION-arm64-v8a.apk" "$ITCH_TARGET:android-arm64" --userversion "$VERSION"
+          butler push build/web "$ITCH_TARGET:web" --userversion "$VERSION"

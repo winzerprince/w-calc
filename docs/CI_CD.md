@@ -22,7 +22,7 @@ Merge style: **squash** into `dev` (one Conventional Commit per PR; sync PRs fro
 | Push to a feature branch | — | nothing | no | 0 |
 | PR → `dev` | `dev-checks` | placeholder only (required status); full local gates run before every PR | no | ~10 s |
 | PR → `main` | `main-gate` | source-branch rule (`dev`/`hotfix/*` only), all checks, engine coverage ≥ 90 %, release preview notice | no | ~4 min |
-| Push to `main` (merge) | `main-release` | tests → signed APKs (universal + per-ABI) + AAB → artifact (30 days) → release if new version → Play internal (if configured) | **yes** | ~10–15 min |
+| Push to `main` (merge) | `main-release` | tests → signed APKs (universal + per-ABI) + AAB → artifact (30 days) → release if new version → Play internal (if configured) → itch.io via butler (if configured) | **yes** | ~10–15 min |
 | Manual | `main-release` (`workflow_dispatch`) | same as push to main | yes | |
 | Tag pushed by hand | — | nothing. Tags are created by CI only. | no | |
 
@@ -77,6 +77,7 @@ Done by Claude as part of every release.
 | `WCALC_KEYSTORE_BASE64` | Android upload keystore (base64 of `.jks`) | debug-signed build + warning |
 | `WCALC_KEYSTORE_PASSWORD`, `WCALC_KEY_ALIAS`, `WCALC_KEY_PASSWORD` | keystore access | — |
 | `PLAY_SERVICE_ACCOUNT_JSON` | upload AAB to Play internal track (draft) | Play step skipped |
+| `BUTLER_API_KEY` | push APKs (channels `android-universal`, `android-arm64`) and web build (`web`) to winzer-prince.itch.io/w-calc | itch step skipped |
 
 The upload keystore is kept outside the repo. Losing it is recoverable once Play App Signing is on
 (Play can reset the upload key), but back it up anyway.
